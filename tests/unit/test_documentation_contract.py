@@ -170,3 +170,42 @@ def test_readme_documents_production_operations_and_security_boundary() -> None:
     ]
     for fragment in required_fragments:
         assert fragment in readme, fragment
+
+
+def test_readme_is_a_complete_repository_handbook_for_extension_and_release() -> None:
+    """Keep the public handbook navigable and anchored to executable assets."""
+
+    readme = (ROOT / "README.md").read_text()
+    required_fragments = [
+        "## Table of contents",
+        "## Reader paths",
+        "## Ownership, contribution, and review workflow",
+        "## Semantic versioning, compatibility, and deprecation",
+        "## Release process",
+        "## Onboarding a country or domain",
+        "## Capability-to-example traceability",
+        "## Pilot implementation plan",
+        "## Scale-out plan and promotion gates",
+        "## Production extension matrix",
+        "## Support and escalation",
+        "[Business vocabulary](semantic/vocabulary/insurance.yaml)",
+        "[Product taxonomy](semantic/taxonomy/insurance-products.ttl)",
+        "[Insurance ontology](semantic/ontology/insurance.ttl)",
+        "[SHACL shapes](semantic/shapes/insurance-shapes.ttl)",
+        "[Metric definitions](semantic/metrics/metrics.yaml)",
+        "[Business rules](semantic/rules/claims.yaml)",
+        "[Certified data-product contracts](data_products/)",
+        "[Federated mappings](mappings/)",
+        "[Golden evaluation corpus](tests/golden/questions.yaml)",
+        "[CI workflow](.github/workflows/ci.yml)",
+        "breaking change",
+        "deprecation window",
+        "baseline and target-state assessment",
+        "promotion gate",
+        "semantic owner",
+        "data-product owner",
+        "platform owner",
+        "security and privacy",
+    ]
+    for fragment in required_fragments:
+        assert fragment in readme, fragment

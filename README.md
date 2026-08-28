@@ -21,6 +21,44 @@ Snowflake, and Microsoft Fabric mappings and SQL are extension artifacts and
 are explicitly not executed or benchmarked here. No AXA data, paid cloud
 account, production credential, or LLM key is required.
 
+## Table of contents
+
+- [Reader paths](#reader-paths)
+- [How to run](#how-to-run)
+- [Local developer and data lifecycle](#local-developer-and-data-lifecycle)
+- [Architecture](#architecture)
+- [The semantic contract](#the-semantic-contract)
+- [Federation: one meaning, different implementations](#federation-one-meaning-different-implementations)
+- [Governance and data quality](#governance-and-data-quality)
+- [API endpoints](#api-endpoints)
+- [Verification evidence](#verification-evidence)
+- [Testing and evaluation](#testing-and-evaluation)
+- [Repository map](#repository-map)
+- [Ownership, contribution, and review workflow](#ownership-contribution-and-review-workflow)
+- [Semantic versioning, compatibility, and deprecation](#semantic-versioning-compatibility-and-deprecation)
+- [Release process](#release-process)
+- [Onboarding a country or domain](#onboarding-a-country-or-domain)
+- [Capability-to-example traceability](#capability-to-example-traceability)
+- [Pilot implementation plan](#pilot-implementation-plan)
+- [Scale-out plan and promotion gates](#scale-out-plan-and-promotion-gates)
+- [Production extension matrix](#production-extension-matrix)
+- [Production deployment and operating model](#production-deployment-and-operating-model)
+- [Support and escalation](#support-and-escalation)
+
+## Reader paths
+
+This repository is designed to be read as an executable reference, not a
+slide deck. Start with the path that matches your responsibility; every claim
+links to the asset or test that makes it reviewable.
+
+| Reader | Start here | Then inspect | What to establish |
+| --- | --- | --- | --- |
+| AI lead | [architecture](docs/architecture.md), [agent architecture](docs/agent-architecture.md), and [golden evaluation corpus](tests/golden/questions.yaml) | `src/semantic_layer/agents/`, `src/semantic_layer/query_planner/`, and [evaluation tests](tests/golden/test_evaluation.py) | Agents select governed business intent; they do not invent joins, metrics, or SQL. |
+| Enterprise or data architect | [semantic layer](docs/semantic-layer.md), [federated semantics](docs/federated-semantics.md), and [ADRs](docs/decisions/) | [Business vocabulary](semantic/vocabulary/insurance.yaml), [Insurance ontology](semantic/ontology/insurance.ttl), and [Certified data-product contracts](data_products/) | Group meaning is stable while local entities retain their own physical platforms and extensions. |
+| Platform engineer | [production deployment and operating model](#production-deployment-and-operating-model) and [mappings](mappings/) | `src/semantic_layer/compiler/`, `src/semantic_layer/adapters/`, and [CI workflow](.github/workflows/ci.yml) | The semantic plan/compiler boundary is where a real platform adapter, identity, and native security controls connect. |
+| Governance, security, or privacy reviewer | [governance](docs/governance.md), [data-product contracts](data_products/), and [operational failure matrix](#operational-failure-and-action-matrix) | `src/semantic_layer/governance/`, `src/semantic_layer/quality/`, `src/semantic_layer/provenance/`, and [security/control tests](tests/unit/test_execution_controls_security.py) | Access, quality, certified-product selection, and provenance are enforced before an answer is returned. |
+| Future contributor | [ownership and review workflow](#ownership-contribution-and-review-workflow), [semantic versioning](#semantic-versioning-compatibility-and-deprecation), and [onboarding a country or domain](#onboarding-a-country-or-domain) | [semantic tests](tests/semantic/), [golden tests](tests/golden/), and [ADR-002](docs/decisions/ADR-002-semantic-assets-in-git.md) | A semantic change is a versioned, reviewed, tested contract change rather than an untracked configuration edit. |
+
 ## How to run
 
 ```bash
@@ -541,18 +579,293 @@ docs/                      Architecture, ADRs, governance, interview guide, veri
 examples/                  Plans, questions and SQL artifacts
 ```
 
-## Semantic assets as software
+## Ownership, contribution, and review workflow
 
-Semantic assets are version-controlled and tested like code:
+The repository is the semantic control plane. Git is authoritative for
+published semantic assets; a registry, catalog, or runtime cache can mirror
+them but cannot silently become the system of record. The ownership model is
+deliberately federated:
 
-- **Patch:** metadata or documentation correction with unchanged meaning.
-- **Minor:** compatible synonym, relationship, or concept addition.
-- **Major:** changed definition, metric semantics, join contract, or interpretation.
+| Decision area | Accountable owner | Required reviewers | Evidence before approval |
+| --- | --- | --- | --- |
+| Canonical vocabulary, ontology, taxonomy, and cross-domain relationships | Group semantic owner | Domain steward and knowledge engineer | Definition rationale, compatibility classification, vocabulary/ontology/SHACL tests, and affected golden cases |
+| Metric and business-rule meaning | Metric owner in the relevant business domain | Finance or claims steward, semantic owner, and data-product owner | Formula, inclusion/exclusion logic, grain analysis, regression expectations, and metric-rule tests |
+| Certified data-product contract and quality SLA | data-product owner | Domain steward, platform owner, and governance reviewer | Schema/grain/join-key impact, lineage, classification/PII assessment, quality checks, and product certification decision |
+| Country mapping and local extension | Local entity semantic owner | Group semantic owner and platform owner | Canonical target, local-code coverage, source lineage, residency implications, and mapping tests |
+| Compiler/adapter behavior | platform owner | Semantic owner, security and privacy, and data-product owner | Plan-to-SQL test evidence, least-privilege design, native platform controls, and staged adapter contract tests |
+| Policy, provenance, release controls, and incident response | service owner | security and privacy, operations, and semantic owner | Threat/abuse assessment, policy tests, durability/restore evidence, and rollback plan |
 
-Changing `ActivePolicy`, `QualifyingClaim`, a mapping value, or a metric
-definition requires updated regression and golden evidence. CI runs linting,
-YAML parsing, ontology/SHACL checks, mapping and quality tests, compiler tests,
-API tests, golden evaluation, and the complete suite.
+These labels name responsibilities, not individuals. A production deployment
+should map each role to an accountable team, named on-call rotation, change
+authority, and escalation route. No contributor may self-approve a semantic
+change where they are both the semantic owner and the data-product owner unless
+the organization’s documented exception process records an independent review.
+
+### Contribution workflow
+
+1. **Frame the change as a business contract.** State the use case, canonical
+   concepts, local/entity scope, data-product grain, expected access policy,
+   and whether the change is patch, minor, or major.
+2. **Locate the authoritative asset.** Use the asset map below; do not copy a
+   definition into application code or edit a generated registry cache.
+3. **Make the smallest coherent change.** A metric change commonly affects its
+   rule, product contract, compiler behavior, evaluation cases, and version.
+   A local mapping change must not alter Group meaning without Group approval.
+4. **Add or update executable evidence first.** Include a focused semantic,
+   compiler, authorization, quality, integration, or golden test that fails
+   before the contract change and demonstrates the intended behavior after it.
+5. **Open a reviewed pull request.** Include the checklist below, assign the
+   accountable owners, let CI run, and resolve review comments before merge.
+6. **Promote an immutable artifact.** Tag and retain the reviewed commit,
+   registry digest, test reports, and migration/rollback notes. Never repair a
+   released semantic asset directly in a deployed directory.
+
+### Pull-request checklist
+
+Use this checklist for every semantic, mapping, product, compiler, or policy
+change. It is intentionally more demanding for production than for a local
+documentation correction.
+
+- [ ] The business outcome, canonical IDs, owner, affected countries/domains,
+  and intended semantic version are described.
+- [ ] The semantic owner and data-product owner approved the changed meaning;
+  the platform owner approved any adapter or physical-contract impact.
+- [ ] Security and privacy reviewed changes to PII, classification, purpose,
+  residency, retention, or access behavior.
+- [ ] The vocabulary/taxonomy/ontology/rules/metrics/product/mapping assets are
+  changed in their authoritative location and cross-references remain valid.
+- [ ] Grain, cardinality, join keys, normalization, and metric aggregation are
+  explicitly assessed; fan-out risks are tested where applicable.
+- [ ] New or changed local codes map to an existing canonical concept, or the
+  canonical-model change is separately approved and versioned.
+- [ ] Quality SLA, certification status, source lineage, and failure behavior
+  are updated if the data-product contract changes.
+- [ ] Focused regression tests and relevant [golden cases](tests/golden/questions.yaml)
+  cover the changed meaning, access decision, and deterministic answer where
+  an executable answer is expected.
+- [ ] `make lint`, `make check-yaml`, `make validate-semantic`, mapping/quality,
+  compiler, golden, and full test gates were run or will be run by CI; results
+  and any accepted limitations are recorded in the pull request.
+- [ ] A release, compatibility, migration, deprecation, and rollback note is
+  present for every non-patch behavior change.
+
+### Authoritative asset and evidence map
+
+| Contract | Authoritative asset | Primary executable evidence | Change implications |
+| --- | --- | --- | --- |
+| Canonical terms, owners, classifications, synonyms, and allowed values | [Business vocabulary](semantic/vocabulary/insurance.yaml) | [Vocabulary tests](tests/semantic/test_vocabulary.py) | Version affected concepts; assess resolver, product, mapping, and access impact. |
+| Product hierarchy and alternate labels | [Product taxonomy](semantic/taxonomy/insurance-products.ttl) | [Ontology/taxonomy tests](tests/semantic/test_shacl.py) | Preserve SKOS hierarchy and map local labels only to governed concepts. |
+| Class and relationship meaning | [Insurance ontology](semantic/ontology/insurance.ttl) | [Ontology/SHACL tests](tests/semantic/test_shacl.py) | Confirm domains, ranges, subclass semantics, graph fixtures, and planner relationship paths. |
+| Graph validity constraints | [SHACL shapes](semantic/shapes/insurance-shapes.ttl) | [SHACL validation tests](tests/semantic/test_shacl.py) | Add valid and invalid fixtures whenever a mandatory property or constraint changes. |
+| Inclusion/exclusion and lifecycle logic | [Business rules](semantic/rules/claims.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [ActivePolicy regression](tests/semantic/test_active_policy_regression.py) | Treat as a metric behavior change where a rule feeds a metric. |
+| Metric formulas, dependencies, and aggregation grain | [Metric definitions](semantic/metrics/metrics.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [compiler tests](tests/unit/test_compiler.py) | Preserve independent aggregation for ratios; update golden expectations. |
+| Certified source contract, quality, lineage, and PII | [Certified data-product contracts](data_products/) | [Registry tests](tests/unit/test_registry.py) and [quality tests](tests/unit/test_quality.py) | Re-certify after schema, SLA, classification, or grain changes. |
+| Local physical fields, values, and source lineage | [Federated mappings](mappings/) — [France](mappings/databricks/france.yaml), [UK](mappings/snowflake/united_kingdom.yaml), [Germany](mappings/fabric/germany.yaml) | [Mapping tests](tests/semantic/test_mappings.py) and [resolver tests](tests/unit/test_resolver.py) | Mapping changes require country owner approval and certified-product compatibility evidence. |
+| Typed intent, compiler, execution, and evidence behavior | `src/semantic_layer/` | [Planner tests](tests/unit/test_query_planner.py), [execution-control tests](tests/unit/test_execution_controls_security.py), and [integration tests](tests/integration/) | Do not bypass typed plans or mutate a compiled request after authorization. |
+| Natural-language-to-governed-answer coverage | [Golden evaluation corpus](tests/golden/questions.yaml) | [Golden evaluation tests](tests/golden/test_evaluation.py) and `make evaluate` | Add both successful and denied/unsupported cases for new supported language. |
+| Continuous validation | [CI workflow](.github/workflows/ci.yml) | `.github/workflows/ci.yml` job output and [verification report](docs/verification-report.md) | CI is a minimum gate; production release gates add environment-specific checks. |
+
+## Semantic versioning, compatibility, and deprecation
+
+Every published semantic asset carries a semantic version. The Group release
+version represents the compatible set of vocabulary, ontology, shapes, rules,
+metrics, data-product contracts, mappings, plan schema, and adapter behavior;
+individual asset versions identify the smallest contract that changed. Version
+numbers are not cosmetic labels: the registry and provenance should retain
+them so an answer can be interpreted using the definition in force when it was
+produced.
+
+| Change class | Version action | Examples | Required compatibility action |
+| --- | --- | --- | --- |
+| Patch | Increment `x.y.Z` | Typo correction, clearer description, non-semantic metadata update | Confirm no runtime meaning, resolver result, physical mapping, policy, or expected answer changes. |
+| Minor | Increment `x.Y.0` | New compatible synonym, optional concept property, additive product mapping, new certified product with no changed existing interpretation | Preserve prior plan/result behavior and add tests for the new capability. |
+| Major | Increment `X.0.0` | Changed definition, metric formula, inclusion rule, relationship/cardinality, join contract, security scope, product grain, canonical value, or plan-schema meaning | Publish a breaking change notice, migration guide, compatibility window, regression baseline, and rollback path. |
+
+A **breaking change** is any alteration that can change a previously valid
+answer, authorization outcome, plan interpretation, source selection, or
+provenance meaning. Renaming a local field can be a patch only when the
+canonical mapping, normalized values, output semantics, and contract tests are
+unchanged. Changing `QualifyingClaim` from excluding to including a status is
+major even if no Python signature changes.
+
+### Compatibility and migration policy
+
+1. **Classify before merge.** The pull request records impacted concepts,
+   metrics, products, mappings, consumers, and the target release version.
+2. **Keep readers compatible before writers change.** For a plan or provenance
+   schema change, deploy a reader that understands old and new versions before
+   producing only the new form.
+3. **Publish a migration record.** It states old meaning, new meaning,
+   affected questions/dashboards/agents, mapping or data backfill required,
+   test evidence, owner, effective date, and rollback procedure.
+4. **Run comparative evidence.** Re-run affected golden cases against old and
+   candidate releases. Differences must be expected, approved, and traceable
+   to the stated semantic change; unexpected changes block promotion.
+5. **Use a time-bounded deprecation window.** Maintain the prior concept,
+   metric alias, mapping, or reader for an agreed compatibility period based on
+   consumer inventory and regulatory retention needs. The duration is an
+   organization decision, not a fixed value in this POC.
+6. **Retire deliberately.** After the deprecation window, confirm consumers
+   migrated, archive the previous asset/release, preserve the ability to
+   interpret historical provenance, and remove only the deprecated interface.
+
+Deprecated does not mean silently remapped. A deprecated term may resolve with
+a warning in a controlled migration path, but a removed concept, metric, or
+mapping must fail clearly rather than return a plausible answer with changed
+meaning. See [ADR-002](docs/decisions/ADR-002-semantic-assets-in-git.md) for
+Git as the semantic source of truth and [ADR-004](docs/decisions/ADR-004-typed-query-plans.md)
+for plan-schema evolution.
+
+## Release process
+
+The release unit is an immutable, reviewed semantic artifact paired with a
+compatible application/compiler build. The local repository proves the source
+and test contracts; a production delivery pipeline must add artifact signing,
+protected environments, deployment attestations, secret scanning, dependency
+scanning, and platform-specific integration evidence.
+
+| Stage | Inputs | Required automated evidence | Human approval and exit criterion |
+| --- | --- | --- | --- |
+| Design | Use case, owner, scope, risk, and baseline semantics | New failing focused test or acceptance case | Semantic owner confirms canonical intent; product/platform/security owners join where their contract is affected. |
+| Pull request | Versioned assets, code, tests, migration/deprecation note | Ruff, YAML parse, SHACL validation, mapping/quality, compiler, golden, API/integration, and complete pytest suite through [CI](.github/workflows/ci.yml) | Required reviewers approve; unresolved behavior or risk is not deferred without a named owner and due date. |
+| Candidate | Immutable commit, registry digest, release notes, configuration contract | Re-run affected tests, semantic validation, and adapter/product contract tests in staging | Service owner verifies rollback artifact, observability, signing, identity, and change ticket readiness. |
+| Progressive production rollout | Approved candidate and protected environment configuration | Native platform authorization/row-column controls, data-quality, provenance, and smoke evidence | Start with a bounded entity/use-case scope; advance only when the promotion gate is met. |
+| General availability | Proven candidate and operational runbooks | Monitoring, restore, incident, and consumer migration evidence | Accountable owners accept support ownership and published service limits. |
+
+Create release notes from the actual diff, not a generic template. At minimum
+include semantic release/version, registry digest, impacted canonical IDs,
+data products and mappings, change classification, consumer impact, migration
+or deprecation status, test/quality results, platform coverage, owner
+approvals, and rollback artifact identifier. Provenance emitted after release
+must carry the release/digest needed to reproduce the decision.
+
+## Onboarding a country or domain
+
+Federation means adding local autonomy without introducing a second, hidden
+meaning for an existing Group concept. A new country, line of business, or
+data domain follows the same control path. Use a separate change set if the
+proposal adds a new canonical concept *and* a first local mapping so reviewers
+can distinguish Group semantic design from local implementation.
+
+| Stage | Deliverable | Accountable owner | Evidence and exit condition |
+| --- | --- | --- | --- |
+| 0. Scope and discovery | A baseline and target-state assessment: priority use cases, regulations/residency, source inventory, local terms/codes, consumers, data quality, and operating owners | Local entity sponsor with Group semantic owner | Agreed scope, named semantic owner/data-product owner/platform owner, and documented non-goals. |
+| 1. Canonical alignment | Concept crosswalk and gap decision against [Business vocabulary](semantic/vocabulary/insurance.yaml), [Product taxonomy](semantic/taxonomy/insurance-products.ttl), and [Insurance ontology](semantic/ontology/insurance.ttl) | Group semantic owner and local entity semantic owner | Every local term is mapped to a canonical ID, proposed for governed extension, or explicitly rejected. |
+| 2. Product contract | Versioned product definition in `data_products/` with grain, schema, join keys, owner, certification, SLA, PII/classification, lineage, and quality expectations | data-product owner | Product is certifiable; source-to-product lineage and native policy boundaries are understood. |
+| 3. Local mapping | Platform/location mapping under `mappings/<platform>/` with physical fields, local values, normalization, and source lineage | Local entity semantic owner and platform owner | All exposed contract fields map once to governed concepts; unknown values fail closed. |
+| 4. Controls and execution | Adapter configuration, workload identity design, policy attributes, quality gate, and platform contract tests | platform owner with security and privacy | Native row/column/residency controls and semantic policy give the same or stricter answer; no arbitrary-table access. |
+| 5. Evaluation and rollout | Representative positive, denied, ambiguous, stale-quality, and unsupported cases in [Golden evaluation corpus](tests/golden/questions.yaml) | Semantic owner with service owner | Resolution, product selection, authorization, plan, answer, provenance, and failure behavior meet agreed acceptance criteria. |
+| 6. Operate and improve | Release, dashboards, support runbook, owner directory, feedback triage, and periodic contract review | service owner and local entity sponsor | A measurable promotion gate has passed; drift, defects, and semantic-change demand have named handling paths. |
+
+The first three country mapping patterns are direct reference points:
+[France/Databricks](mappings/databricks/france.yaml),
+[United Kingdom/Snowflake](mappings/snowflake/united_kingdom.yaml), and
+[Germany/Microsoft Fabric](mappings/fabric/germany.yaml). They demonstrate
+normalization only; they do not demonstrate live connections to those
+platforms. A real onboarding must validate the target platform’s actual
+catalog, identity, row/column policy, query limits, data residency, and
+lineage integration.
+
+## Capability-to-example traceability
+
+The matrix below is an audit-friendly route from business requirement to the
+asset, runnable example, and regression evidence that implements it. It makes
+clear which capabilities are local implementation and which are production
+extension points.
+
+| Capability | Authoritative contract | Runnable local example | Regression evidence | Boundary |
+| --- | --- | --- | --- | --- |
+| Business-language grounding | [Vocabulary](semantic/vocabulary/insurance.yaml), [taxonomy](semantic/taxonomy/insurance-products.ttl), and mappings | `POST /resolve` with “car insurance” or “loss amount” | [Resolver tests](tests/unit/test_resolver.py) | Deterministic lexical/mapping resolution; no hosted model required. |
+| Relationships and graph validity | [Ontology](semantic/ontology/insurance.ttl) and [SHACL shapes](semantic/shapes/insurance-shapes.ttl) | `make validate-semantic` validates valid and invalid RDF fixtures | [SHACL tests](tests/semantic/test_shacl.py) | RDFLib/pySHACL local graph; no graph database is required. |
+| Governed metrics and rules | [Metrics](semantic/metrics/metrics.yaml) and [rules](semantic/rules/claims.yaml) | `make PYTHON=.venv/bin/python demo` computes qualifying-claim metrics | [Metric/rule tests](tests/semantic/test_metric_rules.py) | Rules are compiler-owned semantics, not LLM prompt instructions. |
+| Certified-product selection | [Data-product contracts](data_products/) | `GET /data-products`; `/query-plan` selects the required contracts | [Registry tests](tests/unit/test_registry.py) | Local CSV fixtures model certified serving products only. |
+| Federated physical normalization | [Mappings](mappings/) | France `MOTOR`/`MTR`, UK `AUTO`/`CAR`, Germany `MotorInsurance` resolve to `insurance:MotorInsurance` | [Mapping tests](tests/semantic/test_mappings.py) | Cloud mappings are unexecuted extension artifacts. |
+| Typed planning and trusted SQL | [ADR-004](docs/decisions/ADR-004-typed-query-plans.md) and `src/semantic_layer/query_planner/` | `POST /query-plan`, then `/execute` | [Planner tests](tests/unit/test_query_planner.py) and [compiler tests](tests/unit/test_compiler.py) | Only DuckDB is executed locally; cloud dialect fragments are not equivalent executed queries. |
+| Authorization and quality gates | [Governance guidance](docs/governance.md), contracts, and mappings | An FR analyst can execute FR scope; unsupported/unauthorized input is denied | [Authorization tests](tests/unit/test_authorization.py), [quality tests](tests/unit/test_quality.py), and [execution-control tests](tests/unit/test_execution_controls_security.py) | Request-body role is demo-only; production derives claims from trusted identity. |
+| Lineage and tamper-evident provenance | `src/semantic_layer/lineage/` and `src/semantic_layer/provenance/` | `/execute` returns a `query_id`; `GET /provenance/{query_id}` retrieves evidence | [Provenance/integrity tests](tests/unit/test_capability_integrity.py) and [execution integration test](tests/integration/test_duckdb_execution.py) | Local SQLite/HMAC is not a multi-writer enterprise audit store. |
+| Agent end-to-end behavior | `src/semantic_layer/agents/` | Primary French motor-claims question through `make PYTHON=.venv/bin/python demo` | [Agent integration tests](tests/integration/test_agent_e2e.py) and [golden corpus](tests/golden/questions.yaml) | Deterministic workflow; optional LLM enhancement is not required or supplied. |
+| Continuous semantic assurance | [CI workflow](.github/workflows/ci.yml) and [verification evidence](docs/verification-report.md) | `make lint`, `make validate-semantic`, `make check-golden`, `make test` | CI job plus 195-test local evidence recorded in the report | CI does not yet execute cloud, performance, supply-chain, or deployment checks. |
+
+## Pilot implementation plan
+
+The POC is a base for a narrow, controlled pilot—not a recommendation to turn
+on enterprise-wide autonomous data access. Begin with one country, one
+business domain, one or two certified products, and a small set of high-value
+questions. The initial pilot should use aggregated or pseudonymous outputs
+where possible and maintain a human review path for consequential decisions.
+
+| Workstream | Pilot deliverables | Suggested evidence of readiness |
+| --- | --- | --- |
+| Business and semantic scope | Prioritized question set, success/failure criteria, named owners, canonical crosswalk, non-goals, and decision rights | Every supported question maps to governed concepts, relationships, metrics/rules, and a certified product; unsupported language has an intentional fail-closed response. |
+| Data-product readiness | One certified product per required entity/metric, validated grain/join keys, SLA, quality gates, lineage, classification, and data-residency assessment | Data profiling and quality baseline are accepted by the data-product owner; raw sources are never silently substituted. |
+| Semantic contract | Reviewed vocabulary/rule/metric/mapping release, SHACL constraints, deterministic resolver behavior, and golden set | Semantic tests, mapping normalization, and affected golden cases are green; all proposed local terms have a decision. |
+| Secure platform path | One real adapter design, workload identity, native row/column policy test, network route, query quota, and secrets/KMS design | Staging execution proves the semantic policy cannot widen platform access; denied and cross-scope cases are tested. |
+| Agent and user experience | Tool contract, prompt/intent boundary, explanation/provenance format, feedback channel, and user guidance | Representative users can inspect plan, product, quality, and provenance before relying on an answer. |
+| Operations | Immutable releases, environment separation, privacy-safe logging, dashboards, alerting, incident/rollback runbooks, and backup/restore test | Service owner accepts an on-call path; restore and rollback are rehearsed; no production use begins with local ephemeral signing. |
+
+The pilot has three practical phases:
+
+1. **Foundation (weeks 0–4):** complete discovery, baseline and target-state
+   assessment, owner assignment, canonical crosswalk, data profiling, threat
+   and privacy assessment, and an initial golden set. Do not connect a live
+   platform before the semantic and product contracts are reviewable.
+2. **Controlled integration (weeks 5–8):** build one adapter against a
+   non-production certified endpoint, exercise trusted identity and native
+   controls, compare compiler outputs with approved platform queries, and
+   produce durable provenance in staging.
+3. **Bounded production pilot (weeks 9–12):** release a small supported
+   question set to a named user cohort, measure accuracy/denials/quality/latency
+   and feedback, run change and incident drills, then decide whether a
+   promotion gate is met. The pilot must not use an agent answer as an
+   unreviewed claims, underwriting, pricing, or customer-impacting decision.
+
+## Scale-out plan and promotion gates
+
+Scale by adding governed capability in bounded slices: one country/entity,
+domain, data-product contract, platform adapter, and question family at a
+time. The following plan provides measurable promotion gates that an
+organization can tune to risk appetite; it does not claim the POC has achieved
+them.
+
+| Horizon | Scope | Promotion gate | Evidence required |
+| --- | --- | --- | --- |
+| 30 days | Establish the pilot foundation | **Contract gate:** 100% of pilot questions, concepts, metrics, rules, products, mappings, owners, and country/residency constraints are catalogued; 100% have an explicit supported, denied, or deferred disposition. | Baseline/target-state assessment, approved RACI, versioned assets, data profile, threat/privacy review, and passing local semantic/golden tests. |
+| 60 days | Integrate one non-production platform/data-product path | **Control gate:** 100% of supported staging questions pass plan validation, product selection, authorization, quality, and provenance checks; all known denied cross-country/PII/SQL-shaped cases fail closed. | Platform contract test results, native-policy comparison, signed evidence/restore rehearsal, mapping coverage report, and rollback exercise. |
+| 90 days | Run a bounded production pilot | **Operational gate:** the agreed pilot acceptance sample meets the business-approved answer-correctness threshold, zero unresolved critical access/provenance defects exist, and every production answer has retrievable evidence. | Representative evaluation results, red-team/abuse findings, quality/SLA trend, incident drill, support handoff, and accountable-owner sign-off. |
+| 3–6 months | Add a second country or domain and harden the control plane | **Federation gate:** each new entity completes all onboarding stages; no unreviewed local term or physical table is reachable through the agent; semantic release rollback is demonstrated. | Country/domain onboarding record, migration/deprecation evidence, contract tests per adapter, consumer-impact review, and release audit. |
+| 6–12 months | Operate a multi-entity semantic platform | **Scale gate:** defined service objectives are met over representative load, capacity/cost limits are observed, drift is detected and triaged, and change lead time remains within agreed targets without relaxing controls. | Production telemetry, load and resilience tests, SLO/error-budget report, lineage/provenance audit, security assessment, and quarterly semantic-governance review. |
+
+“100%” is deliberately used for inventory, authorization, quality, and
+provenance control coverage—not as a claim that natural-language understanding
+will be perfect. Set statistical answer-quality thresholds with business
+owners from a representative, independently reviewed evaluation set. Track
+unknown language, ambiguous resolution, rejected plans, data-quality failures,
+policy denials, false positives/negatives, latency, cost, and human overrides
+separately. A high aggregate score cannot compensate for an access-control or
+evidence failure.
+
+## Production extension matrix
+
+The semantic model remains platform independent. A country can use native
+semantic/catalog capabilities as a local implementation, as long as the
+canonical Group contract, mapping, product certification, policy enforcement,
+and provenance expectations remain explicit and testable.
+
+| Concern | Databricks / France extension | Snowflake / United Kingdom extension | Microsoft Fabric / Germany extension | Group control-plane requirement |
+| --- | --- | --- | --- | --- |
+| Catalog and product governance | Unity Catalog with Delta tables, governed views, ownership, lineage, and service principals | Database/schema ownership, certified views, tags/classification, RBAC, and query history | OneLake/Lakehouse governance, Fabric semantic models, workspace roles, and lineage | Register a certified data product with owner, grain, SLA, lineage, classification, PII, and semantic concepts. |
+| Semantic implementation | Metric Views or governed SQL views can materialize local metric logic | Semantic Views or carefully governed analyst constructs can expose local semantic expressions | Fabric semantic model/Power BI measures can implement local consumption semantics | Canonical terms/rules/metrics remain versioned in this repository; no platform-only definition changes Group meaning without review. |
+| Query execution | Databricks SQL Warehouse through a least-privilege service principal | Snowflake warehouse through scoped role/service user or workload identity | Fabric SQL endpoint/Lakehouse through managed identity or approved service principal | Adapter accepts only an authorized typed semantic plan and only certified products; never arbitrary SQL/table selection. |
+| Security and privacy | Unity Catalog grants, row filters, column masks, secret scopes, and regional controls | RBAC, row access policies, masking policies, tags, network policies, and data sharing controls | Workspace/item permissions, RLS/OLS, sensitivity labels, and tenant/residency controls | Semantic policy narrows access; platform-native enforcement independently prevents widening it. |
+| Observability and lineage | Platform query history, job lineage, audit logs, and data quality signals | Access/query history, tagging, governance lineage, and resource monitors | Fabric monitoring hub, lineage views, audit logs, and capacity signals | Correlate platform execution with semantic release, plan digest, policy decision, quality result, and provenance ID. |
+| Adapter validation | Test actual dialect, parameter binding, catalog path, query limits, cancellation, errors, and result schemas in staging | Test actual role/warehouse/session semantics, parameter binding, timeouts, and query tags in staging | Test endpoint capabilities, identity propagation, capacity behavior, and result semantics in staging | Do not mark an adapter supported until contract, security, quality, performance, failure, and rollback tests pass. |
+
+The table is a design target, not a claim that this POC is integrated with
+Databricks, Snowflake, or Fabric. The checked-in examples are the
+[France](mappings/databricks/france.yaml), [UK](mappings/snowflake/united_kingdom.yaml),
+and [Germany](mappings/fabric/germany.yaml) mapping contracts plus documented
+SQL fragments. Only DuckDB execution against synthetic CSV fixtures is
+implemented and verified locally.
 
 ## Production deployment and operating model
 
@@ -812,6 +1125,32 @@ semantic owners should be able to answer yes to each item:
 - Privacy, residency, records-management, and regulatory obligations are
   accepted for the exact countries, products, and agent use cases being
   enabled.
+
+## Support and escalation
+
+This repository cannot supply an enterprise support desk, pager, or incident
+workflow. Before a pilot, the deploying organization must publish a service
+directory with named contacts, support hours, severity definitions, evidence
+retention instructions, and the authority to stop a capability. The following
+routing model keeps semantic defects from being misclassified as generic
+application errors.
+
+| Signal or request | First accountable owner | Escalate to | Required evidence and safe action |
+| --- | --- | --- | --- |
+| A definition, synonym, metric, or relationship appears incorrect | semantic owner | Domain steward and knowledge engineer | Capture the question, semantic release, canonical IDs, plan/provenance ID, and expected interpretation. Disable or warn on the affected capability if materially misleading; create a versioned semantic change rather than hot-fixing a running registry. |
+| A source field, local code, schema, quality SLA, or lineage changes | data-product owner | Local entity semantic owner and platform owner | Record product/mapping version, source evidence, failed quality output, and impacted answers. De-certify or block the product if the contract is no longer true; never fall back to raw data. |
+| Access is unexpectedly granted, denied, or crosses country/PII scope | service owner | security and privacy, identity owner, and platform owner | Preserve redacted policy decision/provenance evidence, revoke or narrow affected access when needed, and use the organization’s security incident procedure. Do not troubleshoot by granting broader roles. |
+| Platform adapter fails, returns inconsistent semantics, or breaches a quota | platform owner | service owner and data-product owner | Capture request correlation, plan digest, product/mapping release, sanitized platform error, and native audit/query identifier. Fail closed, use bounded retries only when approved, and roll back the adapter release if needed. |
+| Provenance, signing, backup, or restore verification fails | service owner | security and privacy, records management, and signing/KMS owner | Preserve the affected evidence store, stop relying on unverifiable records, assess scope, and restore only from a verified backup under the incident procedure. |
+| A user reports an answer-quality issue or unsupported question | Product/service owner | Semantic owner and relevant data-product owner | Classify as resolver, plan, metric/rule, mapping, data-quality, authorization, or usability issue. Add a representative golden case when it is in scope; retain the fail-closed response when it is not. |
+
+For any production incident, log privacy-safe identifiers only: semantic
+release/digest, canonical concepts, product/mapping versions, policy and
+quality outcome, provenance ID, and platform audit reference. Do not paste
+customer data, raw SQL parameters, access tokens, signing keys, or unredacted
+agent prompts/results into tickets or chat channels. Severity, notification,
+regulatory reporting, and external communications must follow the organization’s
+approved incident and privacy processes.
 
 ## Production evolution
 
