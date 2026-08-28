@@ -103,6 +103,29 @@ def test_semantic_query_plan_rejects_sql_shaped_values_everywhere(field: str, va
 
 
 @pytest.mark.parametrize(
+    "field, value",
+    [
+        ("caller", {"role": "ClaimsAnalystFR", "country": "FR", "purpose": "PRAGMA database_list"}),
+        ("target_platform", "ATTACH DATABASE 'untrusted.db' AS injected"),
+        ("target_platform", "VACUUM"),
+    ],
+)
+def test_semantic_query_plan_rejects_executable_text_in_remaining_plan_channels(
+    field: str, value: object
+) -> None:
+    """Relaxing the plan enums must reopen an executable SQL text channel."""
+
+    plan = {
+        "root_entity": "insurance:Customer",
+        "caller": {"role": "ClaimsAnalystFR", "country": "FR"},
+    }
+    plan[field] = value
+
+    with pytest.raises(ValidationError):
+        SemanticQueryPlan.model_validate(plan)
+
+
+@pytest.mark.parametrize(
     "window, months",
     [("last_12_months", 11), ("current_year", 12)],
 )

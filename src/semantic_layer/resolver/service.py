@@ -36,6 +36,9 @@ class DeterministicResolver:
         for mapping in self.registry.mappings.values():
             for local_value, concept_id in mapping.normalization.get("products", {}).items():
                 normalized_value = normalize(local_value)
-                if re.search(rf"(?<!\w){re.escape(normalized_value)}(?!\w)", normalized_text):
+                if (
+                    concept_id in self.registry.concepts
+                    and re.search(rf"(?<!\w){re.escape(normalized_value)}(?!\w)", normalized_text)
+                ):
                     matches.setdefault(concept_id, normalized_value)
         return Resolution(text=text, concept_ids=sorted(matches), matched_terms=dict(sorted(matches.items())))

@@ -15,7 +15,8 @@ ProductId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][A-Za-z0-9]*$")]
 RoleId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][A-Za-z0-9]*$")]
 CountryCode = Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]
 _SQL_TOKEN = re.compile(
-    r"(?:;|--|/\*|\*/|\b(?:alter|create|delete|drop|execute|insert|select|union|update|with)\b)",
+    r"(?:;|--|/\*|\*/|\b(?:alter|attach|begin|commit|copy|create|delete|drop|execute|"
+    r"export|import|insert|load|pragma|rollback|select|truncate|union|update|vacuum|with)\b)",
     re.IGNORECASE,
 )
 
@@ -142,7 +143,7 @@ class Resolution(SemanticModel):
 class CallerContext(SqlFreeSemanticModel):
     role: RoleId
     country: CountryCode | None = None
-    purpose: str = "semantic_query"
+    purpose: Literal["semantic_query"] = "semantic_query"
 
 
 class Filter(SqlFreeSemanticModel):
@@ -187,4 +188,4 @@ class SemanticQueryPlan(SqlFreeSemanticModel):
     time_context: TimeContext | None = None
     selected_products: list[ProductId] = Field(default_factory=list)
     caller: CallerContext
-    target_platform: str = "DuckDB"
+    target_platform: Literal["DuckDB", "Databricks", "Snowflake", "Microsoft Fabric"] = "DuckDB"

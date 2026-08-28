@@ -30,6 +30,30 @@ def test_resolver_does_not_match_a_term_inside_an_unrelated_word() -> None:
     assert "insurance:Claim" not in resolution.concept_ids
 
 
+def test_resolver_quarantines_an_unknown_mapping_target() -> None:
+    """Trusting an unregistered mapping target must leak an ungrounded concept ID."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    registry.mappings["DatabricksFranceMapping"].normalization["products"]["MTR"] = (
+        "insurance:UnknownLocalProduct"
+    )
+
+    resolution = registry.resolve("Find MTR customers")
+
+    assert "insurance:UnknownLocalProduct" not in resolution.concept_ids
+    assert "insurance:MotorInsurance" not in resolution.concept_ids
+
+
+def test_resolver_quarantines_unregistered_local_extension_targets() -> None:
+    """A forward-compatible local extension must not become a public canonical result."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+
+    resolution = registry.resolve("Find HOME customers")
+
+    assert "insurance:HomeInsurance" not in resolution.concept_ids
+
+
 @pytest.mark.parametrize("local_value", ["MTR", "AUTO"])
 def test_resolver_grounds_local_mapping_values_in_motor_insurance(local_value: str) -> None:
     """Ignoring mapping normalization must break local product grounding."""
