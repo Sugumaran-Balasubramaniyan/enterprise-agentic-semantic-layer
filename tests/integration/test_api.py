@@ -74,15 +74,31 @@ def test_query_plan_endpoint_denies_unknown_role_before_final_plan(client: TestC
     assert "ROLE_DENIED" in response.json()["detail"]
 
 
-def test_query_and_execute_endpoints_reject_residual_constraint_language(client: TestClient) -> None:
-    question = PRIMARY_QUESTION + " for customer FR_001"
+@pytest.mark.parametrize(
+    "question",
+    [
+        PRIMARY_QUESTION.replace(
+            "and total incurred loss", "excluding pending claims and total incurred loss"
+        ),
+        PRIMARY_QUESTION + " for customers named Camille",
+        PRIMARY_QUESTION + " excluding customer FR_001",
+        PRIMARY_QUESTION.replace(
+            "in the last 12 months",
+            "with claim dates before 2026-05-01 in the last 12 months",
+        ),
+        PRIMARY_QUESTION + " for customer FR_001",
+    ],
+)
+def test_query_and_execute_endpoints_reject_residual_constraint_language(
+    client: TestClient, question: str
+) -> None:
 
     query_plan = client.post("/query-plan", json={"question": question, "role": "ClaimsAnalystFR"})
     execute = client.post("/execute", json={"question": question, "role": "ClaimsAnalystFR"})
 
     assert query_plan.status_code == 422
     assert execute.status_code == 422
-    assert "customer restrictions" in query_plan.json()["detail"]
+    assert "unsupported" in query_plan.json()["detail"]
 
 
 @pytest.mark.parametrize(

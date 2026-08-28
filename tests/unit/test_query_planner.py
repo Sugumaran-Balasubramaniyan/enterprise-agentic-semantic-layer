@@ -177,6 +177,10 @@ def test_planner_parses_number_words_beyond_three() -> None:
         ),
         PRIMARY_QUESTION.replace("French", "French and German"),
         PRIMARY_QUESTION + " for customer FR_001",
+        PRIMARY_QUESTION.replace("and total incurred loss", "excluding pending claims and total incurred loss"),
+        PRIMARY_QUESTION + " for customers named Camille",
+        PRIMARY_QUESTION + " excluding customer FR_001",
+        PRIMARY_QUESTION.replace("in the last 12 months", "with claim dates before 2026-05-01 in the last 12 months"),
     ],
 )
 def test_planner_rejects_unsupported_residual_constraints(question: str) -> None:

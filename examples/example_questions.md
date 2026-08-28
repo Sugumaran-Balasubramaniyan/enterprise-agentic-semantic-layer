@@ -12,7 +12,7 @@ intent, invalid scope, uncertified products, or denied access.
 Run it locally with:
 
 ```bash
-python -m semantic_layer.demo
+python3 -m semantic_layer.demo
 ```
 
 Use the `ClaimsAnalystFR` role. The deterministic result contains `FR_001` and

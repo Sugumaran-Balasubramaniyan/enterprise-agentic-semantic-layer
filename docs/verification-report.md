@@ -164,3 +164,39 @@ Fresh verification for this follow-up:
 | `make PYTHON=./.venv/bin/python check-golden` | `13 passed` |
 | `make PYTHON=./.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed`; `discovery_only=10/10`. |
 | `make PYTHON=./.venv/bin/python test` | `158 passed, 1 warning`; the warning is the existing third-party TestClient deprecation. |
+
+## Final-readiness follow-up (2026-08-28 UTC)
+
+The final-readiness follow-up adds bounded controls without changing the
+documented product or execution claims:
+
+- The planner accepts only complete, anchored forms of the three reviewed
+  question grammars. Residual exclusions, named-customer clauses, and claim
+  date predicates are rejected during discovery, so the agent and request API
+  cannot execute them.
+- Explicit golden answers use the same evidence-checked execution helper as
+  governed variants. Authorization, PASS quality, compiled metric IDs, signed
+  provenance, and result/plan/query/metric evidence are required; rows alone
+  cannot satisfy the contract. Discovery-only denominators include every case
+  declared with that mode, including failed cases.
+- `countryCode` uses a `CountryCodedEntity` superclass shared by Customer and
+  Policy, avoiding OWL intersection semantics for multiple domain
+  declarations. A combined ontology, instance, and SHACL regression covers
+  both country-coded entity types.
+- The Makefile defaults to a managed `.venv` when present and `python3` on a
+  fresh checkout, while preserving `PYTHON=` overrides. The example question
+  runner no longer requires a bare `python` command.
+
+Fresh full-matrix verification for this follow-up:
+
+| Command | Observed result |
+| --- | --- |
+| `make test` | `175 passed, 1 warning`; the warning is the existing third-party TestClient deprecation. |
+| `make lint` | `All checks passed!` |
+| `make validate-semantic` | Valid graph conforms; invalid graph fails as expected. |
+| `make check-yaml` | `YAML: 11 files parsed` |
+| `make check-mappings-quality` | `24 passed` |
+| `make check-golden` | `13 passed` |
+| `make check-compiler` | `4 passed` |
+| `make evaluate` | `Golden evaluation: 31/31 cases passed`; `discovery_only=10/10`. |
+| `make demo` | Completed the governed DuckDB demonstration and returned FR_001/FR_002. |

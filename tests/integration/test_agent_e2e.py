@@ -47,9 +47,26 @@ def test_agent_returns_answer_plan_sql_and_provenance(agent: ClaimsInvestigation
     )
 
 
-def test_agent_rejects_unsupported_customer_restriction(agent: ClaimsInvestigationAgent) -> None:
-    with pytest.raises(ValueError, match="customer restrictions"):
-        agent.answer(PRIMARY_QUESTION + " for customer FR_001", CallerContext(role="ClaimsAnalystFR"))
+@pytest.mark.parametrize(
+    "question",
+    [
+        PRIMARY_QUESTION.replace(
+            "and total incurred loss", "excluding pending claims and total incurred loss"
+        ),
+        PRIMARY_QUESTION + " for customers named Camille",
+        PRIMARY_QUESTION + " excluding customer FR_001",
+        PRIMARY_QUESTION.replace(
+            "in the last 12 months",
+            "with claim dates before 2026-05-01 in the last 12 months",
+        ),
+        PRIMARY_QUESTION + " for customer FR_001",
+    ],
+)
+def test_agent_rejects_unsupported_residual_constraints(
+    agent: ClaimsInvestigationAgent, question: str
+) -> None:
+    with pytest.raises(ValueError, match="unsupported|constraint|scope"):
+        agent.answer(question, CallerContext(role="ClaimsAnalystFR"))
 
 
 def test_denied_caller_stops_after_pre_authorization_before_final_plan(

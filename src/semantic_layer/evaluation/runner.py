@@ -10,6 +10,7 @@ from typing import Any, Literal, cast
 import yaml
 
 from semantic_layer.agents import ClaimsInvestigationAgent
+from semantic_layer.control import digest
 from semantic_layer.governance import authorize_discovery
 from semantic_layer.query_planner import QueryDiscovery, discover_question
 from semantic_layer.registry import SemanticRegistry
@@ -364,23 +365,40 @@ def _execute_case(
     """Run an executable golden variant and return rows plus evidence failures."""
 
     errors: list[str] = []
-    with TemporaryDirectory(prefix="semantic-layer-evaluation-") as directory:
-        agent = ClaimsInvestigationAgent(
-            repository_root, provenance_path=Path(directory) / "provenance.sqlite"
-        )
-        actual = agent.answer(case.question, discovery.caller)
-    rows = list(actual.rows)
-    if actual.quality.status != "PASS":
-        errors.append(f"execution quality evidence is {actual.quality.status}, not PASS")
-    if actual.provenance.quality_digest != actual.quality.digest:
-        errors.append("execution provenance quality evidence does not match quality report")
-    if not actual.authorization.allowed or actual.authorization.reason_code != "ALLOWED":
-        errors.append("execution authorization evidence is not an allowed decision")
-    if tuple(actual.compiled_query.metric_ids) != tuple(
-        predicate.metric_id for predicate in actual.plan.metric_predicates
-    ):
-        errors.append("compiled query metric evidence does not match the plan")
-    return rows, errors
+    try:
+        with TemporaryDirectory(prefix="semantic-layer-evaluation-") as directory:
+            agent = ClaimsInvestigationAgent(
+                repository_root, provenance_path=Path(directory) / "provenance.sqlite"
+            )
+            actual = agent.answer(case.question, discovery.caller)
+        rows = list(actual.rows)
+        quality = actual.quality
+        authorization = actual.authorization
+        compiled_query = actual.compiled_query
+        provenance = actual.provenance
+        if quality.status != "PASS":
+            errors.append(f"execution quality evidence is {quality.status}, not PASS")
+        if provenance.quality_digest != quality.digest:
+            errors.append("execution provenance quality evidence does not match quality report")
+        if not authorization.allowed or authorization.reason_code != "ALLOWED":
+            errors.append("execution authorization evidence is not an allowed decision")
+        expected_metrics = tuple(predicate.metric_id for predicate in actual.plan.metric_predicates)
+        if tuple(compiled_query.metric_ids) != expected_metrics or not expected_metrics:
+            errors.append("compiled query metric evidence does not match the plan")
+        if not provenance.query_id or not provenance._verify_integrity():
+            errors.append("execution provenance evidence is missing or invalid")
+        if provenance.plan_digest != compiled_query.plan_digest:
+            errors.append("execution provenance plan evidence does not match compiled query")
+        if provenance.query_digest != compiled_query.query_digest:
+            errors.append("execution provenance query evidence does not match compiled query")
+        if provenance.result_digest != digest(tuple(rows)):
+            errors.append("execution provenance result evidence does not match returned rows")
+        if tuple(provenance.metric_ids) != tuple(compiled_query.metric_ids):
+            errors.append("execution provenance metric evidence does not match compiled query")
+        return rows, errors
+    except (AttributeError, TypeError, ValueError, PermissionError) as error:
+        errors.append(f"execution evidence is unavailable: {error}")
+        return [], errors
 
 
 def _evaluate_case(
@@ -390,7 +408,14 @@ def _evaluate_case(
     errors: list[str] = []
     resolution_ok = relationship_ok = product_ok = metric_ok = authorization_ok = False
     deterministic_ok = False
-    discovery_only = False
+    deterministic = expected.get("deterministic", {})
+    if not isinstance(deterministic, dict):
+        deterministic = {}
+    deterministic_constraints = deterministic.get("answer_constraints")
+    discovery_only = (
+        isinstance(deterministic_constraints, dict)
+        and deterministic_constraints.get("mode") == "discovery_only"
+    )
     answer: list[dict[str, Any]] | None = None
     discovery: QueryDiscovery | None = None
     try:
@@ -429,24 +454,14 @@ def _evaluate_case(
     except (ValueError, PermissionError) as error:
         errors.append(str(error))
 
-    deterministic = expected.get("deterministic", {})
-    if not isinstance(deterministic, dict):
-        deterministic = {}
     expected_answer = deterministic.get("answer")
     if expected_answer is not None:
         try:
-            with TemporaryDirectory(prefix="semantic-layer-evaluation-") as directory:
-                agent = ClaimsInvestigationAgent(
-                    repository_root, provenance_path=Path(directory) / "provenance.sqlite"
-                )
-                actual_answer = agent.answer(
-                    case.question,
-                    # The agent's planner derives the country from the question. For the
-                    # The golden suite uses a simulated caller role as its identity boundary.
-                    agent.tools.discover(case.question, _caller_for_case(case, discovery)).caller,
-                )
-                answer = list(actual_answer.rows)
-            deterministic_ok = answer == expected_answer
+            if discovery is None:
+                raise ValueError("deterministic answer requires successful semantic discovery")
+            answer, execution_errors = _execute_case(case, registry, repository_root, discovery)
+            errors.extend(execution_errors)
+            deterministic_ok = not execution_errors and answer == expected_answer
         except (ValueError, PermissionError, TypeError) as error:
             deterministic_ok = False
             errors.append(f"deterministic answer: {error}")

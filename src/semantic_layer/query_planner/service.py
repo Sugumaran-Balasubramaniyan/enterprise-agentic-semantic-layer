@@ -59,6 +59,26 @@ _NUMBER_WORDS = {
     "twenty": 20,
 }
 
+_NUMBER_TOKEN = r"(?:\d+|zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+_NUMBER_TOKEN += r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)"
+_COUNTRY_TOKEN = r"(?:french|france|fr|uk|united kingdom|british|german|germany|de|gb)"
+_PRODUCT_TOKEN = r"(?:motor insurance|motor cover|car insurance|mtr|motorinsurance)"
+_SUBJECT_TOKEN = r"(?:customers|policyholders|insured customers)"
+_CLAIMS_QUESTION = re.compile(
+    rf"^find {_COUNTRY_TOKEN} {_PRODUCT_TOKEN} {_SUBJECT_TOKEN} with "
+    rf"(?:at least {_NUMBER_TOKEN}|more than {_NUMBER_TOKEN}|over {_NUMBER_TOKEN}) "
+    rf"qualifying claims in the last 12 months and total incurred loss above eur [\d,]+"
+    rf"(?: for (?:claim loss|inclusion|policy|loss|claims state|contract) review)?\.$"
+)
+_ACTIVE_QUESTION = re.compile(
+    rf"^(?:how many|find) {_COUNTRY_TOKEN} {_PRODUCT_TOKEN} {_SUBJECT_TOKEN} "
+    r"(?:have|with) active policies (?:this year|in the current year)[.?]$"
+)
+_RATIO_QUESTION = re.compile(
+    rf"^show the claims ratio for {_COUNTRY_TOKEN} {_PRODUCT_TOKEN} {_SUBJECT_TOKEN} "
+    r"in the current year(?: for finance planning)?\.$"
+)
+
 
 @dataclass(frozen=True)
 class QueryDiscovery:
@@ -85,6 +105,12 @@ def _country_for(question: str, registry: SemanticRegistry) -> str | None:
             if country not in allowed_values:
                 raise ValueError(f"country value is not governed by {country_id}: {country}")
             return country
+    code = re.search(r"(?<!\w)(fr|gb|de)(?!\w)", question)
+    if code:
+        country = code.group(1).upper()
+        if country not in allowed_values:
+            raise ValueError(f"country value is not governed by {country_id}: {country}")
+        return country
     return None
 
 
@@ -146,6 +172,17 @@ def _validate_supported_constraints(question: str, registry: SemanticRegistry) -
         raise ValueError("unsupported constraint: status filters are not representable")
     if re.search(r"\bfor\s+customer(?:\s+(?:id|number))?\b", question):
         raise ValueError("unsupported constraint: customer restrictions are not representable")
+
+    if re.search(
+        r"\bexcluding\s+(?:pending claims|customer\s+[A-Za-z0-9_-]+)\b|"
+        r"\bfor\s+customers\s+named\s+[A-Za-z][A-Za-z -]*|"
+        r"\bclaim dates?\s+(?:before|after|on|between)\b",
+        question,
+    ):
+        raise ValueError("unsupported constraint: residual exclusions and date filters are not representable")
+
+    if not (_CLAIMS_QUESTION.fullmatch(question) or _ACTIVE_QUESTION.fullmatch(question) or _RATIO_QUESTION.fullmatch(question)):
+        raise ValueError("unsupported residual constraint language")
 
     has_claim_count = _claim_count_threshold(question) is not None
     has_loss = "incurred loss" in question and _money_threshold(question) is not None

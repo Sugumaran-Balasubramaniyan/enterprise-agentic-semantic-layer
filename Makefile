@@ -1,8 +1,13 @@
-PYTHON ?= python
+VENV ?= .venv
+VENV_PYTHON := $(VENV)/bin/python
+# Prefer the managed environment when it exists, with a python3-only fallback
+# for a fresh checkout.  A caller may still override PYTHON explicitly.
+PYTHON ?= $(if $(wildcard $(VENV_PYTHON)),$(VENV_PYTHON),python3)
 
 .PHONY: setup test lint validate-semantic check-yaml check-mappings-quality check-golden check-compiler demo evaluate run-api
 setup:
-	$(PYTHON) -m pip install -e '.[dev]'
+	$(PYTHON) -m venv $(VENV)
+	$(VENV_PYTHON) -m pip install -e '.[dev]'
 test:
 	$(PYTHON) -m pytest
 lint:

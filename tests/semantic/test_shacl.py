@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pyshacl import validate as shacl_validate
 from rdflib import RDF, RDFS, Graph, Namespace
 
 from semantic_layer import validation
@@ -101,6 +102,28 @@ def test_ontology_declares_versions_domains_ranges_and_subclasses() -> None:
         assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").domain, insurance[domain]) in graph
         assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").range, insurance[range_]) in graph
     assert (insurance.MotorInsurance, RDFS.subClassOf, insurance.InsuranceProduct) in graph
+
+
+def test_country_code_domain_is_a_superclass_and_combined_instance_graph_conforms() -> None:
+    ontology = Graph().parse(ONTOLOGY, format="turtle")
+    insurance = Namespace("https://globalsure.example/insurance/")
+    rdfs = Namespace("http://www.w3.org/2000/01/rdf-schema#")
+    domains = set(ontology.objects(insurance.countryCode, rdfs.domain))
+    assert domains == {insurance.CountryCodedEntity}
+    assert (insurance.Customer, RDFS.subClassOf, insurance.CountryCodedEntity) in ontology
+    assert (insurance.Policy, RDFS.subClassOf, insurance.CountryCodedEntity) in ontology
+
+    instance = Graph().parse(VALID_GRAPH, format="turtle")
+    shapes = Graph().parse(SHAPES, format="turtle")
+    conforms, _, _ = shacl_validate(
+        instance,
+        shacl_graph=shapes,
+        ont_graph=ontology,
+        inference="rdfs",
+        abort_on_first=False,
+        advanced=False,
+    )
+    assert conforms is True
 
 
 def test_taxonomy_declares_version_and_skos_hierarchy_and_alternatives() -> None:

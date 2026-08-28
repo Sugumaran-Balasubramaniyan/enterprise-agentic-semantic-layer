@@ -67,6 +67,12 @@ def test_demo_commands_create_and_use_a_local_venv() -> None:
         assert "make PYTHON=python3" not in text
 
 
+def test_example_questions_does_not_require_bare_python() -> None:
+    text = (ROOT / "examples" / "example_questions.md").read_text()
+    assert "python3 -m semantic_layer.demo" in text
+    assert "python -m semantic_layer.demo" not in text
+
+
 def test_each_adr_has_required_decision_sections() -> None:
     adr_paths = sorted((ROOT / "docs" / "decisions").glob("ADR-00[1-8]-*.md"))
     assert len(adr_paths) == 8
