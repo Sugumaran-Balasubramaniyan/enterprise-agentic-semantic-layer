@@ -1,0 +1,16 @@
+@prefix insurance: <https://globalsure.example/insurance/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+insurance:customer-FR-001 a insurance:Customer ;
+    insurance:customerId "FR_001" .
+insurance:policy-FR-001 a insurance:Policy ;
+    insurance:policyId "FR_POL_001" ;
+    insurance:policyProduct insurance:MotorInsurance ;
+    insurance:policyStatus "ACTIVE" .
+insurance:MotorInsurance a insurance:MotorInsurance, insurance:InsuranceProduct .
+insurance:claim-FR-001 a insurance:Claim ;
+    insurance:claimId "FR_CLM_001" ;
+    insurance:claimDate "2026-06-01"^^xsd:date ;
+    insurance:claimStatus "OPEN" ;
+    insurance:claimPolicy insurance:policy-FR-001 ;
+    insurance:incurredLoss "25000.00"^^xsd:decimal .

@@ -1,0 +1,19 @@
+@prefix insurance: <https://globalsure.example/insurance/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+insurance:InsuranceProductScheme a skos:ConceptScheme ;
+    skos:prefLabel "GlobalSure Insurance Product Taxonomy"@en ;
+    skos:hasTopConcept insurance:InsuranceProduct .
+
+insurance:InsuranceProduct a skos:Concept ;
+    skos:prefLabel "Insurance Product"@en ;
+    skos:definition "A governed category of insurance coverage offered by GlobalSure."@en ;
+    skos:topConceptOf insurance:InsuranceProductScheme ;
+    skos:narrower insurance:MotorInsurance .
+
+insurance:MotorInsurance a skos:Concept ;
+    skos:prefLabel "Motor Insurance"@en ;
+    skos:altLabel "Car Insurance"@en, "Auto Insurance"@en, "Motor cover"@en ;
+    skos:broader insurance:InsuranceProduct ;
+    skos:inScheme insurance:InsuranceProductScheme ;
+    skos:definition "Insurance that covers risks associated with motor vehicles and their use."@en .
