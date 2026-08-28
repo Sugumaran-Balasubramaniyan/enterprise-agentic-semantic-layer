@@ -138,3 +138,20 @@
 - [ ] **Step 3: Add the capability/examples matrix, example index, and “how to add a domain/use case” guidance.**
 - [ ] **Step 4: Run all examples/commands that are advertised and the complete verification suite.**
 - [ ] **Step 5: Commit and push** with `docs: add future development examples and traceability matrix`.
+
+### Task 8: Validate GitHub publication rendering and navigation
+
+**Files:**
+- Modify: `README.md`, `docs/*.md`, `tests/unit/test_documentation_contract.py`
+- Delete: `docs/interview-demo-guide.md` if still present after Task 6
+- Inspect: all Markdown Mermaid fences and relative links
+
+**Interfaces:**
+- Consumes: The complete handbook and all linked technical documentation.
+- Produces: GitHub-compatible Mermaid syntax, valid Markdown fences, resolved relative links, no stale interview-prep references, and regression checks for publication integrity.
+
+- [ ] **Step 1: Add failing checks** for Mermaid fence balance, GitHub-compatible line-break syntax, relative-link targets, and prohibited interview-prep references.
+- [ ] **Step 2: Run the checks** to capture current rendering/navigation failures.
+- [ ] **Step 3: Fix diagrams and links** without changing architectural meaning; use explicit `<br/>` labels where GitHub Mermaid requires them.
+- [ ] **Step 4: Run all documentation, semantic, golden, API, and demo verification commands.**
+- [ ] **Step 5: Commit and push** with `docs: validate GitHub publication integrity`.

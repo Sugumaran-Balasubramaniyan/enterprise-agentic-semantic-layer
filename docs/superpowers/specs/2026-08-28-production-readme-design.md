@@ -79,6 +79,8 @@ The final README must include:
   production analogue;
 - a concise end-to-end demonstration path framed as a normal system walkthrough,
   with no interview-preparation language or interview-specific guide;
+- GitHub publication integrity: balanced Markdown fences, GitHub-compatible
+  Mermaid syntax, resolved links, and regression checks for stale references;
 - license, synthetic-data policy, limitations, and support/escalation notes.
 
 ## Verification
