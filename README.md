@@ -75,7 +75,6 @@ python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -e '.[dev]'
 cp .env.example .env              # optional; inspect before changing values
-make PYTHON=.venv/bin/python setup # convenience target for subsequent checkouts
 make PYTHON=.venv/bin/python validate-semantic
 make PYTHON=.venv/bin/python test
 make PYTHON=.venv/bin/python demo
@@ -83,10 +82,13 @@ make PYTHON=.venv/bin/python demo
 
 The editable install makes `src/semantic_layer` importable while keeping the
 repository assets at their checked-out paths. Do not install into the system
-interpreter. `make setup` is a convenience target that creates `.venv` and
-installs the project; the explicit sequence above is useful when diagnosing a
-fresh environment. A failed install should be treated as an environment issue,
-not solved by weakening the declared dependency constraints.
+interpreter. The explicit sequence above is the canonical clean-install path;
+do not run both it and the convenience setup target in the same fresh checkout.
+For an existing checkout where `.venv` does not yet exist, the equivalent
+convenience command is `make PYTHON=.venv/bin/python setup`; it creates the
+managed environment and installs the editable project in one step. A failed
+install should be treated as an environment issue, not solved by weakening the
+declared dependency constraints.
 
 ### Configuration matrix
 
@@ -137,7 +139,8 @@ This has important lifecycle implications:
 
 The checked-in data is synthetic and intentionally split into two layers. The
 curated fixtures are the trusted local serving contract; raw fixtures are
-quality-test inputs only:
+quality-test inputs only. The following is a conceptual production lifecycle,
+showing the kind of landing-to-certified flow that a real platform would own:
 
 ```text
 data/raw/*.csv       source-like landing fixtures; include known defects
@@ -149,6 +152,13 @@ data/curated/*.csv   governed local execution fixtures; expected clean inputs
         v
 DuckDB adapter       query execution for the local reference path
 ```
+
+The local generator does not execute the arrow as an ingestion pipeline. It
+creates the raw defective fixtures and the curated clean fixtures independently
+from the same deterministic record definitions. The quality checks demonstrate
+the gate that would sit between those layers in production; they do not claim
+that this repository performs raw-to-curated transformation, orchestration, or
+deployment.
 
 Raw fixtures contain representative failures such as missing identifiers,
 negative amounts, future dates, invalid statuses, and duplicate claims. They

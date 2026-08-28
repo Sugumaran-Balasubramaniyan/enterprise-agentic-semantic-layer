@@ -42,3 +42,18 @@ synthetic data lifecycle in production-oriented terms.
 - The documentation still contains historical interview-demo material elsewhere
   in the README; a later documentation pass should remove or relocate that
   material as requested by the project owner.
+
+## Review correction
+
+Follow-up review identified that the raw-to-curated diagram could be read as an
+implemented transformation pipeline. The README now labels it as a conceptual
+production lifecycle and explicitly states that the local generator writes raw
+and curated fixtures independently from the same deterministic definitions. It
+also identifies the explicit virtual-environment sequence as canonical and
+describes `make ... setup` as an alternative, avoiding duplicate installation.
+
+Follow-up verification:
+
+- `pytest tests/unit/test_documentation_contract.py -q`: 12 passed.
+- `ruff check .`: passed.
+- `git diff --check`: passed.
