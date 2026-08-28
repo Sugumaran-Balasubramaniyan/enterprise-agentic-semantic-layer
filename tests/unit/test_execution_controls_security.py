@@ -46,6 +46,26 @@ def test_compilation_requires_a_matching_allowed_decision_and_authenticated_call
         compiler.compile(plan, allowed, CallerContext(role="ClaimsAnalystFR", country="DE"), PRIMARY_QUESTION)
 
 
+@pytest.mark.parametrize("quality_status", ["DEGRADED", "UNSAFE"])
+def test_non_healthy_product_quality_blocks_compilation_and_execution(quality_status: str) -> None:
+    registry, plan = _primary_plan_and_registry()
+    caller = CallerContext(role="ClaimsAnalystFR", country="FR")
+    allowed = authorize(plan, caller, registry)
+    compiled = DuckDBCompiler(registry).compile(plan, allowed, caller, PRIMARY_QUESTION)
+    quality = validate_curated_data(REPOSITORY_ROOT / "data" / "curated", registry)
+    registry.products["ClaimsAnalytics"].quality.status = quality_status
+    decision = authorize(plan, caller, registry)
+
+    assert decision.allowed is False
+    assert quality_status in decision.message
+    with pytest.raises(ValueError, match="authorization"):
+        DuckDBCompiler(registry).compile(plan, decision, caller, PRIMARY_QUESTION)
+    with pytest.raises(ValueError, match="context|quality|integrity"):
+        LocalDuckDBAdapter(REPOSITORY_ROOT / "data" / "curated", registry).execute(
+            compiled, allowed, caller, quality
+        )
+
+
 def test_authorization_requires_authenticated_country_and_derives_pii_from_projection() -> None:
     """Ignoring caller country or optional PII arguments must let finance cross controls."""
 

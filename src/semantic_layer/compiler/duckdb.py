@@ -65,7 +65,7 @@ class DuckDBCompiler:
 
     def _validate(
         self, plan: SemanticQueryPlan
-    ) -> tuple[str, str, int | float, int | float, dict[str, str], dict[str, str]]:
+    ) -> tuple[str, str, int | float, int | float, str, dict[str, str], dict[str, str]]:
         if type(plan) is not SemanticQueryPlan:
             raise TypeError("compiler accepts validated SemanticQueryPlan instances only")
         if plan.target_platform != "DuckDB":
@@ -82,9 +82,10 @@ class DuckDBCompiler:
             raise ValueError("plan names an unapproved product")
         if any(
             self.registry.products[product].certification.status != "CERTIFIED"
+            or self.registry.products[product].quality.status != "CERTIFIED"
             for product in plan.selected_products
         ):
-            raise ValueError("plan selects a product that is not certified")
+            raise ValueError("plan selects a product that is not certified or has unsafe quality")
         if plan.time_context is None or plan.time_context.window != "last_12_months":
             raise ValueError("trusted claims template requires a last_12_months context")
         if (
@@ -96,7 +97,7 @@ class DuckDBCompiler:
         if tuple(predicate.metric_id for predicate in plan.metric_predicates) != expected_metrics:
             raise ValueError("plan metrics must exactly match the trusted claims template")
         predicates = {predicate.metric_id: predicate for predicate in plan.metric_predicates}
-        if predicates[_CLAIM_COUNT].operator != ">=" or predicates[_TOTAL_LOSS].operator != ">":
+        if predicates[_CLAIM_COUNT].operator not in {">=", ">"} or predicates[_TOTAL_LOSS].operator != ">":
             raise ValueError("plan metric predicate operators are not governed")
         country = self._filter_value(plan, _COUNTRY_CONCEPT)
         product = self._filter_value(plan, _PRODUCT_CONCEPT)
@@ -130,6 +131,7 @@ class DuckDBCompiler:
             product,
             predicates[_CLAIM_COUNT].value,
             predicates[_TOTAL_LOSS].value,
+            predicates[_CLAIM_COUNT].operator,
             field_evidence,
             versions,
         )
@@ -151,7 +153,7 @@ class DuckDBCompiler:
             raise ValueError("authorization decision does not match plan, caller, or reviewed assets")
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question is required to bind compilation to the requested semantic intent")
-        country, product, claim_count, total_loss, field_evidence, versions = self._validate(plan)
+        country, product, claim_count, total_loss, claim_count_operator, field_evidence, versions = self._validate(plan)
         expected_plan = build_plan(question, caller.role, self.registry)
         if digest(expected_plan) != digest(plan):
             raise ValueError("question does not resolve to the submitted semantic plan")
@@ -181,7 +183,7 @@ WHERE claim.status IN ({status_placeholders})
     AND policy.product = ?
     AND claim.product = ?
 GROUP BY customer.customer_id, customer.country
-HAVING COUNT(DISTINCT claim.claim_id) >= ?
+HAVING COUNT(DISTINCT claim.claim_id) {claim_count_operator} ?
     AND SUM(claim.incurred_loss_eur) > ?
 ORDER BY customer.customer_id
 """.strip()

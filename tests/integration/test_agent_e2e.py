@@ -47,6 +47,11 @@ def test_agent_returns_answer_plan_sql_and_provenance(agent: ClaimsInvestigation
     )
 
 
+def test_agent_rejects_unsupported_customer_restriction(agent: ClaimsInvestigationAgent) -> None:
+    with pytest.raises(ValueError, match="customer restrictions"):
+        agent.answer(PRIMARY_QUESTION + " for customer FR_001", CallerContext(role="ClaimsAnalystFR"))
+
+
 def test_denied_caller_stops_after_pre_authorization_before_final_plan(
     agent: ClaimsInvestigationAgent, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, Literal, cast
 
 import yaml
 
@@ -30,6 +30,21 @@ class GoldenCase:
     question: str
     role: str
     expected: dict[str, Any]
+    deterministic: DeterministicContract
+
+
+DeterministicMode = Literal[
+    "discovery_only", "governed_primary_variant", "governed_threshold_variant"
+]
+
+
+@dataclass(frozen=True)
+class DeterministicContract:
+    """Typed evidence contract for one golden case's deterministic dimension."""
+
+    mode: DeterministicMode
+    answer: tuple[dict[str, Any], ...] | None = None
+    answer_constraints: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -60,6 +75,7 @@ class CaseEvaluation:
     metrics: bool
     authorization: bool
     deterministic_answer: bool
+    discovery_only: bool = False
     answer: list[dict[str, Any]] | None = None
     errors: tuple[str, ...] = ()
 
@@ -91,6 +107,7 @@ class EvaluationReport:
     metrics: DimensionReport
     authorization: DimensionReport
     deterministic_answers: DimensionReport
+    discovery_only: DimensionReport
 
     @property
     def failed_count(self) -> int:
@@ -162,6 +179,7 @@ class EvaluationReport:
             ("metrics", self.metrics),
             ("authorization", self.authorization),
             ("deterministic_answers", self.deterministic_answers),
+            ("discovery_only", self.discovery_only),
         )
         details = ", ".join(f"{name}={item.passed}/{item.total}" for name, item in dimensions)
         return f"Golden evaluation: {self.passed_cases}/{self.total_cases} cases passed ({details})"
@@ -208,8 +226,63 @@ def load_golden_cases(path: Path | str) -> list[GoldenCase]:
             raise TypeError(f"golden question {identifier} authorization allowed must be boolean")
         if not isinstance(expected["authorization"]["reason_code"], str):
             raise TypeError(f"golden question {identifier} authorization reason_code must be a string")
+        deterministic = expected.get("deterministic")
+        if not isinstance(deterministic, dict):
+            raise TypeError(f"golden question {identifier} missing deterministic contract")
+        has_answer = "answer" in deterministic
+        has_constraints = "answer_constraints" in deterministic
+        if has_answer == has_constraints:
+            raise ValueError(
+                f"golden question {identifier} deterministic contract must contain exactly one evidence form"
+            )
+        if has_answer:
+            answer = deterministic["answer"]
+            if not isinstance(answer, list) or any(
+                not isinstance(row, dict)
+                or set(row) != {"customer_id", "country", "claim_count", "total_incurred_loss_eur"}
+                or not isinstance(row["customer_id"], str)
+                or not isinstance(row["country"], str)
+                or not isinstance(row["claim_count"], int)
+                or not isinstance(row["total_incurred_loss_eur"], (int, float))
+                for row in answer
+            ):
+                raise TypeError(f"golden question {identifier} deterministic answer must be typed rows")
+        else:
+            constraints = deterministic["answer_constraints"]
+            if not isinstance(constraints, dict):
+                raise TypeError(f"golden question {identifier} answer_constraints must be a mapping")
+            unknown_fields = set(constraints) - {
+                "mode", "metric", "required_metrics", "rule", "required_rules"
+            }
+            if unknown_fields:
+                raise ValueError(
+                    f"golden question {identifier} deterministic contract has unknown fields: "
+                    f"{sorted(unknown_fields)}"
+                )
+            mode = constraints.get("mode")
+            if mode not in {"discovery_only", "governed_primary_variant", "governed_threshold_variant"}:
+                raise ValueError(f"golden question {identifier} has invalid deterministic mode: {mode!r}")
+            if mode == "discovery_only" and not (
+                isinstance(constraints.get("metric"), str) or isinstance(constraints.get("rule"), str)
+            ):
+                raise ValueError(f"golden question {identifier} discovery_only requires metric or rule evidence")
+            if mode != "discovery_only":
+                required_metrics = constraints.get("required_metrics")
+                if (
+                    not isinstance(required_metrics, list)
+                    or not required_metrics
+                    or any(not isinstance(metric, str) for metric in required_metrics)
+                ):
+                    raise TypeError(
+                        f"golden question {identifier} executable variants require typed required_metrics"
+                    )
+        contract = DeterministicContract(
+            mode=("governed_primary_variant" if has_answer else cast(DeterministicMode, mode)),
+            answer=tuple(answer) if has_answer else None,
+            answer_constraints=constraints if has_constraints else None,
+        )
         seen.add(identifier)
-        cases.append(GoldenCase(identifier, question, role, expected))
+        cases.append(GoldenCase(identifier, question, role, expected, contract))
     questions = [case.question for case in cases]
     if len(set(questions)) != len(questions):
         raise ValueError("golden questions must have unique natural-language question text")
@@ -239,6 +312,8 @@ def _validate_answer_constraints(
     if mode not in {"discovery_only", "governed_primary_variant", "governed_threshold_variant"}:
         return False, [f"unknown answer constraint mode: {mode!r}"]
     errors: list[str] = []
+    if mode != "discovery_only" and not isinstance(constraints.get("required_metrics"), list):
+        errors.append("executable answer constraints require required_metrics")
     actual_metrics = (
         {predicate.metric_id for predicate in discovery.metric_predicates}
         if discovery is not None
@@ -283,13 +358,39 @@ def _validate_answer_constraints(
     return not errors, errors
 
 
+def _execute_case(
+    case: GoldenCase, registry: SemanticRegistry, repository_root: Path, discovery: QueryDiscovery
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Run an executable golden variant and return rows plus evidence failures."""
+
+    errors: list[str] = []
+    with TemporaryDirectory(prefix="semantic-layer-evaluation-") as directory:
+        agent = ClaimsInvestigationAgent(
+            repository_root, provenance_path=Path(directory) / "provenance.sqlite"
+        )
+        actual = agent.answer(case.question, discovery.caller)
+    rows = list(actual.rows)
+    if actual.quality.status != "PASS":
+        errors.append(f"execution quality evidence is {actual.quality.status}, not PASS")
+    if actual.provenance.quality_digest != actual.quality.digest:
+        errors.append("execution provenance quality evidence does not match quality report")
+    if not actual.authorization.allowed or actual.authorization.reason_code != "ALLOWED":
+        errors.append("execution authorization evidence is not an allowed decision")
+    if tuple(actual.compiled_query.metric_ids) != tuple(
+        predicate.metric_id for predicate in actual.plan.metric_predicates
+    ):
+        errors.append("compiled query metric evidence does not match the plan")
+    return rows, errors
+
+
 def _evaluate_case(
     case: GoldenCase, registry: SemanticRegistry, repository_root: Path
 ) -> CaseEvaluation:
     expected = case.expected
     errors: list[str] = []
     resolution_ok = relationship_ok = product_ok = metric_ok = authorization_ok = False
-    deterministic_ok = True
+    deterministic_ok = False
+    discovery_only = False
     answer: list[dict[str, Any]] | None = None
     discovery: QueryDiscovery | None = None
     try:
@@ -352,10 +453,28 @@ def _evaluate_case(
         if not deterministic_ok:
             errors.append(f"answer expected {expected_answer}, got {answer}")
     elif "answer_constraints" in deterministic:
+        constraints = deterministic["answer_constraints"]
         deterministic_ok, constraint_errors = _validate_answer_constraints(
             deterministic["answer_constraints"], registry, discovery
         )
         errors.extend(constraint_errors)
+        if deterministic_ok and constraints.get("mode") == "discovery_only":
+            discovery_only = True
+        elif deterministic_ok and discovery is not None:
+            try:
+                answer, execution_errors = _execute_case(case, registry, repository_root, discovery)
+                errors.extend(execution_errors)
+                deterministic_ok = not execution_errors
+                required_metrics = constraints.get("required_metrics", [])
+                actual_metrics = [predicate.metric_id for predicate in discovery.metric_predicates]
+                if not set(required_metrics).issubset(actual_metrics):
+                    deterministic_ok = False
+                    errors.append(
+                        f"required metric evidence expected {required_metrics}, got {actual_metrics}"
+                    )
+            except (ValueError, PermissionError, TypeError) as error:
+                deterministic_ok = False
+                errors.append(f"deterministic variant execution: {error}")
 
     return CaseEvaluation(
         case_id=case.id,
@@ -365,6 +484,7 @@ def _evaluate_case(
         metrics=metric_ok,
         authorization=authorization_ok,
         deterministic_answer=deterministic_ok,
+        discovery_only=discovery_only,
         answer=answer,
         errors=tuple(errors),
     )
@@ -407,4 +527,7 @@ def run_evaluation(registry: SemanticRegistry) -> EvaluationReport:
         metrics=_dimension(results, "metrics"),
         authorization=_dimension(results, "authorization"),
         deterministic_answers=_dimension(results, "deterministic_answer"),
+        discovery_only=_dimension(
+            [result for result in results if result.discovery_only], "deterministic_answer"
+        ),
     )

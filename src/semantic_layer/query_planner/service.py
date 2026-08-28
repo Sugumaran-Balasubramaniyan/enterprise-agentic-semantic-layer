@@ -30,6 +30,11 @@ _COUNTRIES = {
     "german": "DE",
     "germany": "DE",
 }
+_UNSUPPORTED_COUNTRIES = {
+    "austrian", "austria", "belgian", "belgium", "canadian", "canada",
+    "dutch", "italian", "italy", "portuguese", "portugal", "spanish", "spain",
+    "swiss", "switzerland", "american", "united states", "us",
+}
 _NUMBER_WORDS = {
     "zero": 0,
     "one": 1,
@@ -120,6 +125,46 @@ def _requires_mapped_product(question: str, registry: SemanticRegistry) -> bool:
     )
 
 
+def _validate_supported_constraints(question: str, registry: SemanticRegistry) -> None:
+    """Reject constraint language that this bounded grammar cannot represent."""
+
+    country_terms = [
+        country
+        for country in _COUNTRIES
+        if re.search(rf"(?<!\w){re.escape(country)}(?!\w)", question)
+    ]
+    countries = {_COUNTRIES[term] for term in country_terms}
+    code_terms = re.findall(r"(?<!\w)(?:fr|gb|de)(?!\w)", question)
+    countries.update(code.upper() for code in code_terms)
+    if len(countries) > 1:
+        raise ValueError("unsupported country scope: multiple countries are not representable")
+    for term in _UNSUPPORTED_COUNTRIES:
+        if re.search(rf"(?<!\w){re.escape(term)}(?!\w)", question):
+            raise ValueError(f"unsupported country scope: {term}")
+
+    if re.search(r"\b(?:claim|claims|policy|policies)\s+status\b|\bwith\s+status\b", question):
+        raise ValueError("unsupported constraint: status filters are not representable")
+    if re.search(r"\bfor\s+customer(?:\s+(?:id|number))?\b", question):
+        raise ValueError("unsupported constraint: customer restrictions are not representable")
+
+    has_claim_count = _claim_count_threshold(question) is not None
+    has_loss = "incurred loss" in question and _money_threshold(question) is not None
+    has_active = "active polic" in question
+    has_ratio = "claims ratio" in question
+    intent_count = sum((has_claim_count or has_loss, has_active, has_ratio))
+    if intent_count != 1:
+        raise ValueError("unsupported mixed clauses: question combines or omits governed intents")
+    if has_claim_count != has_loss and not has_active and not has_ratio:
+        raise ValueError("unsupported constraint: claims queries require count and loss thresholds")
+    if has_claim_count or has_loss:
+        if "last 12 months" not in question:
+            raise ValueError("unsupported constraint: claims queries require last 12 months")
+        if question.count(" and ") != 1:
+            raise ValueError("unsupported mixed clauses: only one governed claims conjunction is supported")
+    if re.search(r"\bor\b|\b(?:where|having|whose|with\s+email)\b", question):
+        raise ValueError("unsupported residual constraint language")
+
+
 def discover_question(question: str, role: str, registry: SemanticRegistry) -> QueryDiscovery:
     """Resolve governed intent without constructing a final execution plan.
 
@@ -134,6 +179,7 @@ def discover_question(question: str, role: str, registry: SemanticRegistry) -> Q
     if contains_sql_shape(question, natural_language=True):
         raise ValueError("business question cannot contain SQL-shaped values")
     normalized_question = normalize(question)
+    _validate_supported_constraints(normalized_question, registry)
     resolution = registry.resolve(question)
     customer_id = registry.concept_id_named("Customer")
     policy_id = registry.concept_id_named("Policy")

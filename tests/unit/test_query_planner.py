@@ -166,3 +166,23 @@ def test_planner_parses_number_words_beyond_three() -> None:
     )
 
     assert plan.metric_predicates[0].value == 12
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        PRIMARY_QUESTION.replace("qualifying claims", "qualifying claims with status OPEN"),
+        PRIMARY_QUESTION.replace(
+            "and total incurred loss", "and active policies and total incurred loss"
+        ),
+        PRIMARY_QUESTION.replace("French", "French and German"),
+        PRIMARY_QUESTION + " for customer FR_001",
+    ],
+)
+def test_planner_rejects_unsupported_residual_constraints(question: str) -> None:
+    """A recognized metric must not cause unsupported residual clauses to disappear."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+
+    with pytest.raises(ValueError, match="unsupported|constraint|scope"):
+        build_plan(question, "ClaimsAnalystFR", registry)

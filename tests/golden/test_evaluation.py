@@ -70,6 +70,35 @@ def test_golden_loader_requires_every_governance_expectation(tmp_path: Path, mis
         load_golden_cases(source)
 
 
+def test_golden_loader_requires_a_typed_deterministic_contract(tmp_path: Path) -> None:
+    expected = {
+        "concepts": [],
+        "relationships": [],
+        "products": [],
+        "metrics": [],
+        "authorization": {"allowed": True, "reason_code": "ALLOWED"},
+    }
+    source = tmp_path / "questions.yaml"
+    source.write_text(
+        "questions:\n  - id: incomplete-deterministic\n    question: A unique governed question\n    role: ClaimsAnalystFR\n    expected:\n"
+        + "\n".join(f"      {key}: {value!r}" for key, value in expected.items()),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(TypeError, match="deterministic"):
+        load_golden_cases(source)
+
+
+def test_governed_variant_executes_and_requires_execution_evidence() -> None:
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    case = next(case for case in load_golden_cases(GOLDEN_CASES) if case.id == "primary-mtr")
+
+    result = _evaluate_case(case, registry, REPOSITORY_ROOT)
+
+    assert result.deterministic_answer is True
+    assert result.answer is not None
+
+
 def test_secondary_constraints_reference_existing_semantic_assets() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     case = next(case for case in load_golden_cases(GOLDEN_CASES) if case.id == "secondary-01-active-french")

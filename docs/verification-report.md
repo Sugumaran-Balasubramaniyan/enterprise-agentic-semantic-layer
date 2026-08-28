@@ -106,3 +106,27 @@ or overwriting a repository by first reviewing the branch and then running:
 ```bash
 git push -u origin feat/semantic-layer-implementation
 ```
+
+## Final-review release blockers (2026-08-28 UTC)
+
+The final-review blockers were closed in one focused change:
+
+- The bounded planner grammar now rejects residual status filters, mixed intent
+  clauses, multiple or unsupported country scopes, and customer-specific
+  restrictions. The same rejection is exercised through the query-plan API and
+  agent workflow, before final plan construction.
+- `DataProduct.quality.status` is a validated `CERTIFIED`/`DEGRADED`/`UNSAFE`
+  contract. Only `CERTIFIED` products can be selected, authorized, compiled, or
+  executed; denial messages include the observed status.
+- Golden deterministic evidence is required and typed. Governed primary and
+  threshold variants execute the local agent path and verify quality,
+  authorization, provenance, and metric evidence. Discovery-only cases remain
+  a separate evaluation dimension.
+
+Fresh verification after these changes:
+
+| Command | Observed result |
+| --- | --- |
+| `.venv/bin/ruff check .` | `All checks passed!` |
+| `.venv/bin/pytest -q` | `149 passed, 1 warning in 18.94s`; the warning is the existing third-party TestClient deprecation. |
+| `.venv/bin/python -m semantic_layer.evaluation` | `Golden evaluation: 31/31 cases passed` with `discovery_only=10/10`; executable variants were run rather than metadata-only checked. |

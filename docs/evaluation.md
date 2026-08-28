@@ -11,12 +11,13 @@ or an explicit discovery-only constraint.
 `run_evaluation(registry)` loads the cases and evaluates each dimension against
 the supplied `SemanticRegistry`. The resulting `EvaluationReport` includes
 per-case evidence and independent `resolution`, `relationships`, `products`,
-`metrics`, `authorization`, and `deterministic_answers` summaries. This is a
-local semantic regression signal, not a benchmark: no external traffic,
-production data, or fabricated accuracy claim is involved. The primary local
-DuckDB answer is asserted exactly; secondary patterns are currently evaluated
-through deterministic discovery and authorization because only the primary
-claims template is an executable adapter contract.
+`metrics`, `authorization`, `deterministic_answers`, and `discovery_only`
+summaries. This is a local semantic regression signal, not a benchmark: no
+external traffic, production data, or fabricated accuracy claim is involved.
+The primary local DuckDB answer and governed primary/threshold variants execute
+the agent path with quality, authorization, provenance, and metric evidence;
+discovery-only cases intentionally stop after semantic discovery and are counted
+separately.
 
 Run the evaluation from the repository root:
 
@@ -27,7 +28,7 @@ make PYTHON=.venv/bin/python evaluate
 Example output from the current synthetic fixture set:
 
 ```text
-Golden evaluation: 31/31 cases passed (resolution=31/31, relationships=31/31, products=31/31, metrics=31/31, authorization=31/31, deterministic_answers=31/31)
+Golden evaluation: 31/31 cases passed (resolution=31/31, relationships=31/31, products=31/31, metrics=31/31, authorization=31/31, deterministic_answers=31/31, discovery_only=10/10)
 ```
 
 The semantic regression tests separately protect metric/rule references,

@@ -194,6 +194,15 @@ def authorize_discovery(
             reason_code="PRODUCT_DENIED",
             message="role cannot access one or more selected data products",
         )
+    for product_id in discovery.selected_products:
+        product = registry.products.get(product_id)
+        if product is None or product.quality.status != "CERTIFIED":
+            status = product.quality.status if product is not None else "MISSING"
+            return issue(
+                allowed=False,
+                reason_code="PRODUCT_QUALITY_DENIED",
+                message=f"selected product {product_id} quality status {status} blocks access",
+            )
     countries = {
         str(query_filter.value)
         for query_filter in discovery.filters
@@ -271,6 +280,15 @@ def authorize(
             reason_code="PRODUCT_DENIED",
             message="role cannot access one or more selected data products",
         )
+    for product_id in plan.selected_products:
+        product = registry.products.get(product_id)
+        if product is None or product.quality.status != "CERTIFIED":
+            status = product.quality.status if product is not None else "MISSING"
+            return issue(
+                allowed=False,
+                reason_code="PRODUCT_QUALITY_DENIED",
+                message=f"selected product {product_id} quality status {status} blocks access",
+            )
     countries = _countries_in(plan)
     if caller.country is not None and countries != {caller.country}:
         return issue(

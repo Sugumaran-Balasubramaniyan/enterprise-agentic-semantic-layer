@@ -30,7 +30,10 @@ _CTE_TOKEN = re.compile(r"\bwith\s+[A-Za-z_][A-Za-z0-9_]*\s+as\s*\(", re.IGNOREC
 class SemanticModel(BaseModel):
     """Base model that rejects undeclared control-plane fields."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+
+ProductQualityStatus = Literal["CERTIFIED", "DEGRADED", "UNSAFE"]
 
 
 def contains_sql_shape(value: Any, *, natural_language: bool = False) -> bool:
@@ -83,7 +86,7 @@ class ProductField(SemanticModel):
 
 
 class ProductQuality(SemanticModel):
-    status: str
+    status: ProductQualityStatus
     checks: list[str] = Field(default_factory=list)
 
 

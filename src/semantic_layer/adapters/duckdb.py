@@ -171,6 +171,12 @@ class LocalDuckDBAdapter:
             )
         ):
             raise ValueError("authorization capability does not match compiled query")
+        if any(
+            product_id not in self.registry.products
+            or self.registry.products[product_id].quality.status != "CERTIFIED"
+            for product_id in query.approved_products
+        ):
+            raise ValueError("execution product quality is not CERTIFIED")
         if type(quality) is not QualityReport or not quality._matches(self.curated_data_path, self.registry):
             raise ValueError("quality report integrity signature does not match complete current source data")
         if dict(quality.source_digests) != self._source_digests():

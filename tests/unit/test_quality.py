@@ -2,9 +2,21 @@
 
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
+from semantic_layer.models import ProductQuality
 from semantic_layer.quality import validate_curated_data
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_product_quality_status_is_a_governed_typed_contract() -> None:
+    with pytest.raises(ValidationError):
+        ProductQuality(status="UNKNOWN", checks=[])
+    quality = ProductQuality(status="CERTIFIED", checks=[])
+    with pytest.raises(ValidationError):
+        quality.status = "UNKNOWN"
 
 
 def test_curated_demo_data_passes_all_governed_quality_checks() -> None:
