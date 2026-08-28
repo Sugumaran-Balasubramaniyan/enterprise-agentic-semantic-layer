@@ -1,0 +1,58 @@
+{
+  "caller": {
+    "country": "FR",
+    "purpose": "semantic_query",
+    "role": "ClaimsAnalystFR"
+  },
+  "filters": [
+    {
+      "concept_id": "insurance:Country",
+      "operator": "=",
+      "value": "FR"
+    },
+    {
+      "concept_id": "insurance:InsuranceProduct",
+      "operator": "=",
+      "value": "insurance:MotorInsurance"
+    }
+  ],
+  "metric_predicates": [
+    {
+      "metric_id": "insurance:ClaimCount",
+      "operator": ">=",
+      "value": 3
+    },
+    {
+      "metric_id": "insurance:TotalIncurredLoss",
+      "operator": ">",
+      "value": 20000
+    }
+  ],
+  "projected_dimensions": [
+    "insurance:Customer",
+    "insurance:Country"
+  ],
+  "relationships": [
+    {
+      "predicate": "insurance:ownsPolicy",
+      "source": "insurance:Customer",
+      "target": "insurance:Policy"
+    },
+    {
+      "predicate": "insurance:submitsClaim",
+      "source": "insurance:Policy",
+      "target": "insurance:Claim"
+    }
+  ],
+  "root_entity": "insurance:Customer",
+  "selected_products": [
+    "Customer360",
+    "PolicyMaster",
+    "ClaimsAnalytics"
+  ],
+  "target_platform": "DuckDB",
+  "time_context": {
+    "months": 12,
+    "window": "last_12_months"
+  }
+}

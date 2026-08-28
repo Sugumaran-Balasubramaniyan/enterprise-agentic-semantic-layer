@@ -8,6 +8,7 @@ import sqlite3
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
+from threading import RLock
 from types import MappingProxyType
 from uuid import uuid4
 
@@ -97,7 +98,11 @@ class ProvenanceStore:
     """Expose append/read-only provenance with a tamper-evident SQLite chain."""
 
     def __init__(self, path: Path) -> None:
-        self._connection = sqlite3.connect(path)
+        # FastAPI dispatches synchronous routes to worker threads.  The store
+        # remains one serialized append/read chain, so permit that hand-off and
+        # protect every public chain operation with one process-local lock.
+        self._lock = RLock()
+        self._connection = sqlite3.connect(path, check_same_thread=False)
         self._connection.execute("""
             CREATE TABLE IF NOT EXISTS provenance (
                 query_id TEXT PRIMARY KEY,
@@ -213,90 +218,92 @@ class ProvenanceStore:
     def record(self, *, question: str, execution: ExecutionResult) -> Provenance:
         """Append evidence only for an intact signed execution of the matching question."""
 
-        self._verify_chain()
-        if type(execution) is not ExecutionResult or not execution._verify_integrity():
-            raise ValueError("execution integrity signature is invalid")
-        if digest(question) != execution.question_digest:
-            raise ValueError("question does not match the executed semantic plan")
-        values: dict[str, object] = {
-            "query_id": str(uuid4()),
-            "question_digest": digest(question),
-            "execution_digest": execution.digest,
-            "plan_digest": execution.plan_digest,
-            "query_digest": execution.query_digest,
-            "parameter_digest": execution.parameter_digest,
-            "caller_digest": execution.caller_digest,
-            "authorization_digest": execution.authorization_digest,
-            "authorization_outcome": execution.authorization_outcome,
-            "quality_digest": execution.quality_digest,
-            "result_digest": digest(tuple(execution)),
-            "source_digests": dict(execution.source_digests),
-            "local_sources": dict(execution.local_sources),
-            "mapping_evidence": dict(execution.mapping_evidence),
-            "concepts": tuple(execution.concepts),
-            "metric_ids": tuple(execution.metric_ids),
-            "data_products": list(execution.approved_products),
-            "mapping_ids": tuple(execution.mapping_ids),
-            "physical_sources": tuple(execution.local_sources.values()),
-            "field_evidence": dict(execution.field_evidence),
-            "semantic_versions": dict(execution.semantic_versions),
-            "quality_status": "PASS",
-            "row_count": len(execution),
-            "compiled_platform": "DuckDB",
-            "created_at": datetime.now(UTC).isoformat(),
-        }
-        record = object.__new__(Provenance)
-        immutable_values = MappingProxyType({key: _freeze(value) for key, value in values.items()})
-        object.__setattr__(record, "_values", immutable_values)
-        object.__setattr__(record, "_signature", _sign("Provenance", record._payload()))
-        document = json.dumps(record._payload(), sort_keys=True)
-        sequence, previous_hash = self._checkpoint()
-        sequence += 1
-        row_hash = _chain_hash(
-            query_id=record.query_id,
-            document=document,
-            stored_signature=record._signature,
-            sequence=sequence,
-            previous_hash=previous_hash,
-        )
-        try:
-            self._connection.execute(
-                "INSERT INTO provenance "
-                "(query_id, document, signature, sequence, previous_hash, row_hash) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (record.query_id, document, record._signature, sequence, previous_hash, row_hash),
+        with self._lock:
+            self._verify_chain()
+            if type(execution) is not ExecutionResult or not execution._verify_integrity():
+                raise ValueError("execution integrity signature is invalid")
+            if digest(question) != execution.question_digest:
+                raise ValueError("question does not match the executed semantic plan")
+            values: dict[str, object] = {
+                "query_id": str(uuid4()),
+                "question_digest": digest(question),
+                "execution_digest": execution.digest,
+                "plan_digest": execution.plan_digest,
+                "query_digest": execution.query_digest,
+                "parameter_digest": execution.parameter_digest,
+                "caller_digest": execution.caller_digest,
+                "authorization_digest": execution.authorization_digest,
+                "authorization_outcome": execution.authorization_outcome,
+                "quality_digest": execution.quality_digest,
+                "result_digest": digest(tuple(execution)),
+                "source_digests": dict(execution.source_digests),
+                "local_sources": dict(execution.local_sources),
+                "mapping_evidence": dict(execution.mapping_evidence),
+                "concepts": tuple(execution.concepts),
+                "metric_ids": tuple(execution.metric_ids),
+                "data_products": list(execution.approved_products),
+                "mapping_ids": tuple(execution.mapping_ids),
+                "physical_sources": tuple(execution.local_sources.values()),
+                "field_evidence": dict(execution.field_evidence),
+                "semantic_versions": dict(execution.semantic_versions),
+                "quality_status": "PASS",
+                "row_count": len(execution),
+                "compiled_platform": "DuckDB",
+                "created_at": datetime.now(UTC).isoformat(),
+            }
+            record = object.__new__(Provenance)
+            immutable_values = MappingProxyType({key: _freeze(value) for key, value in values.items()})
+            object.__setattr__(record, "_values", immutable_values)
+            object.__setattr__(record, "_signature", _sign("Provenance", record._payload()))
+            document = json.dumps(record._payload(), sort_keys=True)
+            sequence, previous_hash = self._checkpoint()
+            sequence += 1
+            row_hash = _chain_hash(
+                query_id=record.query_id,
+                document=document,
+                stored_signature=record._signature,
+                sequence=sequence,
+                previous_hash=previous_hash,
             )
-            self._connection.execute(
-                "UPDATE provenance_checkpoint SET sequence = ?, row_hash = ?, checkpoint_signature = ? "
-                "WHERE checkpoint_id = 1",
-                (sequence, row_hash, _checkpoint_signature(sequence, row_hash)),
-            )
-            self._connection.commit()
-        except Exception:
-            self._connection.rollback()
-            raise
-        return record
+            try:
+                self._connection.execute(
+                    "INSERT INTO provenance "
+                    "(query_id, document, signature, sequence, previous_hash, row_hash) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (record.query_id, document, record._signature, sequence, previous_hash, row_hash),
+                )
+                self._connection.execute(
+                    "UPDATE provenance_checkpoint SET sequence = ?, row_hash = ?, checkpoint_signature = ? "
+                    "WHERE checkpoint_id = 1",
+                    (sequence, row_hash, _checkpoint_signature(sequence, row_hash)),
+                )
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
+            return record
 
     def get(self, query_id: str) -> Provenance:
         """Read a signed immutable record and fail closed if the SQLite row was altered."""
 
-        self._verify_chain()
-        row = self._connection.execute(
-            "SELECT document, signature FROM provenance WHERE query_id = ?", (query_id,)
-        ).fetchone()
-        if row is None:
-            raise KeyError(f"no provenance record for query_id {query_id}")
-        document, stored_signature = row
-        try:
-            values = json.loads(document)
-        except (TypeError, json.JSONDecodeError) as error:
-            raise ValueError("stored provenance document is invalid") from error
-        if not isinstance(values, dict) or values.get("query_id") != query_id:
-            raise ValueError("stored provenance query_id does not match its SQLite key")
-        record = object.__new__(Provenance)
-        immutable_values = MappingProxyType({key: _freeze(value) for key, value in values.items()})
-        object.__setattr__(record, "_values", immutable_values)
-        if not isinstance(stored_signature, str) or not _verify("Provenance", record._payload(), stored_signature):
-            raise ValueError("stored provenance integrity signature is invalid")
-        object.__setattr__(record, "_signature", stored_signature)
-        return record
+        with self._lock:
+            self._verify_chain()
+            row = self._connection.execute(
+                "SELECT document, signature FROM provenance WHERE query_id = ?", (query_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"no provenance record for query_id {query_id}")
+            document, stored_signature = row
+            try:
+                values = json.loads(document)
+            except (TypeError, json.JSONDecodeError) as error:
+                raise ValueError("stored provenance document is invalid") from error
+            if not isinstance(values, dict) or values.get("query_id") != query_id:
+                raise ValueError("stored provenance query_id does not match its SQLite key")
+            record = object.__new__(Provenance)
+            immutable_values = MappingProxyType({key: _freeze(value) for key, value in values.items()})
+            object.__setattr__(record, "_values", immutable_values)
+            if not isinstance(stored_signature, str) or not _verify("Provenance", record._payload(), stored_signature):
+                raise ValueError("stored provenance integrity signature is invalid")
+            object.__setattr__(record, "_signature", stored_signature)
+            return record
