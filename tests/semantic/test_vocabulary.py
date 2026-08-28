@@ -54,6 +54,26 @@ def test_vocabulary_rejects_non_semver_concept_version(tmp_path: Path) -> None:
         load_vocabulary(invalid_path)
 
 
+def test_vocabulary_rejects_leading_zero_numeric_prerelease(tmp_path: Path) -> None:
+    document = yaml.safe_load(VOCABULARY.read_text(encoding="utf-8"))
+    document["concepts"][0]["version"] = "1.0.0-01"
+    invalid_path = tmp_path / "invalid-prerelease.yaml"
+    invalid_path.write_text(yaml.safe_dump(document), encoding="utf-8")
+
+    with pytest.raises(ValidationError):
+        load_vocabulary(invalid_path)
+
+
+def test_vocabulary_accepts_valid_semver_prerelease(tmp_path: Path) -> None:
+    document = yaml.safe_load(VOCABULARY.read_text(encoding="utf-8"))
+    document["concepts"][0]["version"] = "1.0.0-rc.1"
+    prerelease_path = tmp_path / "prerelease-vocabulary.yaml"
+    prerelease_path.write_text(yaml.safe_dump(document), encoding="utf-8")
+
+    customer = next(c for c in load_vocabulary(prerelease_path) if c.id == "insurance:Customer")
+    assert customer.version == "1.0.0-rc.1"
+
+
 def test_claim_relationships_use_canonical_object_targets() -> None:
     claim = next(c for c in load_vocabulary(VOCABULARY) if c.id == "insurance:Claim")
     relationships = {relationship.predicate: relationship.target for relationship in claim.relationships}

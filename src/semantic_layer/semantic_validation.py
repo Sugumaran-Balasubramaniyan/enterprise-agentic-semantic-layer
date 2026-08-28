@@ -8,7 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pyshacl import validate as shacl_validate
 from rdflib import Graph
 
-SEMVER_PATTERN = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+_SEMVER_NUMERIC = r"(?:0|[1-9]\d*)"
+_SEMVER_NON_NUMERIC = r"(?:[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)"
+_SEMVER_IDENTIFIER = rf"(?:{_SEMVER_NUMERIC}|{_SEMVER_NON_NUMERIC})"
+SEMVER_PATTERN = (
+    rf"^{_SEMVER_NUMERIC}\.{_SEMVER_NUMERIC}\.{_SEMVER_NUMERIC}"
+    rf"(?:-{_SEMVER_IDENTIFIER}(?:\.{_SEMVER_IDENTIFIER})*)?"
+    rf"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
 SemanticVersion = Annotated[str, StringConstraints(pattern=SEMVER_PATTERN)]
 
 
