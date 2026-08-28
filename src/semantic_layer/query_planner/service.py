@@ -238,7 +238,12 @@ def discover_question(question: str, role: str, registry: SemanticRegistry) -> Q
     metric_predicates: list[MetricPredicate] = []
     metric_ids: list[str] = []
     if claim_threshold is not None or incurred_threshold is not None:
-        relationships.append(registry.relationship_path(policy_id, claim_id))
+        relationships.extend(
+            (
+                registry.relationship_path(customer_id, claim_id),
+                registry.relationship_path(claim_id, policy_id),
+            )
+        )
         if claim_threshold is not None:
             claim_count_id = registry.metric_id_named("ClaimCount")
             operator = ">" if "more than" in normalized_question or "over" in normalized_question else ">="
@@ -259,7 +264,12 @@ def discover_question(question: str, role: str, registry: SemanticRegistry) -> Q
         )
         metric_ids.append(active_policy_count_id)
     elif "claims ratio" in normalized_question:
-        relationships.append(registry.relationship_path(policy_id, claim_id))
+        relationships.extend(
+            (
+                registry.relationship_path(customer_id, claim_id),
+                registry.relationship_path(claim_id, policy_id),
+            )
+        )
         claims_ratio_id = registry.metric_id_named("ClaimsRatio")
         metric_predicates.append(MetricPredicate(metric_id=claims_ratio_id, operator=">", value=0))
         metric_ids.append(claims_ratio_id)

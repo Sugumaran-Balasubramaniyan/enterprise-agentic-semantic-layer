@@ -33,7 +33,8 @@ def test_valid_graph_contains_relationship_links_and_country_context() -> None:
     claim = insurance["claim-FR-001"]
 
     assert (customer, insurance.ownsPolicy, policy) in graph
-    assert (policy, insurance.submitsClaim, claim) in graph
+    assert (customer, insurance.submitsClaim, claim) in graph
+    assert (claim, insurance.relatesToPolicy, policy) in graph
     assert (customer, insurance.countryCode, None) in graph
     assert (policy, insurance.countryCode, None) in graph
 
@@ -88,11 +89,11 @@ def test_ontology_declares_versions_domains_ranges_and_subclasses() -> None:
     assert (insurance[""], owl.versionInfo, None) in graph
     for name, domain, range_ in (
         ("ownsPolicy", "Customer", "Policy"),
-        ("submitsClaim", "Policy", "Claim"),
+        ("submitsClaim", "Customer", "Claim"),
         ("relatesToPolicy", "Claim", "Policy"),
         ("hasProduct", "Policy", "InsuranceProduct"),
-        ("coversRisk", "InsuranceProduct", "Risk"),
-        ("hasCoverage", "InsuranceProduct", "Coverage"),
+        ("coversRisk", "Policy", "Risk"),
+        ("hasCoverage", "Policy", "Coverage"),
         ("generatesPremium", "Policy", "Premium"),
         ("hasClaimStatus", "Claim", "ClaimStatus"),
         ("hasIncurredLoss", "Claim", "IncurredLoss"),

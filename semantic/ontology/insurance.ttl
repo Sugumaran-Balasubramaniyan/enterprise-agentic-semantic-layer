@@ -28,15 +28,15 @@ insurance:IncurredLoss a owl:Class .
 insurance:ownsPolicy a owl:ObjectProperty ;
     rdfs:domain insurance:Customer ; rdfs:range insurance:Policy .
 insurance:submitsClaim a owl:ObjectProperty ;
-    rdfs:domain insurance:Policy ; rdfs:range insurance:Claim .
+    rdfs:domain insurance:Customer ; rdfs:range insurance:Claim .
 insurance:relatesToPolicy a owl:ObjectProperty ;
     rdfs:domain insurance:Claim ; rdfs:range insurance:Policy .
 insurance:hasProduct a owl:ObjectProperty ;
     rdfs:domain insurance:Policy ; rdfs:range insurance:InsuranceProduct .
 insurance:coversRisk a owl:ObjectProperty ;
-    rdfs:domain insurance:InsuranceProduct ; rdfs:range insurance:Risk .
+    rdfs:domain insurance:Policy ; rdfs:range insurance:Risk .
 insurance:hasCoverage a owl:ObjectProperty ;
-    rdfs:domain insurance:InsuranceProduct ; rdfs:range insurance:Coverage .
+    rdfs:domain insurance:Policy ; rdfs:range insurance:Coverage .
 insurance:generatesPremium a owl:ObjectProperty ;
     rdfs:domain insurance:Policy ; rdfs:range insurance:Premium .
 insurance:claimPolicy a owl:ObjectProperty ;

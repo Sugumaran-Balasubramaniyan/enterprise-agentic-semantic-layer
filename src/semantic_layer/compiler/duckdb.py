@@ -18,7 +18,8 @@ _PRIMARY_PRODUCTS = ("Customer360", "PolicyMaster", "ClaimsAnalytics")
 _PRIMARY_DIMENSIONS = ("insurance:Customer", "insurance:Country")
 _PRIMARY_EDGES = (
     ("insurance:Customer", "insurance:ownsPolicy", "insurance:Policy"),
-    ("insurance:Policy", "insurance:submitsClaim", "insurance:Claim"),
+    ("insurance:Customer", "insurance:submitsClaim", "insurance:Claim"),
+    ("insurance:Claim", "insurance:relatesToPolicy", "insurance:Policy"),
 )
 _COUNTRY_CONCEPT = "insurance:Country"
 _PRODUCT_CONCEPT = "insurance:InsuranceProduct"
