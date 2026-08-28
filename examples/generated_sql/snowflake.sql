@@ -1,4 +1,4 @@
--- UNEXECUTED DOCUMENTATION EXAMPLE: Snowflake execution is disabled locally.
+-- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Snowflake execution is disabled locally.
 -- Use the governed plan, approved United Kingdom mapping, and native Snowflake security.
 SELECT customer.customer_id, COUNT(DISTINCT claim.claim_id) AS claim_count
 FROM GLOBALSURE_UK.CUSTOMER.CUSTOMERS AS customer

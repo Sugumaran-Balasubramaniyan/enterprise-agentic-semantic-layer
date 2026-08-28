@@ -1,4 +1,4 @@
--- UNEXECUTED DOCUMENTATION EXAMPLE: Microsoft Fabric execution is disabled locally.
+-- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Microsoft Fabric execution is disabled locally.
 -- Use the governed plan, approved Germany mapping, and native Fabric security.
 SELECT customer.customer_id, COUNT(DISTINCT claim.claim_id) AS claim_count
 FROM dbo.customers AS customer

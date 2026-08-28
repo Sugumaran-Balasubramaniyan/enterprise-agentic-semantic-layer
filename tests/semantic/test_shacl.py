@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pyshacl import validate as shacl_validate
 from rdflib import RDF, RDFS, Graph, Namespace
 
 from semantic_layer import validation
@@ -22,6 +23,19 @@ def test_invalid_claim_graph_fails_shacl_validation() -> None:
 def test_valid_claim_graph_conforms_to_shacl_shapes() -> None:
     result = validate_graph(VALID_GRAPH, SHAPES)
     assert result.conforms is True
+
+
+def test_valid_graph_contains_relationship_links_and_country_context() -> None:
+    graph = Graph().parse(VALID_GRAPH, format="turtle")
+    insurance = Namespace("https://globalsure.example/insurance/")
+    customer = insurance["customer-FR-001"]
+    policy = insurance["policy-FR-001"]
+    claim = insurance["claim-FR-001"]
+
+    assert (customer, insurance.ownsPolicy, policy) in graph
+    assert (policy, insurance.submitsClaim, claim) in graph
+    assert (customer, insurance.countryCode, None) in graph
+    assert (policy, insurance.countryCode, None) in graph
 
 
 def test_shacl_validation_reports_fixture_paths() -> None:
@@ -88,6 +102,28 @@ def test_ontology_declares_versions_domains_ranges_and_subclasses() -> None:
         assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").domain, insurance[domain]) in graph
         assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").range, insurance[range_]) in graph
     assert (insurance.MotorInsurance, RDFS.subClassOf, insurance.InsuranceProduct) in graph
+
+
+def test_country_code_domain_is_a_superclass_and_combined_instance_graph_conforms() -> None:
+    ontology = Graph().parse(ONTOLOGY, format="turtle")
+    insurance = Namespace("https://globalsure.example/insurance/")
+    rdfs = Namespace("http://www.w3.org/2000/01/rdf-schema#")
+    domains = set(ontology.objects(insurance.countryCode, rdfs.domain))
+    assert domains == {insurance.CountryCodedEntity}
+    assert (insurance.Customer, RDFS.subClassOf, insurance.CountryCodedEntity) in ontology
+    assert (insurance.Policy, RDFS.subClassOf, insurance.CountryCodedEntity) in ontology
+
+    instance = Graph().parse(VALID_GRAPH, format="turtle")
+    shapes = Graph().parse(SHAPES, format="turtle")
+    conforms, _, _ = shacl_validate(
+        instance,
+        shacl_graph=shapes,
+        ont_graph=ontology,
+        inference="rdfs",
+        abort_on_first=False,
+        advanced=False,
+    )
+    assert conforms is True
 
 
 def test_taxonomy_declares_version_and_skos_hierarchy_and_alternatives() -> None:

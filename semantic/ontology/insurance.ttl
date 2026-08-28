@@ -18,6 +18,9 @@ insurance:Coverage a owl:Class .
 insurance:Premium a owl:Class .
 insurance:ClaimStatus a owl:Class .
 insurance:Country a owl:Class .
+insurance:CountryCodedEntity a owl:Class .
+insurance:Customer rdfs:subClassOf insurance:CountryCodedEntity .
+insurance:Policy rdfs:subClassOf insurance:CountryCodedEntity .
 insurance:ActivePolicy a owl:Class ; rdfs:subClassOf insurance:Policy .
 insurance:QualifyingClaim a owl:Class ; rdfs:subClassOf insurance:Claim .
 insurance:IncurredLoss a owl:Class .
@@ -42,6 +45,9 @@ insurance:claimPolicy a owl:ObjectProperty ;
 insurance:policyProduct a owl:ObjectProperty ;
     rdfs:subPropertyOf insurance:hasProduct ;
     rdfs:domain insurance:Policy ; rdfs:range insurance:InsuranceProduct .
+
+insurance:countryCode a owl:DatatypeProperty ;
+    rdfs:domain insurance:CountryCodedEntity ; rdfs:range xsd:string .
 
 insurance:customerId a owl:DatatypeProperty ; rdfs:domain insurance:Customer ; rdfs:range xsd:string .
 insurance:policyId a owl:DatatypeProperty ; rdfs:domain insurance:Policy ; rdfs:range xsd:string .

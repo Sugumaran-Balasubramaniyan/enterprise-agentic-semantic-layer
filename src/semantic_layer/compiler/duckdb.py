@@ -65,7 +65,7 @@ class DuckDBCompiler:
 
     def _validate(
         self, plan: SemanticQueryPlan
-    ) -> tuple[str, str, int | float, int | float, dict[str, str], dict[str, str]]:
+    ) -> tuple[str, str, int | float, int | float, str, dict[str, str], dict[str, str]]:
         if type(plan) is not SemanticQueryPlan:
             raise TypeError("compiler accepts validated SemanticQueryPlan instances only")
         if plan.target_platform != "DuckDB":
@@ -82,9 +82,10 @@ class DuckDBCompiler:
             raise ValueError("plan names an unapproved product")
         if any(
             self.registry.products[product].certification.status != "CERTIFIED"
+            or self.registry.products[product].quality.status != "CERTIFIED"
             for product in plan.selected_products
         ):
-            raise ValueError("plan selects a product that is not certified")
+            raise ValueError("plan selects a product that is not certified or has unsafe quality")
         if plan.time_context is None or plan.time_context.window != "last_12_months":
             raise ValueError("trusted claims template requires a last_12_months context")
         if (
@@ -96,7 +97,7 @@ class DuckDBCompiler:
         if tuple(predicate.metric_id for predicate in plan.metric_predicates) != expected_metrics:
             raise ValueError("plan metrics must exactly match the trusted claims template")
         predicates = {predicate.metric_id: predicate for predicate in plan.metric_predicates}
-        if predicates[_CLAIM_COUNT].operator != ">=" or predicates[_TOTAL_LOSS].operator != ">":
+        if predicates[_CLAIM_COUNT].operator not in {">=", ">"} or predicates[_TOTAL_LOSS].operator != ">":
             raise ValueError("plan metric predicate operators are not governed")
         country = self._filter_value(plan, _COUNTRY_CONCEPT)
         product = self._filter_value(plan, _PRODUCT_CONCEPT)
@@ -130,6 +131,7 @@ class DuckDBCompiler:
             product,
             predicates[_CLAIM_COUNT].value,
             predicates[_TOTAL_LOSS].value,
+            predicates[_CLAIM_COUNT].operator,
             field_evidence,
             versions,
         )
@@ -146,12 +148,12 @@ class DuckDBCompiler:
         if type(authorization) is not AuthorizationDecision:
             raise TypeError("authorization decision is required before compilation")
         if type(caller) is not CallerContext:
-            raise TypeError("compiler requires an authenticated caller context")
+            raise TypeError("compiler requires a validated caller context")
         if not authorization._matches(plan, caller, self.registry):
             raise ValueError("authorization decision does not match plan, caller, or reviewed assets")
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question is required to bind compilation to the requested semantic intent")
-        country, product, claim_count, total_loss, field_evidence, versions = self._validate(plan)
+        country, product, claim_count, total_loss, claim_count_operator, field_evidence, versions = self._validate(plan)
         expected_plan = build_plan(question, caller.role, self.registry)
         if digest(expected_plan) != digest(plan):
             raise ValueError("question does not resolve to the submitted semantic plan")
@@ -181,7 +183,7 @@ WHERE claim.status IN ({status_placeholders})
     AND policy.product = ?
     AND claim.product = ?
 GROUP BY customer.customer_id, customer.country
-HAVING COUNT(DISTINCT claim.claim_id) >= ?
+HAVING COUNT(DISTINCT claim.claim_id) {claim_count_operator} ?
     AND SUM(claim.incurred_loss_eur) > ?
 ORDER BY customer.customer_id
 """.strip()
@@ -199,16 +201,41 @@ ORDER BY customer.customer_id
         )
         lineage = LineageService(self.registry).for_plan(plan)
         versions.update(lineage.semantic_versions)
-        concepts = tuple(
-            dict.fromkeys(
-                [
-                    plan.root_entity,
-                    *plan.projected_dimensions,
-                    *(query_filter.concept_id for query_filter in plan.filters),
-                    *(predicate.metric_id for predicate in plan.metric_predicates),
-                ]
-            )
-        )
+        concepts_seen: set[str] = set()
+
+        def add_concept(concept_id: str) -> None:
+            if concept_id in self.registry.concepts:
+                concepts_seen.add(concept_id)
+
+        add_concept(plan.root_entity)
+        for concept_id in plan.projected_dimensions:
+            add_concept(concept_id)
+        for query_filter in plan.filters:
+            add_concept(query_filter.concept_id)
+            if isinstance(query_filter.value, str):
+                add_concept(query_filter.value)
+        for relationship in plan.relationships:
+            add_concept(relationship.source)
+            add_concept(relationship.target)
+        for predicate in plan.metric_predicates:
+            # Metric IDs are governed semantic references but are stored in a
+            # separate registry collection from vocabulary concepts.
+            concepts_seen.add(predicate.metric_id)
+            metric = self.registry.metrics.get(predicate.metric_id)
+            if metric is None:
+                continue
+            add_concept(metric.concept)
+            if metric.filter_rule:
+                add_concept(metric.filter_rule)
+                rule = self.registry.rules.get(metric.filter_rule)
+                if rule is not None:
+                    add_concept(rule.applies_to)
+            for dependency in metric.dependencies:
+                concepts_seen.add(dependency)
+                dependency_metric = self.registry.metrics.get(dependency)
+                if dependency_metric is not None:
+                    add_concept(dependency_metric.concept)
+        concepts = tuple(sorted(concepts_seen))
         query = object.__new__(CompiledQuery)
         payload = {
             "sql": sql,

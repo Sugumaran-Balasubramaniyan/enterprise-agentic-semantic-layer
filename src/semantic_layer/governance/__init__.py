@@ -1,5 +1,10 @@
-"""Authorization controls for semantic query plans."""
+"""Authorization controls for semantic discovery and query plans."""
 
-from semantic_layer.governance.policy import AuthorizationDecision, authorize
+from semantic_layer.governance.policy import (
+    AuthorizationDecision,
+    DiscoveryAuthorizationDecision,
+    authorize,
+    authorize_discovery,
+)
 
-__all__ = ["AuthorizationDecision", "authorize"]
+__all__ = ["AuthorizationDecision", "DiscoveryAuthorizationDecision", "authorize", "authorize_discovery"]

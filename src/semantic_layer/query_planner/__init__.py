@@ -1,5 +1,5 @@
-"""Governed typed query-planning public interface."""
+"""Governed semantic discovery and typed query-planning public interface."""
 
-from .service import build_plan
+from .service import QueryDiscovery, build_plan, discover_question
 
-__all__ = ["build_plan"]
+__all__ = ["QueryDiscovery", "build_plan", "discover_question"]

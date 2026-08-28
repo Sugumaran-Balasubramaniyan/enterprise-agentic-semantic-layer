@@ -34,3 +34,13 @@ The mapping files intentionally document cloud source identifiers without
 claiming a live cloud connection. The local execution boundary is the
 DuckDB/CSV adapter in later tasks; platform SQL examples can be compiled from
 the same semantic fields but are not executed without credentials.
+
+Group owns the canonical vocabulary, ontology, interoperability rules, and
+semantic CI. France, the UK, and Germany own their local schemas, products,
+mappings, and regulatory policies. This ownership split means local autonomy
+does not become semantic divergence: every mapping is reviewed and tested
+against the Group contract before a metric can consume it.
+
+See [architecture](architecture.md) for the mapping boundary and
+[ADR-001](decisions/ADR-001-canonical-group-model.md) for the canonical Group
+model decision.

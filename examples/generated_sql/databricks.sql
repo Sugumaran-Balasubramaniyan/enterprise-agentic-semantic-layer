@@ -1,4 +1,4 @@
--- UNEXECUTED DOCUMENTATION EXAMPLE: Databricks execution is disabled locally.
+-- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Databricks execution is disabled locally.
 -- Use the governed plan, approved France mapping, and native Databricks security.
 SELECT customer.customer_id, COUNT(DISTINCT claim.claim_id) AS claim_count
 FROM globalsure_france.insurance_customer.customers AS customer

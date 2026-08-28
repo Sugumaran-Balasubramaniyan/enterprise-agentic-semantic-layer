@@ -1,7 +1,6 @@
 premium_id,policy_id,customer_id,country,product,premium_date,premium_eur
 FR_PREM_001,FR_POL_001,FR_001,FR,insurance:MotorInsurance,2026-08-08,1350.00
 FR_PREM_002,FR_POL_003,FR_002,FR,insurance:MotorInsurance,2026-08-08,1490.00
-FR_PREM_003,FR_POL_004,FR_003,FR,insurance:HomeInsurance,2026-08-08,620.00
 UK_PREM_001,UK_POL_001,UK_001,GB,insurance:MotorInsurance,2026-08-08,1120.00
 DE_PREM_001,DE_POL_001,DE_001,DE,insurance:MotorInsurance,2026-08-08,980.00
 RAW_NEGATIVE,FR_POL_001,FR_001,FR,insurance:MotorInsurance,2026-08-08,-25.00

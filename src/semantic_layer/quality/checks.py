@@ -31,6 +31,13 @@ _ID_COLUMNS = {
     "policies.csv": "policy_id",
     "premiums.csv": "premium_id",
 }
+_JOIN_ID_COLUMNS = {
+    "claims.csv": ("claim_id", "policy_id", "customer_id"),
+    "customers.csv": ("customer_id",),
+    "policies.csv": ("policy_id", "customer_id"),
+    "premiums.csv": ("premium_id", "policy_id", "customer_id"),
+}
+_NULL_IDENTIFIERS = {"", "null", "none"}
 _REQUIRED_FIELDS = {
     "claims.csv": {
         "claim_id", "policy_id", "customer_id", "country", "product", "status", "claim_date", "incurred_loss_eur"
@@ -205,12 +212,17 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
                 )
             for row_number, row in enumerate(reader, start=2):
                 row_count += 1
-                identifier = (row.get(id_column) or "").strip()
-                if not identifier:
-                    _issue(issues, "MISSING_ID", file_name, row_number, id_column, "identifier is required")
-                elif identifier in seen_ids:
+                identifiers = {
+                    column: (row.get(column) or "").strip()
+                    for column in _JOIN_ID_COLUMNS[file_name]
+                }
+                for column, identifier in identifiers.items():
+                    if not identifier or identifier.casefold() in _NULL_IDENTIFIERS:
+                        _issue(issues, "MISSING_ID", file_name, row_number, column, "identifier is required")
+                identifier = identifiers[id_column]
+                if identifier and identifier.casefold() not in _NULL_IDENTIFIERS and identifier in seen_ids:
                     _issue(issues, "DUPLICATE_ID", file_name, row_number, id_column, "identifier is duplicate")
-                else:
+                elif identifier and identifier.casefold() not in _NULL_IDENTIFIERS:
                     seen_ids.add(identifier)
                 country = row.get("country")
                 mapping = _country_mapping(registry, country or "")
@@ -228,8 +240,9 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
                 else:
                     mapping_evidence[f"{file_name}:{row_number}"] = f"{mapping.id}@{mapping.version}"
                     product = row.get("product")
-                    if product is not None and product not in set(
-                        mapping.normalization.get("products", {}).values()
+                    mapped_products = set(mapping.normalization.get("products", {}).values())
+                    if product is not None and (
+                        product not in mapped_products or product not in registry.concepts
                     ):
                         _issue(
                             issues,

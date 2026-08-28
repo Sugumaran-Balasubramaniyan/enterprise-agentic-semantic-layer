@@ -56,3 +56,35 @@ def test_provenance_persists_semantic_sources_for_the_executed_answer(tmp_path: 
     assert "ClaimsAnalytics" in provenance.data_products
     assert persisted == provenance
     assert all(source.endswith(".csv") for source in provenance.physical_sources)
+
+
+def test_primary_provenance_contains_semantic_closure_and_separates_source_evidence(
+    tmp_path: Path,
+) -> None:
+    """Primary evidence must retain all governed concepts and distinguish source roles."""
+
+    _, _, _, _, execution = _primary_execution()
+    provenance = ProvenanceStore(tmp_path / "provenance.sqlite").record(
+        question=PRIMARY_QUESTION, execution=execution
+    )
+
+    assert set(provenance.concepts) == {
+        "insurance:Customer",
+        "insurance:Country",
+        "insurance:InsuranceProduct",
+        "insurance:Policy",
+        "insurance:MotorInsurance",
+        "insurance:Claim",
+        "insurance:QualifyingClaim",
+        "insurance:IncurredLoss",
+        "insurance:ClaimCount",
+        "insurance:TotalIncurredLoss",
+    } <= set(provenance.concepts)
+    assert set(provenance.queried_sources) == {"customers.csv", "policies.csv", "claims.csv"}
+    assert set(provenance.quality_validated_sources) == {
+        "customers.csv",
+        "policies.csv",
+        "claims.csv",
+        "premiums.csv",
+    }
+    assert set(provenance.queried_sources) < set(provenance.quality_validated_sources)

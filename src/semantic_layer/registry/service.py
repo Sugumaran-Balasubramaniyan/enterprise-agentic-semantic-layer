@@ -143,7 +143,9 @@ class SemanticRegistry:
         return [
             product
             for product in self.products.values()
-            if product.certification.status == "CERTIFIED" and concept_id in product.concepts
+            if product.certification.status == "CERTIFIED"
+            and product.quality.status == "CERTIFIED"
+            and concept_id in product.concepts
         ]
 
     def concept_id_named(self, name: str) -> str:
@@ -201,7 +203,11 @@ class SemanticRegistry:
                 raise ValueError(f"unknown governed metric: {metric_id}")
             for product_id in metric.source_products:
                 product = self.products.get(product_id)
-                if product is None or product.certification.status != "CERTIFIED":
+                if (
+                    product is None
+                    or product.certification.status != "CERTIFIED"
+                    or product.quality.status != "CERTIFIED"
+                ):
                     raise ValueError(
                         f"metric {metric_id} references unavailable certified product: {product_id}"
                     )

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from semantic_layer.control import _sign, _verify, digest, registry_digest
 from semantic_layer.models import CallerContext, SemanticQueryPlan
+from semantic_layer.query_planner import QueryDiscovery
 from semantic_layer.registry import SemanticRegistry
 
 _COUNTRY_CONCEPT = "insurance:Country"
@@ -12,6 +13,32 @@ _ROLE_PRODUCTS = {
     "ClaimsManagerGroup": {"Customer360", "PolicyMaster", "ClaimsAnalytics"},
     "FinanceAnalyst": {"PremiumAnalytics"},
 }
+_CLASSIFICATION_RANK = {"Public": 0, "Internal": 1, "Confidential": 2, "Restricted": 3}
+_ROLE_MAX_CLASSIFICATION = {
+    "ClaimsAnalystFR": "Restricted",
+    "ClaimsManagerGroup": "Restricted",
+    "FinanceAnalyst": "Confidential",
+}
+
+
+def _classification_denial(role: str, product_ids: set[str], registry: SemanticRegistry) -> str | None:
+    """Return a denial reason when selected products exceed the role policy."""
+
+    maximum = _ROLE_MAX_CLASSIFICATION.get(role)
+    if maximum is None:
+        return None
+    maximum_rank = _CLASSIFICATION_RANK[maximum]
+    for product_id in sorted(product_ids):
+        product = registry.products.get(product_id)
+        if product is None:
+            continue
+        rank = _CLASSIFICATION_RANK.get(product.classification)
+        if rank is None or rank > maximum_rank:
+            return (
+                f"product {product_id} classification {product.classification!r} "
+                f"exceeds {role} policy maximum {maximum}"
+            )
+    return None
 class AuthorizationDecision:
     """Opaque authorization capability issued only by :func:`authorize`."""
 
@@ -57,6 +84,50 @@ class AuthorizationDecision:
         return _verify("AuthorizationDecision", self._payload(), self._signature)
 
 
+class DiscoveryAuthorizationDecision:
+    """Opaque pre-plan capability which permits or blocks final plan construction."""
+
+    __slots__ = (
+        "_signature",
+        "allowed",
+        "caller_digest",
+        "discovery_digest",
+        "message",
+        "reason_code",
+        "registry_digest",
+    )
+
+    def __init__(self, *_: object, **__: object) -> None:
+        raise TypeError("DiscoveryAuthorizationDecision instances are authorization-issued only")
+
+    def __setattr__(self, _name: str, _value: object) -> None:
+        raise AttributeError("DiscoveryAuthorizationDecision capabilities are immutable")
+
+    def _payload(self) -> dict[str, object]:
+        return {
+            "allowed": self.allowed,
+            "reason_code": self.reason_code,
+            "message": self.message,
+            "discovery_digest": self.discovery_digest,
+            "caller_digest": self.caller_digest,
+            "registry_digest": self.registry_digest,
+        }
+
+    def _matches(
+        self, discovery: QueryDiscovery, caller: CallerContext, registry: SemanticRegistry
+    ) -> bool:
+        return (
+            self._verify_integrity()
+            and self.allowed
+            and self.discovery_digest == digest(discovery)
+            and self.caller_digest == digest(caller)
+            and self.registry_digest == registry_digest(registry)
+        )
+
+    def _verify_integrity(self) -> bool:
+        return _verify("DiscoveryAuthorizationDecision", self._payload(), self._signature)
+
+
 def _countries_in(plan: SemanticQueryPlan) -> set[str]:
     return {
         str(query_filter.value)
@@ -83,6 +154,121 @@ def _projected_pii_fields(plan: SemanticQueryPlan, registry: SemanticRegistry) -
     }
 
 
+def _projected_pii_fields_for(
+    projected_concepts: set[str], countries: set[str], registry: SemanticRegistry
+) -> set[str]:
+    """Apply the same mapping-derived PII rule before a final plan exists."""
+
+    mappings = [
+        mapping
+        for mapping in registry.mappings.values()
+        if not countries or mapping.location in countries
+    ]
+    return {
+        field_name
+        for mapping in mappings
+        for field_name, field in mapping.fields.items()
+        if field.pii and field.concept in projected_concepts
+    }
+
+
+def authorize_discovery(
+    discovery: QueryDiscovery,
+    caller: CallerContext,
+    registry: SemanticRegistry,
+) -> DiscoveryAuthorizationDecision:
+    """Authorize discovery before a final typed plan can be built or compiled."""
+
+    if type(discovery) is not QueryDiscovery or type(caller) is not CallerContext:
+        raise TypeError("discovery authorization requires validated discovery and caller contexts")
+    if type(registry) is not SemanticRegistry:
+        raise TypeError("discovery authorization requires the repository-issued semantic registry")
+
+    def issue(*, allowed: bool, reason_code: str, message: str) -> DiscoveryAuthorizationDecision:
+        decision = object.__new__(DiscoveryAuthorizationDecision)
+        payload = {
+            "allowed": allowed,
+            "reason_code": reason_code,
+            "message": message,
+            "discovery_digest": digest(discovery),
+            "caller_digest": digest(caller),
+            "registry_digest": registry_digest(registry),
+        }
+        for name, value in payload.items():
+            object.__setattr__(decision, name, value)
+        object.__setattr__(
+            decision, "_signature", _sign("DiscoveryAuthorizationDecision", decision._payload())
+        )
+        return decision
+
+    allowed_products = _ROLE_PRODUCTS.get(caller.role)
+    if allowed_products is None:
+        return issue(
+            allowed=False,
+            reason_code="ROLE_DENIED",
+            message=f"role {caller.role} has no semantic query permission",
+        )
+    if discovery.caller.model_dump() != caller.model_dump():
+        return issue(
+            allowed=False,
+            reason_code="CALLER_CONTEXT_MISMATCH",
+            message="discovery caller does not match supplied caller context",
+        )
+    if not set(discovery.selected_products).issubset(allowed_products):
+        return issue(
+            allowed=False,
+            reason_code="PRODUCT_DENIED",
+            message="role cannot access one or more selected data products",
+        )
+    classification_denial = _classification_denial(
+        caller.role, set(discovery.selected_products), registry
+    )
+    if classification_denial is not None:
+        return issue(
+            allowed=False,
+            reason_code="CLASSIFICATION_DENIED",
+            message=classification_denial,
+        )
+    for product_id in discovery.selected_products:
+        product = registry.products.get(product_id)
+        if product is None or product.quality.status != "CERTIFIED":
+            status = product.quality.status if product is not None else "MISSING"
+            return issue(
+                allowed=False,
+                reason_code="PRODUCT_QUALITY_DENIED",
+                message=f"selected product {product_id} quality status {status} blocks access",
+            )
+    countries = {
+        str(query_filter.value)
+        for query_filter in discovery.filters
+        if query_filter.concept_id == _COUNTRY_CONCEPT and query_filter.operator == "="
+    }
+    if caller.country is not None and countries != {caller.country}:
+        return issue(
+            allowed=False,
+            reason_code="COUNTRY_SCOPE_DENIED",
+            message="discovery country scope does not match caller",
+        )
+    if caller.role == "ClaimsAnalystFR" and countries != {"FR"}:
+        return issue(
+            allowed=False,
+            reason_code="COUNTRY_SCOPE_DENIED",
+            message="ClaimsAnalystFR is limited to French records",
+        )
+    pii_fields = _projected_pii_fields_for(set(discovery.projected_dimensions), countries, registry)
+    if caller.role == "FinanceAnalyst" and pii_fields:
+        return issue(
+            allowed=False,
+            reason_code="PII_FIELD_DENIED",
+            message=f"FinanceAnalyst cannot retrieve derived PII fields: {sorted(pii_fields)}",
+        )
+    return issue(
+        allowed=True,
+        reason_code="ALLOWED",
+        message="governed discovery access granted",
+    )
+
+
 def authorize(
     plan: SemanticQueryPlan,
     caller: CallerContext,
@@ -91,7 +277,7 @@ def authorize(
     """Issue an authorization capability for exactly one plan/caller/asset context."""
 
     if type(plan) is not SemanticQueryPlan or type(caller) is not CallerContext:
-        raise TypeError("authorization requires validated plan and authenticated caller contexts")
+        raise TypeError("authorization requires validated plan and caller contexts")
     if type(registry) is not SemanticRegistry:
         raise TypeError("authorization requires the repository-issued semantic registry")
 
@@ -121,7 +307,7 @@ def authorize(
         return issue(
             allowed=False,
             reason_code="CALLER_CONTEXT_MISMATCH",
-            message="plan caller does not match the authenticated caller context",
+            message="plan caller does not match the supplied caller context",
         )
     if not set(plan.selected_products).issubset(allowed_products):
         return issue(
@@ -129,12 +315,28 @@ def authorize(
             reason_code="PRODUCT_DENIED",
             message="role cannot access one or more selected data products",
         )
+    classification_denial = _classification_denial(caller.role, set(plan.selected_products), registry)
+    if classification_denial is not None:
+        return issue(
+            allowed=False,
+            reason_code="CLASSIFICATION_DENIED",
+            message=classification_denial,
+        )
+    for product_id in plan.selected_products:
+        product = registry.products.get(product_id)
+        if product is None or product.quality.status != "CERTIFIED":
+            status = product.quality.status if product is not None else "MISSING"
+            return issue(
+                allowed=False,
+                reason_code="PRODUCT_QUALITY_DENIED",
+                message=f"selected product {product_id} quality status {status} blocks access",
+            )
     countries = _countries_in(plan)
     if caller.country is not None and countries != {caller.country}:
         return issue(
             allowed=False,
             reason_code="COUNTRY_SCOPE_DENIED",
-            message="plan country scope does not match the authenticated caller",
+            message="plan country scope does not match the supplied caller context",
         )
     if caller.role == "ClaimsAnalystFR" and countries != {"FR"}:
         return issue(

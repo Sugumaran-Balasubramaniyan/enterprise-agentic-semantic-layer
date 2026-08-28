@@ -48,6 +48,8 @@ class ExecutionResult(Sequence[dict[str, Any]]):
         "parameter_digest",
         "plan_digest",
         "quality_digest",
+        "quality_validated_sources",
+        "queried_sources",
         "query_digest",
         "question_digest",
         "semantic_versions",
@@ -65,6 +67,8 @@ class ExecutionResult(Sequence[dict[str, Any]]):
             "rows": self._rows,
             "sources": self.source_digests,
             "local_sources": self.local_sources,
+            "queried_sources": self.queried_sources,
+            "quality_validated_sources": self.quality_validated_sources,
             "mappings": self.mapping_evidence,
             "quality": self.quality_digest,
             "question": self.question_digest,
@@ -72,6 +76,7 @@ class ExecutionResult(Sequence[dict[str, Any]]):
             "query": self.query_digest,
             "parameters": self.parameter_digest,
             "authorization": self.authorization_digest,
+            "authorization_outcome": self.authorization_outcome,
             "plan": self.plan_digest,
             "caller": self.caller_digest,
             "products": self.approved_products,
@@ -126,6 +131,12 @@ class LocalDuckDBAdapter:
     def _local_sources(self) -> dict[str, str]:
         return {name: str((self.curated_data_path / name).resolve()) for name in self._required_quality_datasets()}
 
+    def _queried_sources(self) -> dict[str, str]:
+        return {
+            filename: str((self.curated_data_path / filename).resolve())
+            for filename in _VIEWS.values()
+        }
+
     @staticmethod
     def _required_quality_datasets() -> tuple[str, ...]:
         return ("claims.csv", "customers.csv", "policies.csv", "premiums.csv")
@@ -160,6 +171,7 @@ class LocalDuckDBAdapter:
             or authorization.caller_digest != query.caller_digest
             or authorization.caller_digest != digest(caller)
             or authorization.registry_digest != registry_digest(self.registry)
+            or query.authorization_outcome != authorization.reason_code
             or query.authorization_digest
             != digest(
                 {
@@ -171,6 +183,12 @@ class LocalDuckDBAdapter:
             )
         ):
             raise ValueError("authorization capability does not match compiled query")
+        if any(
+            product_id not in self.registry.products
+            or self.registry.products[product_id].quality.status != "CERTIFIED"
+            for product_id in query.approved_products
+        ):
+            raise ValueError("execution product quality is not CERTIFIED")
         if type(quality) is not QualityReport or not quality._matches(self.curated_data_path, self.registry):
             raise ValueError("quality report integrity signature does not match complete current source data")
         if dict(quality.source_digests) != self._source_digests():
@@ -199,6 +217,10 @@ class LocalDuckDBAdapter:
                     "_rows": frozen_rows,
                     "source_digests": MappingProxyType(dict(sorted(quality.source_digests.items()))),
                     "local_sources": MappingProxyType(dict(sorted(self._local_sources().items()))),
+                    "queried_sources": MappingProxyType(dict(sorted(self._queried_sources().items()))),
+                    "quality_validated_sources": MappingProxyType(
+                        dict(sorted(self._local_sources().items()))
+                    ),
                     "mapping_evidence": MappingProxyType(dict(quality.mapping_evidence)),
                     "quality_digest": quality.digest,
                     "question_digest": query.question_digest,

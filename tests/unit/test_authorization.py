@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from semantic_layer.governance import authorize
 from semantic_layer.models import CallerContext, SemanticQueryPlan
 from semantic_layer.query_planner import build_plan
@@ -58,3 +60,31 @@ def test_unknown_role_is_denied_by_default() -> None:
 
     assert decision.allowed is False
     assert decision.reason_code == "ROLE_DENIED"
+
+
+def test_unrecognized_product_classification_is_denied_by_default() -> None:
+    """Role/product allowlists must not bypass the advertised classification policy."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    registry.products["ClaimsAnalytics"].classification = "TopSecret"
+
+    decision = authorize(plan, plan.caller, registry)
+
+    assert decision.allowed is False
+    assert decision.reason_code == "CLASSIFICATION_DENIED"
+
+
+@pytest.mark.parametrize("quality_status", ["DEGRADED", "UNSAFE"])
+def test_non_healthy_product_quality_denies_authorization(quality_status: str) -> None:
+    """Product certification cannot authorize a product whose quality is unsafe."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    registry.products["ClaimsAnalytics"].quality.status = quality_status
+
+    decision = authorize(plan, plan.caller, registry)
+
+    assert decision.allowed is False
+    assert decision.reason_code == "PRODUCT_QUALITY_DENIED"
+    assert quality_status in decision.message
