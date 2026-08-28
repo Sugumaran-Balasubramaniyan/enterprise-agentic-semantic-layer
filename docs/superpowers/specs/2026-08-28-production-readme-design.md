@@ -12,6 +12,8 @@ controls required to evolve the reference implementation into production.
 Replace the current interview-oriented README with a detailed, accurate,
 production-oriented repository handbook while preserving the concise local
 demo path and avoiding claims unsupported by the checked-in implementation.
+The repository must not contain interview-preparation content; demonstrations
+must be framed as normal operational examples and technical documentation.
 
 ## Design
 
@@ -73,8 +75,8 @@ The final README must include:
   enhancement, KMS/HSM, and policy services;
 - traceability matrix from requested capability to implementation, tests, and
   production analogue;
-- interview/demo path as one optional reader journey, not the repository's
-  primary purpose;
+- a concise end-to-end demonstration path framed as a normal system walkthrough,
+  with no interview-preparation language or interview-specific guide;
 - license, synthetic-data policy, limitations, and support/escalation notes.
 
 ## Verification

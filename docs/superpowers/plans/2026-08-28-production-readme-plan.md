@@ -104,3 +104,20 @@
 - [ ] **Step 3: Run the complete verification matrix from a clean-ish environment.**
 - [ ] **Step 4: Commit any final correction and push.**
 - [ ] **Step 5: Report repository URL, commits, exact commands, evidence, and limitations.**
+
+### Task 6: Remove interview-preparation artifacts and language
+
+**Files:**
+- Delete: `docs/interview-demo-guide.md`
+- Modify: `README.md`, `docs/decisions/ADR-006-duckdb-local-demo.md`, existing historical spec/plan references where they are part of the published repository surface
+- Test: `tests/unit/test_documentation_contract.py`
+
+**Interfaces:**
+- Consumes: The neutral system walkthrough, architecture docs, ADRs, and repository navigation created by Tasks 1–5.
+- Produces: A recruiter- and engineering-reader-facing repository with no interview-preparation wording, interview scripts, or interview-specific guide links.
+
+- [ ] **Step 1: Add a regression test** that rejects interview-prep terms in published README/docs and rejects links to a deleted interview guide.
+- [ ] **Step 2: Run the focused test** and confirm it fails against the current repository.
+- [ ] **Step 3: Remove or rewrite interview-specific content** while preserving technical demonstrations as neutral operational walkthroughs.
+- [ ] **Step 4: Run repository-wide text scan, link checks, and documentation tests.**
+- [ ] **Step 5: Commit and push** with `docs: remove interview preparation material`.
