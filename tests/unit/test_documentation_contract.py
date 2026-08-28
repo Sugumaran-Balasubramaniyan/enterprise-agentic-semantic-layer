@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from semantic_layer.api.app import create_app
+
 ROOT = Path(__file__).parents[2]
 
 
@@ -80,3 +82,30 @@ def test_each_adr_has_required_decision_sections() -> None:
         text = path.read_text()
         for heading in ["## Context", "## Decision", "## Alternatives", "## Consequences"]:
             assert heading in text, (path, heading)
+
+
+def test_readme_api_table_matches_registered_fastapi_routes() -> None:
+    readme = (ROOT / "README.md").read_text()
+    routes = {
+        (route.path, method)
+        for route in create_app().routes
+        if route.path in create_app().openapi()["paths"]
+        for method in route.methods or set()
+    }
+    assert "GET /health" in readme
+    for route, method in routes:
+        assert f"{method.upper()} {route}" in readme, (method, route)
+    for unsupported in [
+        "/concepts/{id}/relationships",
+        "/metrics/{id}",
+        "/data-products/{id}",
+        "/mappings/{concept}",
+    ]:
+        assert unsupported not in readme
+
+
+def test_readme_verification_section_identifies_latest_evidence() -> None:
+    readme = (ROOT / "README.md").read_text()
+    assert "2026-08-28 UTC" in readme
+    assert "docs/verification-report.md" in readme
+    assert "195 passed" in readme

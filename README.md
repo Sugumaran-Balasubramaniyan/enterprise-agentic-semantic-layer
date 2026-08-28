@@ -247,16 +247,57 @@ Run `make PYTHON=.venv/bin/python run-api`, then open
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /health` | Service health |
-| `GET /concepts`, `/concepts/{id}` | Vocabulary discovery and definitions |
-| `GET /concepts/{id}/relationships` | Governed relationship lookup |
-| `GET /metrics`, `/metrics/{id}` | Metric definitions and ownership |
-| `GET /data-products`, `/data-products/{id}` | Certified product contracts |
-| `GET /mappings/{concept}` | Platform mappings |
+| `GET /concepts` | Vocabulary discovery |
+| `GET /concepts/{concept_id}` | One canonical concept definition |
+| `GET /metrics` | Governed metric definitions and ownership |
+| `GET /data-products` | Certified data-product contracts |
+| `GET /mappings` | All registered platform mappings |
 | `POST /resolve` | Deterministic business-term resolution |
 | `POST /query-plan` | Authorized typed logical plan |
 | `POST /execute` | Governed local execution |
 | `POST /validate` | Semantic/data-quality validation |
 | `GET /provenance/{query_id}` | Signed runtime evidence |
+
+The table above is the implemented transport contract. There are deliberately
+no detail routes for metrics, data products, relationships, or individual
+mappings; clients retrieve the registered collections and use the canonical
+IDs in their responses. `POST /resolve` accepts a business question only.
+`POST /query-plan` and `POST /execute` additionally require the simulated
+`role` caller context and optional `country` and `purpose` fields. The role is
+not authentication: production identity and authorization attributes must be
+derived by the transport from an identity provider.
+
+All request models reject unknown fields and SQL-shaped input. Unsupported
+question grammars, residual filters, unknown roles or products, unauthorized
+country scopes, degraded products, and failed quality checks fail closed before
+execution. A successful `/execute` response contains the canonical plan,
+compiled local SQL, result rows, quality and authorization outcomes, and a
+runtime provenance ID. The `/validate` endpoint is a read-only check of the
+checked-in curated fixture; it does not execute an arbitrary query.
+
+## Verification evidence
+
+The latest checked-in verification evidence is recorded in
+[docs/verification-report.md](docs/verification-report.md), dated **2026-08-28 UTC**.
+It documents the exact local commands, outputs, limitations, and
+security-scan interpretation; it is the source of truth for what was actually
+verified rather than a claim of cloud-platform execution.
+
+The latest full local matrix reported `195 passed` with the existing third-party
+FastAPI/Starlette `TestClient` deprecation warning. It also reported:
+
+- lint: Ruff passed;
+- semantic validation: valid RDF conforms and the invalid fixture fails as expected;
+- YAML, mapping, quality, compiler, and golden checks: passed;
+- golden evaluation: `31/31` governed cases and `10/10` discovery-only cases;
+- the end-to-end demo: deterministic `FR_001` and `FR_002` results;
+- `git diff --check`: clean; and
+- a scoped credential scan: no credential values found.
+
+These results are local regression evidence over synthetic data. They do not
+establish production scale, latency, cloud compatibility, or business-data
+quality. Re-run the commands after changing semantic assets, mappings,
+compiler logic, authorization, or data fixtures.
 
 SQL-shaped questions, unsupported residual constraints, unauthorized roles, and
 degraded products fail closed.
