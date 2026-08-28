@@ -147,3 +147,26 @@ def test_readme_documents_data_contract_and_clean_install() -> None:
     ]:
         assert fragment in readme, fragment
     assert "make PYTHON=.venv/bin/python setup" not in readme
+
+
+def test_readme_documents_production_operations_and_security_boundary() -> None:
+    """Keep local-demo limits and production operating requirements explicit."""
+
+    readme = (ROOT / "README.md").read_text()
+    required_fragments = [
+        "## Production deployment and operating model",
+        "### Local reference versus production service",
+        "liveness-only",
+        "request-body role is spoofable demo context",
+        "development-only convenience",
+        "### Environment separation and promotion",
+        "### Identity, authorization, and privacy controls",
+        "### Provenance retention, signing, and backup",
+        "### Observability and CI coverage boundary",
+        "No telemetry, tracing, metrics export, alerting, or security scanning is implemented",
+        "### Operational failure and action matrix",
+        "### Upgrade and rollback guidance",
+        "fail closed",
+    ]
+    for fragment in required_fragments:
+        assert fragment in readme, fragment

@@ -554,6 +554,265 @@ definition requires updated regression and golden evidence. CI runs linting,
 YAML parsing, ontology/SHACL checks, mapping and quality tests, compiler tests,
 API tests, golden evaluation, and the complete suite.
 
+## Production deployment and operating model
+
+The repository is a local reference implementation and a semantic-contract
+baseline; it is not a production deployment template. This section defines the
+minimum operating model required before a team exposes the service to enterprise
+users or agents. It separates what the checked-in code does today from controls
+that a deployment platform and operating team must supply.
+
+### Local reference versus production service
+
+| Concern | Current local reference behavior | Required production posture |
+| --- | --- | --- |
+| HTTP serving | `make PYTHON=.venv/bin/python run-api` starts Uvicorn with `--reload`, normally on the local loopback interface. Reload is a development-only convenience. | Run immutable, versioned application images behind a managed ingress; disable reload; use multiple workers/replicas only after concurrency, storage, and load tests. |
+| Health | `GET /health` returns `{"status":"ok"}`. It is liveness-only: it does not check registry validity, provenance storage, signing authority, policy service, or data-platform connectivity. | Separate liveness from dependency-aware readiness and startup checks. Remove an instance from traffic when a required dependency is unavailable. |
+| Caller context | `role`, `country`, and `purpose` arrive in the request body. The request-body role is spoofable demo context, not identity. | Authenticate at the edge and derive signed, short-lived caller and workload claims server-side from an enterprise identity provider. Never accept authorization attributes from a public request body. |
+| Execution | DuckDB reads small synthetic curated CSV fixtures. The API creates a uniquely named local SQLite provenance file in the system temporary directory unless a path is injected. | Use a certified platform adapter, a governed data-product endpoint, and managed durable provenance storage. Enforce network, residency, and platform access policies outside and inside the service. |
+| Signing | A process-local signing key is generated when no configured key exists; an optional HMAC key can be supplied through environment/file configuration. | Use an approved KMS, HSM, or dedicated signing service with key ownership, rotation, access logging, and independently retained verification material. |
+| Operations | Commands are developer-operated; no service deployment, autoscaling, disaster recovery, telemetry, alerting, or on-call integration is included. | Operate through infrastructure-as-code, a release pipeline, an incident process, capacity controls, backups, and documented service objectives. |
+
+The local service proves that an agent can be grounded in governed semantics
+before SQL is compiled. It must not be presented as an authenticated API, a
+production data-processing service, or evidence that a cloud platform
+integration has been operated.
+
+### Target deployment topology
+
+The production topology keeps the semantic control plane independent of a
+single data platform while allowing each country/domain to retain local data
+ownership and enforcement.
+
+```mermaid
+flowchart TB
+    Client[Human user or agent client] --> Edge[Enterprise ingress and API gateway]
+    Edge --> Identity[Identity verification and claim mapping]
+    Identity --> Service[Semantic API service]
+    Service --> Policy[Policy decision and enforcement]
+    Service --> Registry[Versioned semantic registry]
+    Service --> Compiler[Trusted plan compiler]
+    Compiler --> Adapter[Approved platform adapter]
+    Adapter --> Product[Certified data product]
+    Service --> Evidence[Durable provenance store]
+    Evidence --> Signer[KMS or signing service]
+    Service --> Observe[Logs metrics traces and audit events]
+    Registry --> Release[Reviewed release artifacts]
+```
+
+The API service is a policy-enforcement point, not a data-security bypass. It
+accepts business intent, resolves it to canonical semantics, and requests a
+platform-specific operation only after authorization, product selection, and
+quality gates pass. The adapter must use its own least-privilege workload
+identity. The target platform remains responsible for native row-level,
+column-level, masking, and residency enforcement; the semantic service should
+constrain access further, never widen it.
+
+The registry deployment should use a content-addressed release artifact
+containing the reviewed vocabulary, taxonomy, ontology, SHACL shapes, rules,
+metrics, data-product contracts, and mappings. Each running instance should
+report the semantic release identifier and registry digest with every
+provenance record. Do not allow a running production process to edit semantic
+assets in place.
+
+### Environment separation and promotion
+
+Use separate development, test, staging, and production environments with
+separate identities, secrets, provenance stores, and data-product endpoints.
+Development may use the synthetic fixtures in this repository; production must
+not point at them. Test and staging should use representative but approved
+non-production data, with the same security controls exercised before
+promotion.
+
+| Stage | Semantic assets | Data and execution | Release gate |
+| --- | --- | --- | --- |
+| Development | Working branch and local registry | Synthetic CSV and DuckDB only | Unit, semantic, compiler, and local API tests |
+| CI | Checked-out commit in an ephemeral runner | Synthetic fixtures only | Lint, YAML, SHACL, mappings/quality, compiler, golden, and full test suite |
+| Staging | Immutable candidate artifact | Approved non-production certified products | Contract tests, access-policy tests, migration rehearsal, load/security review |
+| Production | Signed/tagged approved semantic release | Production-certified products through approved adapters | Change approval, rollback readiness, monitoring and backup checks |
+
+Promote the same reviewed semantic artifact between stages; do not rebuild its
+assets manually per environment. Bind environment-specific information such as
+database endpoints, workload identities, key references, residency controls,
+and platform catalog locations outside the artifact. A semantic change that
+alters a metric, rule, relationship, mapping, or access meaning requires a
+versioned change record, compatibility assessment, updated golden expectations,
+and explicit owner approval. Treat an adapter or data-product schema change as
+a jointly owned release between the semantic and domain teams.
+
+### Identity, authorization, and privacy controls
+
+The included governance module demonstrates fail-closed authorization logic
+for a small synthetic role model. It is not an identity system. In production,
+place an authentication layer before FastAPI that validates enterprise-issued
+tokens and, for service-to-service calls, workload identity or mTLS where
+required. It must validate audience and expiry, then map verified claims to an
+internal caller context. The service should receive only server-derived role,
+country, purpose, tenant/entity, and data-entitlement attributes.
+
+Apply authorization at several layers:
+
+1. **Gateway:** authenticate users and agents, enforce rate/size limits, TLS,
+   approved client registration, and request correlation identifiers.
+2. **Semantic service:** authorize requested concepts, metrics, products,
+   country/entity scope, purpose, and classification before final planning;
+   reject unknown attributes and unsupported constraints.
+3. **Platform adapter:** use a least-privilege workload principal scoped to the
+   approved certified product, not arbitrary schemas or tables.
+4. **Data platform:** enforce native row-level security, column masking,
+   object grants, data residency, retention, and query auditing independently
+   of the semantic service.
+
+Data minimization is essential for an agent-facing service. Return only fields
+required by the governed answer and projection; default to aggregates or
+pseudonymous identifiers where a business use case permits. Do not put raw
+customer identifiers, full SQL parameters, tokens, or sensitive result rows in
+application logs, traces, prompts, or incident tickets. Define classification,
+PII handling, cross-border transfer, consent/purpose, retention, and deletion
+requirements with legal, privacy, security, and each data-product owner before
+onboarding real insurance data. A semantic definition or provenance digest does
+not replace records-of-processing, DPIA, or regulatory obligations.
+
+### Provenance retention, signing, and backup
+
+The local `ProvenanceStore` is a single-process SQLite implementation with a
+tamper-evident chain and HMAC integrity checks. It provides useful local
+evidence but is not a multi-writer, highly available, access-controlled, or
+retention-managed audit system. Its default API location is a temporary local
+SQLite file, so restart persistence and backup are not guaranteed unless a
+path and stable signing key are explicitly provided.
+
+For production, define an evidence policy before launch:
+
+- Store provenance in an access-controlled, durable system with an immutable
+  or write-once retention option appropriate to audit obligations.
+- Retain the semantic release ID, registry digest, plan/query/parameter
+  digests, authorization and quality outcomes, product/mapping versions, and
+  source identifiers needed to reproduce the decision without unnecessarily
+  retaining personal data.
+- Keep signing keys in a KMS/HSM or dedicated signing service. Version every
+  key, record its key identifier in evidence, rotate under a tested procedure,
+  and retain verification capability for records signed by retired keys.
+- Encrypt evidence in transit and at rest, restrict readers and writers by
+  role, and forward tamper or verification failures to the incident process.
+- Set retention, legal hold, deletion, residency, and export rules with the
+  applicable business, privacy, and records-management owners; the repository
+  intentionally does not prescribe a universal retention period.
+- Back up the provenance store, semantic release artifacts, mapping/product
+  contracts, key references, and deployment configuration on a defined
+  schedule. Encrypt backups, test restore into an isolated environment, and
+  verify the provenance chain and signatures after every restore.
+
+Backups are not sufficient by themselves. A restore rehearsal must prove that
+the selected semantic release, signing verification material, and provenance
+chain can be recovered together. Record recovery point and recovery time
+objectives before selecting storage technology; this POC does not implement or
+measure either objective.
+
+### Observability and CI coverage boundary
+
+No telemetry, tracing, metrics export, alerting, or security scanning is implemented
+by this repository. The API also does not emit a structured audit-event stream,
+and the local `/health` route is not a readiness probe. The checked-in GitHub
+Actions workflow runs on push and pull request with Python 3.12 and executes
+Ruff, YAML parsing, semantic/SHACL validation, mapping and quality checks,
+golden tests, compiler tests, and the full pytest suite. It does not currently
+run dependency vulnerability scanning, secret scanning, SAST, container/image
+scanning, license review, SBOM generation, signing, deployment, performance
+tests, or cloud integration tests.
+
+Before operating the service, add and own the following signals and controls:
+
+- Request rate, latency, errors, timeouts, rejected requests, authorization
+  denials, quality failures, compiler failures, adapter failures, and result
+  row-count distributions.
+- Semantic signals: resolver ambiguity, unsupported grammar, selected product,
+  semantic release/digest, mapping version, rule/metric version, and drift
+  between expected and observed product quality.
+- Security/audit signals: verified subject/workload, policy decision ID,
+  privilege failures, key/signature verification failures, access to evidence,
+  and administrative changes to semantic assets or deployment configuration.
+- Privacy-safe correlation IDs and redaction rules so operational data remains
+  useful without storing sensitive business questions or result values by
+  default.
+- CI/CD supply-chain controls: pinned actions and dependencies, secret and
+  dependency scanning, SAST, SBOM/provenance generation, artifact signing,
+  protected environments, required reviews, and deployment attestations.
+
+Choose service objectives only after measuring representative production-like
+workloads. The synthetic local suite is a correctness regression suite, not a
+latency, availability, cost, or capacity benchmark.
+
+### Operational failure and action matrix
+
+The local code fails closed for invalid input, unsupported question grammar,
+unknown roles/products, unauthorized scope, quality failure, and provenance
+integrity failure. The matrix turns those application behaviors into operating
+actions; notification, paging, retries, and remediation workflows are
+production responsibilities, not implemented automation in this repository.
+
+| Condition | Current local behavior | Production action | Safe disposition |
+| --- | --- | --- | --- |
+| SQL-shaped or invalid request | Request validation rejects it; no SQL is executed. | Record a redacted validation event, tune client integration if recurring, and investigate abuse patterns at the gateway. | Return a controlled client error; do not reinterpret it as SQL. |
+| Unknown role, country scope, purpose, product, or residual constraint | Authorization/planning rejects the request before execution. | Verify claim mapping and policy configuration; require an approved entitlement or semantic change rather than a bypass. | Deny and retain a privacy-safe policy decision record. |
+| Curated product fails quality gate | Execution is blocked before DuckDB access. | Quarantine/de-certify the affected product version, notify its owner, assess downstream answers, and restore only after evidence of remediation. | Return no result; do not fall back to raw or uncertified data. |
+| Provenance signature or chain verification fails | The store raises an error and read/append does not proceed. | Preserve evidence, isolate the affected store, investigate integrity/key changes, restore a verified copy if approved, and rotate/revoke keys as required. | Stop serving evidence from that store; do not overwrite the chain. |
+| Signing key unavailable or ephemeral | Local execution can use a process-local key when unset. | Production startup/readiness must fail if the approved signing authority is unavailable or unverified; never silently create an audit key. | Do not accept auditable production execution until signing is restored. |
+| Adapter or certified data product unavailable | The POC has only local DuckDB; adapter failures surface as failed execution. | Apply bounded retries only where the platform guarantees idempotence, use circuit breaking, notify the product owner, and assess stale-data policy explicitly. | Fail the request; never substitute an unapproved table or platform. |
+| Semantic release/mapping defect | Local validation or golden tests should detect known regressions before release. | Halt promotion, revert to the last approved release, invalidate affected answers if necessary, and open a versioned corrective change. | Keep the previous approved semantic release active. |
+| Suspected privacy or authorization incident | No incident automation is included. | Revoke affected identities, preserve audit evidence, engage security/privacy response, and follow regulatory and contractual notification procedures. | Disable affected capability until investigation approves restoration. |
+
+### Upgrade and rollback guidance
+
+Use release artifacts, not mutable folders, as the unit of change. Build an
+artifact from one reviewed commit; record its application version, semantic
+asset versions, registry digest, adapter version, and configuration schema
+version. Validate it in staging with the target identity claims, product
+contract, policy, signing authority, and a restore rehearsal before a
+production rollout.
+
+For a compatible change, deploy a small canary or isolated entity scope first,
+compare authorization, quality, plan, result, and provenance signals with the
+previous release, then promote progressively. For a semantic breaking change,
+publish a new major semantic version, retain the prior definition and
+evaluation corpus for the agreed compatibility window, and communicate the
+business interpretation change to downstream consumers.
+
+Prepare rollback before deployment: keep the previous immutable application
+and semantic artifact available; version migrations so they can be rolled
+forward safely or restored from a tested backup; and preserve provenance needed
+to explain which release generated each answer. Roll back when policy behavior,
+metric meaning, mapping correctness, quality gates, signing verification, or
+platform access deviates from the approved baseline. Never repair a production
+semantic release by editing assets in place, weakening a policy, bypassing a
+quality gate, or replacing evidence records. If provenance schema changes are
+not backward-readable, deploy a read-compatible migration first and do not
+retire the previous reader until retention obligations are met.
+
+### Production readiness checklist
+
+Before a real pilot, the accountable platform, security, data-product, and
+semantic owners should be able to answer yes to each item:
+
+- A named production owner and on-call/escalation path exist for the service,
+  each adapter, every certified data product, and the semantic release.
+- Enterprise authentication derives caller and workload attributes server-side;
+  request bodies cannot grant roles, country scope, or purpose.
+- Native platform row/column controls and the semantic policy are tested
+  together for every supported product and entity scope.
+- The semantic artifact, container/dependency artifact, configuration, and
+  approved mapping/product contracts are versioned, reviewed, scanned, and
+  promotable through protected environments.
+- Provenance storage, signing, key rotation, backup, restore, legal hold, and
+  evidence-read access have documented owners and a successful rehearsal.
+- Observability, redaction, dashboards, alert thresholds, incident runbooks,
+  capacity limits, and service objectives are implemented and exercised.
+- Golden evaluation, data-quality, authorization, compiler, migration, and
+  production-adapter contract tests pass against the candidate release.
+- Privacy, residency, records-management, and regulatory obligations are
+  accepted for the exact countries, products, and agent use cases being
+  enabled.
+
 ## Production evolution
 
 This is a local reference implementation, not a claim of live cloud integration.
