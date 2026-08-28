@@ -19,6 +19,12 @@ _SQL_TOKEN = re.compile(
     r"export|import|insert|load|pragma|rollback|select|truncate|union|update|vacuum|with)\b)",
     re.IGNORECASE,
 )
+_QUESTION_SQL_TOKEN = re.compile(
+    r"(?:;|--|/\*|\*/|\b(?:alter|attach|begin|commit|copy|create|delete|drop|execute|"
+    r"export|import|insert|load|pragma|rollback|select|truncate|union|update|vacuum)\b)",
+    re.IGNORECASE,
+)
+_CTE_TOKEN = re.compile(r"\bwith\s+[A-Za-z_][A-Za-z0-9_]*\s+as\s*\(", re.IGNORECASE)
 
 
 class SemanticModel(BaseModel):
@@ -27,13 +33,26 @@ class SemanticModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-def _contains_sql_shape(value: Any) -> bool:
+def contains_sql_shape(value: Any, *, natural_language: bool = False) -> bool:
+    """Return whether untrusted text contains a SQL control shape.
+
+    Logical plan fields reject every standalone ``WITH`` token. Business
+    questions allow ordinary prose such as "customers with three claims" but
+    still reject the executable CTE form ``WITH name AS (...)``.
+    """
+
     if isinstance(value, str):
+        if natural_language:
+            return bool(_QUESTION_SQL_TOKEN.search(value) or _CTE_TOKEN.search(value))
         return bool(_SQL_TOKEN.search(value))
     if isinstance(value, dict):
-        return any(_contains_sql_shape(item) for pair in value.items() for item in pair)
+        return any(
+            contains_sql_shape(item, natural_language=natural_language)
+            for pair in value.items()
+            for item in pair
+        )
     if isinstance(value, (list, tuple, set)):
-        return any(_contains_sql_shape(item) for item in value)
+        return any(contains_sql_shape(item, natural_language=natural_language) for item in value)
     return False
 
 
@@ -43,7 +62,7 @@ class SqlFreeSemanticModel(SemanticModel):
     @model_validator(mode="before")
     @classmethod
     def reject_sql_shaped_values(cls, value: Any) -> Any:
-        if _contains_sql_shape(value):
+        if contains_sql_shape(value):
             raise ValueError("logical semantic contracts cannot contain SQL-shaped values")
         return value
 

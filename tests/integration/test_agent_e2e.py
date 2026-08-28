@@ -47,8 +47,24 @@ def test_agent_returns_answer_plan_sql_and_provenance(agent: ClaimsInvestigation
     )
 
 
-def test_agent_fails_closed_for_denied_role(agent: ClaimsInvestigationAgent) -> None:
-    """Changing policy to allow an unknown role must never expose execution results."""
+def test_denied_caller_stops_after_pre_authorization_before_final_plan(
+    agent: ClaimsInvestigationAgent, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Moving authorization after plan creation would expose denied callers to later stages."""
 
-    with pytest.raises(PermissionError, match="ROLE_DENIED"):
+    def later_stage(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("denied caller reached a final-plan or execution stage")
+
+    monkeypatch.setattr(agent.tools, "build_query_plan", later_stage)
+    monkeypatch.setattr(agent.tools, "execute_semantic_query", later_stage)
+    monkeypatch.setattr(agent.tools, "record_provenance", later_stage)
+
+    with pytest.raises(PermissionError, match="ROLE_DENIED") as error:
         agent.answer(PRIMARY_QUESTION, CallerContext(role="UnknownRole"))
+
+    assert error.value.stages == (
+        "intent_parse",
+        "resolve",
+        "relationships_and_products",
+        "authorize",
+    )

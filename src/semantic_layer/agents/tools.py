@@ -7,11 +7,16 @@ from pathlib import Path
 
 from semantic_layer.adapters import ExecutionResult, LocalDuckDBAdapter
 from semantic_layer.compiler import CompiledQuery, DuckDBCompiler
-from semantic_layer.governance import AuthorizationDecision, authorize
-from semantic_layer.models import CallerContext, Resolution, SemanticQueryPlan
+from semantic_layer.governance import (
+    AuthorizationDecision,
+    DiscoveryAuthorizationDecision,
+    authorize,
+    authorize_discovery,
+)
+from semantic_layer.models import CallerContext, Resolution, SemanticQueryPlan, contains_sql_shape
 from semantic_layer.provenance import Provenance, ProvenanceStore
 from semantic_layer.quality import QualityReport, validate_curated_data
-from semantic_layer.query_planner import build_plan
+from semantic_layer.query_planner import QueryDiscovery, build_plan, discover_question
 from semantic_layer.registry import SemanticRegistry
 from semantic_layer.semantic_validation import Concept, Relationship
 
@@ -48,6 +53,8 @@ class SemanticAgentTools:
 
         if not isinstance(text, str) or not text.strip():
             raise ValueError("a non-empty business question is required")
+        if contains_sql_shape(text, natural_language=True):
+            raise ValueError("business question cannot contain SQL-shaped values")
         return self.registry.resolve(text)
 
     def get_business_definition(self, concept_id: str) -> str:
@@ -79,17 +86,38 @@ class SemanticAgentTools:
         except KeyError:
             raise ValueError(f"unknown governed metric: {metric_id}") from None
 
-    def build_query_plan(self, question: str, caller: CallerContext) -> SemanticQueryPlan:
-        """Build a typed, SQL-free plan and bind it to the authenticated scope."""
+    def discover(self, question: str, caller: CallerContext) -> QueryDiscovery:
+        """Discover only the semantic controls required for pre-plan authorization."""
 
         if type(caller) is not CallerContext:
             raise TypeError("agent tools require a validated CallerContext")
-        plan = build_plan(question, caller.role, self.registry)
-        if caller.country is not None and caller.country != plan.caller.country:
+        discovery = discover_question(question, caller.role, self.registry)
+        if caller.country is not None and caller.country != discovery.caller.country:
             raise PermissionError("CALLER_COUNTRY_MISMATCH: question country conflicts with caller scope")
-        if caller.purpose != plan.caller.purpose:
+        if caller.purpose != discovery.caller.purpose:
             raise PermissionError("CALLER_PURPOSE_MISMATCH: caller purpose is not authorized for the plan")
-        return plan
+        return discovery
+
+    def authorize_discovery(self, discovery: QueryDiscovery) -> DiscoveryAuthorizationDecision:
+        """Authorize discovery before a final typed plan is allowed to exist."""
+
+        return authorize_discovery(discovery, discovery.caller, self.registry)
+
+    def build_query_plan(
+        self,
+        question: str,
+        caller: CallerContext,
+        *,
+        discovery: QueryDiscovery | None = None,
+    ) -> SemanticQueryPlan:
+        """Build the final typed plan after the caller's scope has been checked."""
+
+        discovery = discovery or self.discover(question, caller)
+        if discovery.caller.model_dump() != caller.model_copy(
+            update={"country": discovery.caller.country}
+        ).model_dump():
+            raise PermissionError("CALLER_CONTEXT_MISMATCH: discovery is not bound to the caller")
+        return build_plan(question, caller.role, self.registry, discovery=discovery)
 
     def authorize(self, plan: SemanticQueryPlan) -> AuthorizationDecision:
         """Issue authorization for the planner-derived caller context only."""

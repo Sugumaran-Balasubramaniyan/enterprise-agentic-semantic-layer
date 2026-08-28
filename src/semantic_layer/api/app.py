@@ -7,11 +7,11 @@ from tempfile import gettempdir
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from semantic_layer.agents import ClaimsInvestigationAgent
 from semantic_layer.agents.workflow import provenance_as_dict
-from semantic_layer.models import CallerContext
+from semantic_layer.models import CallerContext, contains_sql_shape
 
 
 class QuestionRequest(BaseModel):
@@ -20,6 +20,15 @@ class QuestionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     question: str = Field(min_length=1)
+
+    @field_validator("question")
+    @classmethod
+    def reject_sql_shaped_question(cls, value: str) -> str:
+        """Fail before routing untrusted SQL-shaped text into agent services."""
+
+        if contains_sql_shape(value, natural_language=True):
+            raise ValueError("business question cannot contain SQL-shaped values")
+        return value
 
 
 class SemanticRequest(QuestionRequest):

@@ -143,17 +143,36 @@ class ClaimsInvestigationAgent:
         if type(caller) is not CallerContext:
             raise TypeError("answer requires a validated CallerContext")
 
+        stages = ["intent_parse"]
         resolution = self.tools.resolve_business_term(question)
-        plan = self.tools.build_query_plan(question, caller)
-        relationships = [relationship.model_dump(mode="json") for relationship in plan.relationships]
-        data_products = list(plan.selected_products)
+        stages.append("resolve")
+        discovery = self.tools.discover(question, caller)
+        relationships = [relationship.model_dump(mode="json") for relationship in discovery.relationships]
+        data_products = list(discovery.selected_products)
+        stages.append("relationships_and_products")
+        discovery_authorization = self.tools.authorize_discovery(discovery)
+        stages.append("authorize")
+        if not discovery_authorization.allowed:
+            error = PermissionError(
+                f"{discovery_authorization.reason_code}: {discovery_authorization.message}"
+            )
+            error.stages = tuple(stages)
+            raise error
+        plan = self.tools.build_query_plan(question, caller, discovery=discovery)
+        stages.append("plan")
         authorization = self.tools.authorize(plan)
         if not authorization.allowed:
-            raise PermissionError(f"{authorization.reason_code}: {authorization.message}")
+            error = PermissionError(f"{authorization.reason_code}: {authorization.message}")
+            error.stages = tuple(stages)
+            raise error
         artifacts = self.tools.execute_semantic_query(question, plan, authorization)
+        stages.extend(("compile", "execute"))
         if artifacts.quality.status != "PASS" or not artifacts.execution._verify_integrity():
             raise ValueError("RESULT_VALIDATION_FAILED: execution output is not quality-bound")
+        stages.append("result_validation")
         provenance = self.tools.record_provenance(question, artifacts.execution)
+        stages.append("provenance")
+        stages.append("answer_formatting")
         return AgentAnswer(
             question=question,
             caller=plan.caller,
@@ -166,4 +185,5 @@ class ClaimsInvestigationAgent:
             compiled_query=artifacts.compiled_query,
             rows=list(artifacts.execution),
             provenance=provenance,
+            stages=tuple(stages),
         )

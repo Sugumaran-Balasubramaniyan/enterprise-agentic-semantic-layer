@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from semantic_layer.models import (
     CallerContext,
     Filter,
     MetricPredicate,
+    RelationshipPath,
+    Resolution,
     SemanticQueryPlan,
     TimeContext,
+    contains_sql_shape,
 )
 from semantic_layer.resolver.service import normalize
 
@@ -49,6 +53,23 @@ _NUMBER_WORDS = {
     "nineteen": 19,
     "twenty": 20,
 }
+
+
+@dataclass(frozen=True)
+class QueryDiscovery:
+    """Non-executable semantic discovery used to authorize before final plan construction."""
+
+    question: str
+    role: str
+    caller: CallerContext
+    resolution: Resolution
+    root_entity: str
+    projected_dimensions: tuple[str, ...]
+    filters: tuple[Filter, ...]
+    relationships: tuple[RelationshipPath, ...]
+    metric_predicates: tuple[MetricPredicate, ...]
+    time_context: TimeContext | None
+    selected_products: tuple[str, ...]
 
 
 def _country_for(question: str, registry: SemanticRegistry) -> str | None:
@@ -99,14 +120,19 @@ def _requires_mapped_product(question: str, registry: SemanticRegistry) -> bool:
     )
 
 
-def build_plan(question: str, role: str, registry: SemanticRegistry) -> SemanticQueryPlan:
-    """Build an asset-derived plan for supported claims and active-policy questions.
+def discover_question(question: str, role: str, registry: SemanticRegistry) -> QueryDiscovery:
+    """Resolve governed intent without constructing a final execution plan.
 
-    The grammar recognizes documented intent, while all canonical identifiers,
-    relationships, metric sources, and product selections come from the registry.
-    It deliberately never creates executable SQL.
+    Discovery is sufficient for fail-closed authorization (role, country,
+    projected concepts, and selected products) but cannot be compiled or
+    executed. The final ``SemanticQueryPlan`` is constructed only after this
+    discovery has been authorized.
     """
 
+    if not isinstance(question, str) or not question.strip():
+        raise ValueError("a non-empty business question is required")
+    if contains_sql_shape(question, natural_language=True):
+        raise ValueError("business question cannot contain SQL-shaped values")
     normalized_question = normalize(question)
     resolution = registry.resolve(question)
     customer_id = registry.concept_id_named("Customer")
@@ -157,13 +183,40 @@ def build_plan(question: str, role: str, registry: SemanticRegistry) -> Semantic
     else:
         raise ValueError("unsupported question pattern; no governed metric could be resolved")
 
-    return SemanticQueryPlan(
-        root_entity=customer_id,
-        projected_dimensions=[customer_id, country_id],
-        filters=filters,
-        relationships=relationships,
-        metric_predicates=metric_predicates,
-        time_context=_time_context(normalized_question),
-        selected_products=registry.products_for_plan([customer_id, policy_id], metric_ids),
+    return QueryDiscovery(
+        question=question,
+        role=role,
         caller=_caller(role, country),
+        resolution=resolution,
+        root_entity=customer_id,
+        projected_dimensions=(customer_id, country_id),
+        filters=tuple(filters),
+        relationships=tuple(relationships),
+        metric_predicates=tuple(metric_predicates),
+        time_context=_time_context(normalized_question),
+        selected_products=tuple(registry.products_for_plan([customer_id, policy_id], metric_ids)),
+    )
+
+
+def build_plan(
+    question: str,
+    role: str,
+    registry: SemanticRegistry,
+    *,
+    discovery: QueryDiscovery | None = None,
+) -> SemanticQueryPlan:
+    """Construct a final typed plan from fresh or previously authorized discovery."""
+
+    discovery = discovery or discover_question(question, role, registry)
+    if discovery.question != question or discovery.role != role:
+        raise ValueError("discovery is not bound to the requested question and role")
+    return SemanticQueryPlan(
+        root_entity=discovery.root_entity,
+        projected_dimensions=list(discovery.projected_dimensions),
+        filters=list(discovery.filters),
+        relationships=list(discovery.relationships),
+        metric_predicates=list(discovery.metric_predicates),
+        time_context=discovery.time_context,
+        selected_products=list(discovery.selected_products),
+        caller=discovery.caller,
     )

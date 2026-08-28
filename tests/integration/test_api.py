@@ -55,3 +55,26 @@ def test_execute_endpoint_does_not_execute_for_an_unknown_role(client: TestClien
 
     assert response.status_code == 403
     assert "ROLE_DENIED" in response.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        f"{PRIMARY_QUESTION};",
+        f"{PRIMARY_QUESTION} -- comment",
+        f"{PRIMARY_QUESTION} /* comment */",
+        f"SELECT * FROM claims; {PRIMARY_QUESTION}",
+        f"DROP TABLE claims; {PRIMARY_QUESTION}",
+        f"INSERT INTO claims VALUES (1); {PRIMARY_QUESTION}",
+        f"PRAGMA database_list; {PRIMARY_QUESTION}",
+        f"ATTACH 'other.db' AS other; {PRIMARY_QUESTION}",
+        f"VACUUM; {PRIMARY_QUESTION}",
+    ],
+)
+def test_execute_rejects_sql_shaped_business_questions(client: TestClient, question: str) -> None:
+    """Removing request-boundary validation would allow non-business syntax into the workflow."""
+
+    response = client.post("/execute", json={"question": question, "role": "ClaimsAnalystFR"})
+
+    assert response.status_code == 422
+    assert "SQL-shaped" in response.text
