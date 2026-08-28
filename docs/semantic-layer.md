@@ -10,3 +10,15 @@ The three semantic layers have distinct responsibilities:
 - `semantic/shapes/insurance-shapes.ttl` validates insurance instances. Claims require an ID, date, status, policy, and non-negative incurred loss; policies require an ID, product, and status.
 
 Use `python -m semantic_layer.validation` to load all 13 canonical concepts and validate both sample graphs. The valid graph conforms; the deliberately incomplete graph fails with an expected SHACL report and does not make the command fail.
+
+## Contract boundaries
+
+The semantic layer combines glossary meaning, taxonomy labels, ontology
+relationships, graph instances, product contracts, mappings, metrics, rules,
+authorization, and execution controls. RAG may retrieve supporting text, but
+it cannot substitute for these machine-readable contracts. The deterministic
+core is intentionally bounded and can be extended only with new governed
+patterns and tests.
+
+See [architecture](architecture.md), [governance](governance.md), and
+[ADR-004](decisions/ADR-004-typed-query-plans.md).

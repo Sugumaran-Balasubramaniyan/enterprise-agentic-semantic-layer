@@ -43,3 +43,14 @@ python -c "from datetime import date; from pathlib import Path; from semantic_la
 ```
 
 The repository script uses the same fixed date: `python data/generate_demo_data.py`.
+
+## Certification boundary
+
+An agent may select only contracts whose certification status is `CERTIFIED`.
+Product grain prevents accidental join multiplication, while classification
+and PII declarations feed authorization. Static upstream lineage in each YAML
+contract is combined with dynamic query provenance after execution. These
+contracts describe the local reference implementation; they are not claims
+that a production catalog or cloud platform is connected.
+
+See [governance](governance.md) and [ADR-008](decisions/ADR-008-certified-data-products.md).
