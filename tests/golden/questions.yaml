@@ -1,0 +1,261 @@
+version: "1.0.0"
+owner: GlobalSure Insurance Group
+questions:
+  - id: primary-claims
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected: &primary
+      concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      relationships:
+        - insurance:Customer|insurance:ownsPolicy|insurance:Policy
+        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+      products: [Customer360, PolicyMaster, ClaimsAnalytics]
+      metrics: [insurance:ClaimCount, insurance:TotalIncurredLoss]
+      authorization: {allowed: true, reason_code: ALLOWED}
+      deterministic:
+        answer:
+          - {customer_id: FR_001, country: FR, claim_count: 3, total_incurred_loss_eur: 24000.0}
+          - {customer_id: FR_002, country: FR, claim_count: 3, total_incurred_loss_eur: 25000.0}
+  - id: primary-mtr
+    question: Find French MTR customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-motor-cover
+    question: Find French motor cover customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      concepts: [insurance:Claim, insurance:Coverage, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-car-insurance
+    question: Find French car insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-policyholder
+    question: Find French motor-insurance policyholders with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-insured-customer
+    question: Find French motor-insurance insured customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-twelve
+    question: Find French motor-insurance customers with at least twelve qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      metrics: [insurance:ClaimCount, insurance:TotalIncurredLoss]
+      deterministic: {answer_constraints: {mode: governed_threshold_variant}}
+  - id: primary-more-than-two
+    question: Find French motor-insurance customers with more than two qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      metrics: [insurance:ClaimCount, insurance:TotalIncurredLoss]
+      deterministic: {answer_constraints: {mode: governed_threshold_variant}}
+  - id: primary-over-three
+    question: Find French motor-insurance customers with over three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      metrics: [insurance:ClaimCount, insurance:TotalIncurredLoss]
+      deterministic: {answer_constraints: {mode: governed_threshold_variant}}
+  - id: primary-loss-threshold
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 10,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_threshold_variant}}
+  - id: primary-loss-high
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 30,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_threshold_variant}}
+  - id: primary-country-name
+    question: Find France motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-insurance-policy
+    question: Find French motor insurance policyholders with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-claim-loss
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-included-claims
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-current-policy
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-settled
+    question: Find French motor-insurance customers with at least one qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      metrics: [insurance:ClaimCount, insurance:TotalIncurredLoss]
+      deterministic: {answer_constraints: {mode: governed_threshold_variant}}
+  - id: primary-two
+    question: Find French motor-insurance customers with at least two qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      metrics: [insurance:ClaimCount, insurance:TotalIncurredLoss]
+      deterministic: {mode: governed_threshold_variant}
+  - id: primary-current-year-loss
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-claim-state
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+  - id: primary-contract
+    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
+    role: ClaimsAnalystFR
+    expected:
+      <<: *primary
+      concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
+      deterministic: {answer_constraints: {mode: governed_primary_variant}}
+
+  - id: secondary-01-active-french
+    question: How many French motor insurance customers have active policies this year?
+    role: ClaimsAnalystFR
+    expected:
+      concepts: [insurance:ActivePolicy, insurance:Customer, insurance:MotorInsurance, insurance:Policy]
+      relationships: [insurance:Customer|insurance:ownsPolicy|insurance:Policy]
+      products: [Customer360, PolicyMaster]
+      metrics: [insurance:ActivePolicyCount]
+      authorization: {allowed: true, reason_code: ALLOWED}
+      deterministic: {answer_constraints: {mode: discovery_only, rule: insurance:ActivePolicy}}
+  - id: secondary-02-ratio-french
+    question: Show the claims ratio for French motor insurance customers in the current year.
+    role: ClaimsManagerGroup
+    expected:
+      concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
+      relationships:
+        - insurance:Customer|insurance:ownsPolicy|insurance:Policy
+        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+      products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
+      metrics: [insurance:ClaimsRatio]
+      authorization: {allowed: false, reason_code: PRODUCT_DENIED}
+      deterministic: {answer_constraints: {mode: discovery_only, metric: insurance:ClaimsRatio}}
+  - id: secondary-03-active-uk
+    question: How many United Kingdom motor insurance customers have active policies this year?
+    role: ClaimsManagerGroup
+    expected:
+      concepts: [insurance:ActivePolicy, insurance:Customer, insurance:MotorInsurance, insurance:Policy]
+      relationships: [insurance:Customer|insurance:ownsPolicy|insurance:Policy]
+      products: [Customer360, PolicyMaster]
+      metrics: [insurance:ActivePolicyCount]
+      authorization: {allowed: true, reason_code: ALLOWED}
+      deterministic: {answer_constraints: {mode: discovery_only, rule: insurance:ActivePolicy}}
+  - id: secondary-04-active-germany
+    question: How many German MotorInsurance customers have active policies this year?
+    role: ClaimsManagerGroup
+    expected:
+      concepts: [insurance:ActivePolicy, insurance:Customer, insurance:MotorInsurance, insurance:Policy]
+      relationships: [insurance:Customer|insurance:ownsPolicy|insurance:Policy]
+      products: [Customer360, PolicyMaster]
+      metrics: [insurance:ActivePolicyCount]
+      authorization: {allowed: true, reason_code: ALLOWED}
+      deterministic: {answer_constraints: {mode: discovery_only, rule: insurance:ActivePolicy}}
+  - id: secondary-05-ratio-uk
+    question: Show the claims ratio for British car insurance customers in the current year.
+    role: ClaimsManagerGroup
+    expected:
+      concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
+      relationships:
+        - insurance:Customer|insurance:ownsPolicy|insurance:Policy
+        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+      products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
+      metrics: [insurance:ClaimsRatio]
+      authorization: {allowed: false, reason_code: PRODUCT_DENIED}
+      deterministic: {answer_constraints: {mode: discovery_only, metric: insurance:ClaimsRatio}}
+  - id: secondary-06-ratio-germany
+    question: Show the claims ratio for German MotorInsurance customers in the current year.
+    role: ClaimsManagerGroup
+    expected:
+      concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
+      relationships:
+        - insurance:Customer|insurance:ownsPolicy|insurance:Policy
+        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+      products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
+      metrics: [insurance:ClaimsRatio]
+      authorization: {allowed: false, reason_code: PRODUCT_DENIED}
+      deterministic: {answer_constraints: {mode: discovery_only, metric: insurance:ClaimsRatio}}
+  - id: secondary-07-active-alias
+    question: How many French car insurance policyholders have active policies this year?
+    role: ClaimsAnalystFR
+    expected:
+      concepts: [insurance:ActivePolicy, insurance:Customer, insurance:MotorInsurance, insurance:Policy]
+      relationships: [insurance:Customer|insurance:ownsPolicy|insurance:Policy]
+      products: [Customer360, PolicyMaster]
+      metrics: [insurance:ActivePolicyCount]
+      authorization: {allowed: true, reason_code: ALLOWED}
+      deterministic: {answer_constraints: {mode: discovery_only, rule: insurance:ActivePolicy}}
+  - id: secondary-08-ratio-mtr
+    question: Show the claims ratio for French MTR customers in the current year.
+    role: ClaimsManagerGroup
+    expected:
+      concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
+      relationships:
+        - insurance:Customer|insurance:ownsPolicy|insurance:Policy
+        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+      products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
+      metrics: [insurance:ClaimsRatio]
+      authorization: {allowed: false, reason_code: PRODUCT_DENIED}
+      deterministic: {answer_constraints: {mode: discovery_only, metric: insurance:ClaimsRatio}}
+  - id: secondary-09-active-manager
+    question: How many French motor cover customers have active policies this year?
+    role: ClaimsManagerGroup
+    expected:
+      concepts: [insurance:ActivePolicy, insurance:Coverage, insurance:Customer, insurance:MotorInsurance, insurance:Policy]
+      relationships: [insurance:Customer|insurance:ownsPolicy|insurance:Policy]
+      products: [Customer360, PolicyMaster]
+      metrics: [insurance:ActivePolicyCount]
+      authorization: {allowed: true, reason_code: ALLOWED}
+      deterministic: {answer_constraints: {mode: discovery_only, rule: insurance:ActivePolicy}}
+  - id: secondary-10-ratio-finance
+    question: Show the claims ratio for French motor insurance customers in the current year.
+    role: FinanceAnalyst
+    expected:
+      concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
+      relationships:
+        - insurance:Customer|insurance:ownsPolicy|insurance:Policy
+        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+      products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
+      metrics: [insurance:ClaimsRatio]
+      authorization: {allowed: false, reason_code: PRODUCT_DENIED}
+      deterministic: {answer_constraints: {mode: discovery_only, metric: insurance:ClaimsRatio}}

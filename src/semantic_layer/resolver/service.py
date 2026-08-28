@@ -17,6 +17,24 @@ def normalize(text: str) -> str:
     return " ".join(re.sub(r"[-_/]", " ", text.casefold()).split())
 
 
+def _term_variants(term: str) -> tuple[str, ...]:
+    """Return an exact singular/plural vocabulary variant without fuzzy matching."""
+
+    normalized = normalize(term)
+    words = normalized.split()
+    if not words:
+        return ()
+    last = words[-1]
+    if last.endswith("y"):
+        plural = last[:-1] + "ies"
+    elif last.endswith("s"):
+        plural = last
+    else:
+        plural = last + "s"
+    pluralized = " ".join([*words[:-1], plural])
+    return (normalized,) if pluralized == normalized else (normalized, pluralized)
+
+
 class DeterministicResolver:
     """Exact token and synonym resolver; it has no LLM or SQL capability."""
 
@@ -29,9 +47,11 @@ class DeterministicResolver:
         for concept in self.registry.concepts.values():
             terms = [concept.name, *concept.synonyms]
             for term in terms:
-                normalized_term = normalize(term)
-                if re.search(rf"(?<!\w){re.escape(normalized_term)}(?!\w)", normalized_text):
-                    matches.setdefault(concept.id, normalized_term)
+                for normalized_term in _term_variants(term):
+                    if re.search(rf"(?<!\w){re.escape(normalized_term)}(?!\w)", normalized_text):
+                        matches.setdefault(concept.id, normalized_term)
+                        break
+                if concept.id in matches:
                     break
         for mapping in self.registry.mappings.values():
             for local_value, concept_id in mapping.normalization.get("products", {}).items():

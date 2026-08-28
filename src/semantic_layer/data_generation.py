@@ -60,7 +60,8 @@ def _write_csv(path: Path, fieldnames: list[str], rows: Iterable[Mapping[str, ob
 def _records(as_of: date) -> dict[str, list[dict[str, object]]]:
     """Return stable records anchored to ``as_of`` rather than wall-clock time."""
 
-    d = lambda days: (as_of - timedelta(days=days)).isoformat()
+    def d(days: int) -> str:
+        return (as_of - timedelta(days=days)).isoformat()
     future = (as_of + timedelta(days=1)).isoformat()
 
     customers = [
