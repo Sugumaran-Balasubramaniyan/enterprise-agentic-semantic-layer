@@ -44,11 +44,29 @@ metrics:
   - id: insurance:ClaimsRatio
     name: ClaimsRatio
     version: "1.0.0"
-    definition: Total qualifying incurred loss divided by written premium for the same scope.
+    definition: Separately aggregated qualifying incurred loss divided by separately aggregated written premium for the same aligned scope.
     concept: insurance:IncurredLoss
-    expression: SUM(incurred_loss_eur) / NULLIF(SUM(premium_eur), 0)
-    aggregation: ratio
+    expression: loss_aggregate.total_incurred_loss_eur / NULLIF(premium_aggregate.total_premium_eur, 0)
+    aggregation: ratio_of_aggregates
     unit: ratio
     filter_rule: insurance:QualifyingClaim
     source_products: [ClaimsAnalytics, PremiumAnalytics]
     dependencies: [insurance:TotalIncurredLoss]
+    numerator:
+      product: ClaimsAnalytics
+      measure: incurred_loss_eur
+      aggregation: SUM
+      filter_rule: insurance:QualifyingClaim
+      aggregate_name: total_incurred_loss_eur
+    denominator:
+      product: PremiumAnalytics
+      measure: premium_eur
+      aggregation: SUM
+      aggregate_name: total_premium_eur
+      filter_context: selected premium periods for the same scope
+    alignment:
+      dimensions: [customer_id, country, product]
+      join_keys: [customer_id, country, product]
+      time_context: same caller-selected as_of and reporting window, applied independently to claim_date and premium_date
+      pre_aggregate_each_product: true
+      join_multiplication: forbidden

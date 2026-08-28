@@ -27,6 +27,15 @@ expression, unit, source product, and rule. `QualifyingClaim` in
 `semantic/rules/claims.yaml` excludes `CANCELLED` and `DUPLICATE` claims while
 keeping those records observable for audit and quality analysis.
 
+`ClaimsRatio` is a safe multi-product metric: ClaimsAnalytics loss and
+PremiumAnalytics premium are each filtered and aggregated independently, then
+joined on `customer_id`, `country`, and canonical `product` before division.
+The caller's as-of date and reporting window apply independently to
+`claim_date` and `premium_date`; the contract explicitly forbids joining raw
+claim and premium rows, which would multiply measures for customers with more
+than one claim or premium period. A zero premium denominator produces a null
+ratio rather than an unbounded value.
+
 Generate the same dataset for any explicit as-of date with:
 
 ```bash

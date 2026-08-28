@@ -17,6 +17,11 @@ with a `ValueError`; an unmapped product cannot silently enter a governed
 metric. Status mappings work the same way and preserve the canonical
 `OPEN`, `PENDING`, `SETTLED`, `CANCELLED`, and `DUPLICATE` vocabulary.
 
+Policy lifecycle mappings are explicit on every platform as well. Local
+`EN_COURS` (FR), `IN_FORCE` (GB), and `AKTIV` (DE) all normalize to canonical
+`ACTIVE`, the only value admitted by `insurance:ActivePolicy`; local expired
+and cancelled values normalize to `LAPSED` and `CANCELLED` respectively.
+
 ```mermaid
 flowchart LR
     FR[France / Databricks\nMTR or MOTOR] -->|certified mapping| C[insurance:MotorInsurance]
