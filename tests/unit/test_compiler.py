@@ -6,6 +6,7 @@ import pytest
 
 from semantic_layer.adapters.cloud import CloudAdapterConfigurationError, DatabricksAdapter
 from semantic_layer.compiler import DuckDBCompiler
+from semantic_layer.governance import authorize
 from semantic_layer.query_planner import build_plan
 from semantic_layer.registry import SemanticRegistry
 
@@ -21,8 +22,9 @@ def test_duckdb_compiler_uses_the_approved_claims_join_and_bound_parameters() ->
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    authorization = authorize(plan, plan.caller, registry)
 
-    compiled = DuckDBCompiler(registry).compile(plan)
+    compiled = DuckDBCompiler(registry).compile(plan, authorization, plan.caller)
 
     assert compiled.approved_products == ("Customer360", "PolicyMaster", "ClaimsAnalytics")
     assert "JOIN policies" in compiled.sql
@@ -41,9 +43,10 @@ def test_compiler_rejects_a_plan_that_names_an_unapproved_product() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
     unapproved = plan.model_copy(update={"selected_products": ["Customer360", "Unapproved"]})
+    authorization = authorize(unapproved, unapproved.caller, registry)
 
-    with pytest.raises(ValueError, match="certified|approved"):
-        DuckDBCompiler(registry).compile(unapproved)
+    with pytest.raises(ValueError, match="authorization|certified|approved"):
+        DuckDBCompiler(registry).compile(unapproved, authorization, unapproved.caller)
 
 
 def test_documented_cloud_adapter_fails_closed_without_configuration() -> None:

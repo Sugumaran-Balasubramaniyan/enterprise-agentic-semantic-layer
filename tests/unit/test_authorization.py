@@ -20,7 +20,8 @@ def test_fr_analyst_is_denied_non_fr_customer_data() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
 
-    denied = authorize(plan.with_country("DE"), CallerContext(role="ClaimsAnalystFR"))
+    de_plan = plan.with_country("DE")
+    denied = authorize(de_plan, de_plan.caller, registry)
 
     assert denied.allowed is False
     assert denied.reason_code == "COUNTRY_SCOPE_DENIED"
@@ -29,16 +30,18 @@ def test_fr_analyst_is_denied_non_fr_customer_data() -> None:
 def test_finance_analyst_cannot_request_customer_pii_but_can_request_aggregate_scope() -> None:
     """Dropping field classification checks must expose customer identifiers to finance."""
 
-    plan = SemanticQueryPlan(
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    pii_plan = SemanticQueryPlan(
         root_entity="insurance:Customer",
-        projected_dimensions=["insurance:Country"],
+        projected_dimensions=["insurance:Customer"],
         selected_products=["PremiumAnalytics"],
         caller=CallerContext(role="FinanceAnalyst"),
     )
+    aggregate_plan = pii_plan.model_copy(update={"projected_dimensions": ["insurance:Country"]})
     finance = CallerContext(role="FinanceAnalyst")
 
-    pii_denied = authorize(plan, finance, requested_fields=["customer_id"])
-    aggregate_allowed = authorize(plan, finance, requested_fields=["country"])
+    pii_denied = authorize(pii_plan, finance, registry)
+    aggregate_allowed = authorize(aggregate_plan, finance, registry)
 
     assert pii_denied.allowed is False
     assert pii_denied.reason_code == "PII_FIELD_DENIED"
@@ -51,7 +54,7 @@ def test_unknown_role_is_denied_by_default() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
 
-    decision = authorize(plan, CallerContext(role="UntrustedRole"))
+    decision = authorize(plan, CallerContext(role="UntrustedRole"), registry)
 
     assert decision.allowed is False
     assert decision.reason_code == "ROLE_DENIED"

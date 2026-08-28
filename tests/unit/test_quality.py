@@ -14,7 +14,7 @@ def test_curated_demo_data_passes_all_governed_quality_checks() -> None:
 
     assert report.status == "PASS"
     assert report.score == 100
-    assert report.issues == []
+    assert report.issues == ()
 
 
 def test_claim_quality_rejects_duplicate_ids_invalid_values_and_future_dates(tmp_path: Path) -> None:
@@ -34,6 +34,7 @@ def test_claim_quality_rejects_duplicate_ids_invalid_values_and_future_dates(tmp
     assert {issue.code for issue in report.issues} >= {
         "DUPLICATE_ID",
         "INVALID_COUNTRY",
+        "MISSING_EXPECTED_DATASET",
         "INVALID_PRODUCT_MAPPING",
         "INVALID_STATUS",
         "FUTURE_DATE",
