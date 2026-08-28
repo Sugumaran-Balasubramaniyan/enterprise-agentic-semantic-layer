@@ -15,6 +15,7 @@ from semantic_layer.adapters.duckdb import ExecutionResult
 from semantic_layer.control import _sign, _verify, digest
 
 _GENESIS_HASH = hashlib.sha256(b"semantic-layer-provenance-chain-v1").hexdigest()
+_CHAIN_ID = "semantic-layer-provenance-chain-v1"
 
 
 def _chain_hash(
@@ -32,6 +33,13 @@ def _chain_hash(
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _checkpoint_signature(sequence: int, row_hash: str) -> str:
+    return _sign(
+        "ProvenanceCheckpoint",
+        {"chain_id": _CHAIN_ID, "sequence": sequence, "row_hash": row_hash},
+    )
 
 
 class _FrozenList(tuple):
@@ -111,29 +119,60 @@ class ProvenanceStore:
             CREATE TABLE IF NOT EXISTS provenance_checkpoint (
                 checkpoint_id INTEGER PRIMARY KEY CHECK (checkpoint_id = 1),
                 sequence INTEGER NOT NULL,
-                row_hash TEXT NOT NULL
+                row_hash TEXT NOT NULL,
+                chain_id TEXT NOT NULL,
+                checkpoint_signature TEXT NOT NULL
             )
         """)
+        checkpoint_columns = {
+            row[1]
+            for row in self._connection.execute("PRAGMA table_info(provenance_checkpoint)").fetchall()
+        }
+        required_checkpoint_columns = {
+            "checkpoint_id", "sequence", "row_hash", "chain_id", "checkpoint_signature"
+        }
+        if checkpoint_columns != required_checkpoint_columns:
+            self._connection.close()
+            raise ValueError("provenance database checkpoint is not authenticated")
         checkpoint = self._connection.execute(
-            "SELECT sequence, row_hash FROM provenance_checkpoint WHERE checkpoint_id = 1"
+            "SELECT sequence, row_hash, chain_id, checkpoint_signature "
+            "FROM provenance_checkpoint WHERE checkpoint_id = 1"
         ).fetchone()
         if checkpoint is None:
             if self._connection.execute("SELECT 1 FROM provenance LIMIT 1").fetchone() is not None:
                 self._connection.close()
                 raise ValueError("provenance database is missing its chain checkpoint")
             self._connection.execute(
-                "INSERT INTO provenance_checkpoint (checkpoint_id, sequence, row_hash) VALUES (1, 0, ?)",
-                (_GENESIS_HASH,),
+                "INSERT INTO provenance_checkpoint "
+                "(checkpoint_id, sequence, row_hash, chain_id, checkpoint_signature) VALUES (1, 0, ?, ?, ?)",
+                (_GENESIS_HASH, _CHAIN_ID, _checkpoint_signature(0, _GENESIS_HASH)),
             )
         self._connection.commit()
 
-    def _verify_chain(self) -> None:
+    def _checkpoint(self) -> tuple[int, str]:
         checkpoint = self._connection.execute(
-            "SELECT sequence, row_hash FROM provenance_checkpoint WHERE checkpoint_id = 1"
+            "SELECT sequence, row_hash, chain_id, checkpoint_signature "
+            "FROM provenance_checkpoint WHERE checkpoint_id = 1"
         ).fetchone()
         if checkpoint is None:
             raise ValueError("provenance chain checkpoint is missing")
-        head_sequence, head_hash = checkpoint
+        sequence, row_hash, chain_id, checkpoint_signature = checkpoint
+        if (
+            not isinstance(sequence, int)
+            or not isinstance(row_hash, str)
+            or chain_id != _CHAIN_ID
+            or not isinstance(checkpoint_signature, str)
+            or not _verify(
+                "ProvenanceCheckpoint",
+                {"chain_id": chain_id, "sequence": sequence, "row_hash": row_hash},
+                checkpoint_signature,
+            )
+        ):
+            raise ValueError("provenance checkpoint signature is invalid")
+        return sequence, row_hash
+
+    def _verify_chain(self) -> None:
+        head_sequence, head_hash = self._checkpoint()
         rows = self._connection.execute(
             "SELECT query_id, document, signature, sequence, previous_hash, row_hash "
             "FROM provenance ORDER BY sequence"
@@ -211,9 +250,7 @@ class ProvenanceStore:
         object.__setattr__(record, "_values", immutable_values)
         object.__setattr__(record, "_signature", _sign("Provenance", record._payload()))
         document = json.dumps(record._payload(), sort_keys=True)
-        sequence, previous_hash = self._connection.execute(
-            "SELECT sequence, row_hash FROM provenance_checkpoint WHERE checkpoint_id = 1"
-        ).fetchone()
+        sequence, previous_hash = self._checkpoint()
         sequence += 1
         row_hash = _chain_hash(
             query_id=record.query_id,
@@ -230,8 +267,9 @@ class ProvenanceStore:
                 (record.query_id, document, record._signature, sequence, previous_hash, row_hash),
             )
             self._connection.execute(
-                "UPDATE provenance_checkpoint SET sequence = ?, row_hash = ? WHERE checkpoint_id = 1",
-                (sequence, row_hash),
+                "UPDATE provenance_checkpoint SET sequence = ?, row_hash = ?, checkpoint_signature = ? "
+                "WHERE checkpoint_id = 1",
+                (sequence, row_hash, _checkpoint_signature(sequence, row_hash)),
             )
             self._connection.commit()
         except Exception:

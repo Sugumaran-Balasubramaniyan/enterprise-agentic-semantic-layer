@@ -354,3 +354,25 @@ def test_provenance_detects_deletion_from_the_sqlite_chain(tmp_path: Path) -> No
 
     with pytest.raises(ValueError, match="chain|checkpoint|integrity"):
         store.get(first.query_id)
+
+
+def test_provenance_rejects_checkpoint_rewrite_without_a_valid_signature(tmp_path: Path) -> None:
+    """A deleted tail plus a forged shortened checkpoint must remain detectable."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    execution = adapter.execute(query, decision, caller, quality)
+    store = ProvenanceStore(tmp_path / "provenance.sqlite")
+    first = store.record(question=PRIMARY_QUESTION, execution=execution)
+    second = store.record(question=PRIMARY_QUESTION, execution=execution)
+    store._connection.execute("DELETE FROM provenance WHERE query_id = ?", (second.query_id,))
+    first_hash = store._connection.execute(
+        "SELECT row_hash FROM provenance WHERE query_id = ?", (first.query_id,)
+    ).fetchone()[0]
+    store._connection.execute(
+        "UPDATE provenance_checkpoint SET sequence = 1, row_hash = ? WHERE checkpoint_id = 1",
+        (first_hash,),
+    )
+    store._connection.commit()
+
+    with pytest.raises(ValueError, match="checkpoint|signature|integrity"):
+        store.get(first.query_id)
