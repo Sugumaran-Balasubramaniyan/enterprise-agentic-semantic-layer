@@ -37,8 +37,9 @@ def contains_sql_shape(value: Any, *, natural_language: bool = False) -> bool:
     """Return whether untrusted text contains a SQL control shape.
 
     Logical plan fields reject every standalone ``WITH`` token. Business
-    questions allow ordinary prose such as "customers with three claims" but
-    still reject the executable CTE form ``WITH name AS (...)``.
+    questions allow the primary question's ordinary "customers with at least
+    three qualifying claims" prose while still rejecting the executable CTE
+    form ``WITH name AS (...)``.
     """
 
     if isinstance(value, str):

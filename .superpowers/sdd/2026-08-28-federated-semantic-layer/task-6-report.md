@@ -72,6 +72,53 @@ git diff --check
 # no output; exit 0
 ```
 
+## Review remediation round 2 of 5: guard query-plan transport
+
+### Finding addressed
+
+`/query-plan` previously called the final-plan tool directly. It discovered and
+returned a `SemanticQueryPlan` for an unknown role because that route did not
+obtain the pre-authorization capability added in round 1.
+
+`SemanticAgentTools.build_query_plan` now always discovers the request,
+obtains (or verifies a supplied) signed `DiscoveryAuthorizationDecision`, and
+rejects denial or a context/signature mismatch before it calls the final
+`build_plan` constructor. The agent supplies its already-issued capability;
+the HTTP route uses exactly the same gate. No route can therefore return a
+final plan to an unauthorized caller. The SQL-guard prose was also narrowed to
+the supported primary-question phrase rather than an unqualified `customers
+with three claims` example.
+
+### TDD and verification evidence
+
+RED:
+
+```text
+.venv/bin/python -m pytest tests/integration/test_api.py -q
+test_query_plan_endpoint_denies_unknown_role_before_final_plan
+expected 403, received 200
+1 failed, 12 passed, 1 warning in 1.97s
+```
+
+GREEN:
+
+```text
+.venv/bin/python -m pytest tests/integration/test_api.py tests/integration/test_agent_e2e.py -q
+15 passed, 1 warning in 2.15s
+
+.venv/bin/ruff check src tests
+All checks passed!
+
+.venv/bin/python -m pytest tests/unit/test_authorization.py tests/unit/test_query_planner.py tests/integration/test_agent_e2e.py tests/integration/test_api.py -q
+32 passed, 1 warning in 2.66s
+
+.venv/bin/python -m pytest -q
+115 passed, 1 warning in 7.61s
+
+git diff --check
+# no output; exit 0
+```
+
 The only warning is FastAPI/Starlette's installed TestClient deprecation notice
 for the current `httpx` compatibility layer; it does not produce a test
 failure.

@@ -158,7 +158,12 @@ class ClaimsInvestigationAgent:
             )
             error.stages = tuple(stages)
             raise error
-        plan = self.tools.build_query_plan(question, caller, discovery=discovery)
+        plan = self.tools.build_query_plan(
+            question,
+            caller,
+            discovery=discovery,
+            discovery_authorization=discovery_authorization,
+        )
         stages.append("plan")
         authorization = self.tools.authorize(plan)
         if not authorization.allowed:

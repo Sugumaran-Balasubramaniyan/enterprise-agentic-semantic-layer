@@ -109,6 +109,7 @@ class SemanticAgentTools:
         caller: CallerContext,
         *,
         discovery: QueryDiscovery | None = None,
+        discovery_authorization: DiscoveryAuthorizationDecision | None = None,
     ) -> SemanticQueryPlan:
         """Build the final typed plan after the caller's scope has been checked."""
 
@@ -117,6 +118,15 @@ class SemanticAgentTools:
             update={"country": discovery.caller.country}
         ).model_dump():
             raise PermissionError("CALLER_CONTEXT_MISMATCH: discovery is not bound to the caller")
+        discovery_authorization = discovery_authorization or self.authorize_discovery(discovery)
+        if type(discovery_authorization) is not DiscoveryAuthorizationDecision:
+            raise TypeError("final plan construction requires a discovery authorization decision")
+        if not discovery_authorization.allowed:
+            raise PermissionError(
+                f"{discovery_authorization.reason_code}: {discovery_authorization.message}"
+            )
+        if not discovery_authorization._matches(discovery, discovery.caller, self.registry):
+            raise ValueError("discovery authorization does not match the reviewed discovery context")
         return build_plan(question, caller.role, self.registry, discovery=discovery)
 
     def authorize(self, plan: SemanticQueryPlan) -> AuthorizationDecision:

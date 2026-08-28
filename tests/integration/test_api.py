@@ -57,6 +57,15 @@ def test_execute_endpoint_does_not_execute_for_an_unknown_role(client: TestClien
     assert "ROLE_DENIED" in response.json()["detail"]
 
 
+def test_query_plan_endpoint_denies_unknown_role_before_final_plan(client: TestClient) -> None:
+    """Moving pre-authorization out of this route would disclose a final plan to a denied caller."""
+
+    response = client.post("/query-plan", json={"question": PRIMARY_QUESTION, "role": "UnknownRole"})
+
+    assert response.status_code == 403
+    assert "ROLE_DENIED" in response.json()["detail"]
+
+
 @pytest.mark.parametrize(
     "question",
     [
