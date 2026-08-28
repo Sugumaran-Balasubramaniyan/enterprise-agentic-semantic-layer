@@ -1,0 +1,7 @@
+customer_id,customer_name,country,email
+FR_001,Camille Martin,FR,camille.martin@example.test
+FR_002,Julien Bernard,FR,julien.bernard@example.test
+FR_003,Aline Petit,FR,aline.petit@example.test
+UK_001,Oliver Smith,GB,oliver.smith@example.test
+DE_001,Anna Schmidt,DE,anna.schmidt@example.test
+,Invalid Customer,FR,invalid@example.test

@@ -1,0 +1,71 @@
+id: ClaimsAnalytics
+name: Claims Analytics
+version: "1.0.0"
+owner: GlobalSure Group Claims Data Office
+platform: Federated
+location: Group
+grain: one row per claim
+sla: hourly, within 15 minutes of source update
+classification: Restricted
+pii:
+  - customer_id
+quality:
+  status: CERTIFIED
+  checks:
+    - claim_id is non-null and unique in the curated relation
+    - claim_date is non-null and not in the future as of the query context
+    - incurred_loss_eur is non-negative
+    - status and country use governed values
+    - product resolves through a certified local mapping
+lineage:
+  upstream:
+    - local claims systems in France, United Kingdom, and Germany
+  transformations:
+    - claims are conformed to PolicyMaster by policy_id
+    - local claim statuses and products are normalized to Group semantics
+    - CANCELLED and DUPLICATE claims remain observable but are excluded by QualifyingClaim
+concepts:
+  - insurance:Claim
+  - insurance:QualifyingClaim
+  - insurance:IncurredLoss
+  - insurance:ClaimStatus
+  - insurance:Policy
+  - insurance:Customer
+schema:
+  - name: claim_id
+    type: string
+    concept: insurance:Claim
+    nullable: false
+  - name: policy_id
+    type: string
+    concept: insurance:Policy
+    nullable: false
+  - name: customer_id
+    type: string
+    concept: insurance:Customer
+    nullable: false
+    pii: true
+  - name: country
+    type: string
+    concept: insurance:Country
+    nullable: false
+  - name: product
+    type: string
+    concept: insurance:InsuranceProduct
+    nullable: false
+  - name: status
+    type: string
+    concept: insurance:ClaimStatus
+    nullable: false
+  - name: claim_date
+    type: date
+    concept: insurance:Claim
+    nullable: false
+  - name: incurred_loss_eur
+    type: decimal
+    concept: insurance:IncurredLoss
+    nullable: false
+certification:
+  status: CERTIFIED
+  certified_by: GlobalSure Group Claims Data Office
+  certified_at: "2026-08-28"

@@ -1,0 +1,14 @@
+claim_id,policy_id,customer_id,country,product,status,claim_date,incurred_loss_eur
+FR_CLM_001,FR_POL_001,FR_001,FR,insurance:MotorInsurance,OPEN,2026-07-29,9000.00
+FR_CLM_002,FR_POL_001,FR_001,FR,insurance:MotorInsurance,SETTLED,2026-04-30,8000.00
+FR_CLM_003,FR_POL_001,FR_001,FR,insurance:MotorInsurance,PENDING,2026-02-09,7000.00
+FR_CLM_004,FR_POL_001,FR_001,FR,insurance:MotorInsurance,CANCELLED,2026-07-14,50000.00
+FR_CLM_005,FR_POL_001,FR_001,FR,insurance:MotorInsurance,DUPLICATE,2026-07-13,50000.00
+FR_CLM_006,FR_POL_001,FR_001,FR,insurance:MotorInsurance,SETTLED,2025-07-24,12000.00
+FR_CLM_007,FR_POL_003,FR_002,FR,insurance:MotorInsurance,OPEN,2026-06-29,12000.00
+FR_CLM_008,FR_POL_003,FR_002,FR,insurance:MotorInsurance,PENDING,2026-03-21,11000.00
+FR_CLM_009,FR_POL_003,FR_002,FR,insurance:MotorInsurance,SETTLED,2025-12-31,2000.00
+FR_CLM_010,FR_POL_004,FR_003,FR,insurance:HomeInsurance,OPEN,2026-05-30,2500.00
+UK_CLM_001,UK_POL_001,UK_001,GB,insurance:MotorInsurance,OPEN,2026-06-14,4200.00
+DE_CLM_001,DE_POL_001,DE_001,DE,insurance:MotorInsurance,SETTLED,2026-03-01,7600.00
+DE_CLM_002,DE_POL_001,DE_001,DE,insurance:MotorInsurance,CANCELLED,2026-02-19,1800.00

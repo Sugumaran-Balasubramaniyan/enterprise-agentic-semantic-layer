@@ -1,0 +1,67 @@
+id: PolicyMaster
+name: Policy Master
+version: "1.0.0"
+owner: GlobalSure Insurance Group
+platform: Federated
+location: Group
+grain: one row per policy
+sla: daily by 06:00 UTC
+classification: Confidential
+pii:
+  - customer_id
+quality:
+  status: CERTIFIED
+  checks:
+    - policy_id is non-null and unique
+    - customer_id references Customer360
+    - policy_status is ACTIVE, LAPSED, or CANCELLED
+    - product resolves through a certified local mapping
+lineage:
+  upstream:
+    - local policy administration systems in France, United Kingdom, and Germany
+  transformations:
+    - local product codes are normalized to the Group product taxonomy
+    - local policy lifecycle values are normalized to the Group status vocabulary
+concepts:
+  - insurance:Policy
+  - insurance:ActivePolicy
+  - insurance:InsuranceProduct
+  - insurance:MotorInsurance
+schema:
+  - name: policy_id
+    type: string
+    concept: insurance:Policy
+    nullable: false
+  - name: customer_id
+    type: string
+    concept: insurance:Customer
+    nullable: false
+    pii: true
+  - name: country
+    type: string
+    concept: insurance:Country
+    nullable: false
+  - name: product
+    type: string
+    concept: insurance:InsuranceProduct
+    nullable: false
+  - name: policy_status
+    type: string
+    concept: insurance:Policy
+    nullable: false
+  - name: effective_date
+    type: date
+    concept: insurance:Policy
+    nullable: false
+  - name: expiry_date
+    type: date
+    concept: insurance:Policy
+    nullable: false
+  - name: annual_premium_eur
+    type: decimal
+    concept: insurance:Premium
+    nullable: false
+certification:
+  status: CERTIFIED
+  certified_by: GlobalSure Semantic Governance Council
+  certified_at: "2026-08-28"

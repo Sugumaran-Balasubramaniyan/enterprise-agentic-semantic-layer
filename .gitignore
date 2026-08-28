@@ -2,8 +2,13 @@
 .superpowers/
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .venv/
-*.egg-info/
+venv/
+.env
+dist/
+build/
+data/generated/

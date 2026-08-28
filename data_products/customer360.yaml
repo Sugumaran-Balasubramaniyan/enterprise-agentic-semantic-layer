@@ -1,0 +1,49 @@
+id: Customer360
+name: Customer 360
+version: "1.0.0"
+owner: GlobalSure Insurance Group
+platform: Federated
+location: Group
+grain: one row per customer
+sla: daily by 06:00 UTC
+classification: Restricted
+pii:
+  - customer_id
+  - customer_name
+  - email
+quality:
+  status: CERTIFIED
+  checks:
+    - customer_id is non-null and unique
+    - country is one of FR, GB, DE
+    - email is classified personal data and access controlled
+lineage:
+  upstream:
+    - local customer master records in France, United Kingdom, and Germany
+  transformations:
+    - country codes are normalized to the Group Country vocabulary
+concepts:
+  - insurance:Customer
+  - insurance:Country
+schema:
+  - name: customer_id
+    type: string
+    concept: insurance:Customer
+    nullable: false
+  - name: customer_name
+    type: string
+    concept: insurance:Customer
+    nullable: false
+  - name: country
+    type: string
+    concept: insurance:Country
+    nullable: false
+  - name: email
+    type: string
+    concept: insurance:Customer
+    nullable: false
+    pii: true
+certification:
+  status: CERTIFIED
+  certified_by: GlobalSure Semantic Governance Council
+  certified_at: "2026-08-28"

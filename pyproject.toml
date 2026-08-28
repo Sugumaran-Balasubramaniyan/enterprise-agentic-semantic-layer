@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enterprise-agentic-semantic-layer"
+version = "0.1.0"
+description = "A locally runnable federated semantic layer reference implementation"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {file = "LICENSE"}
+dependencies = ["duckdb>=1.0", "fastapi>=0.100", "pydantic>=2.0", "PyYAML>=6.0", "rdflib>=7.0", "pyshacl>=0.25", "uvicorn>=0.23"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "httpx>=0.25", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

@@ -1,0 +1,203 @@
+version: "1.0.0"
+namespace: "insurance"
+owner: "GlobalSure Insurance Group"
+concepts:
+  - id: "insurance:Customer"
+    name: "Customer"
+    version: "1.0.0"
+    definition: "A person or organization that holds an insurance relationship with GlobalSure."
+    description: "The governed party used to connect policies and claims."
+    synonyms: ["Policyholder", "Insured customer"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Restricted"
+    sensitivity:
+      classification: "Confidential"
+      rationale: "Customer identity is protected personal information."
+    relationships:
+      - predicate: "insurance:ownsPolicy"
+        target: "insurance:Policy"
+        description: "A customer owns one or more policies."
+    examples: ["FR_001", "UK_001"]
+  - id: "insurance:Policy"
+    name: "Policy"
+    version: "1.0.0"
+    definition: "A contractual insurance agreement with a customer."
+    description: "The policy-level contract from which coverage and claims are governed."
+    synonyms: ["Insurance policy", "Contract"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Confidential"
+      rationale: "Policy details are restricted to authorized insurance users."
+    relationships:
+      - predicate: "insurance:hasProduct"
+        target: "insurance:InsuranceProduct"
+      - predicate: "insurance:submitsClaim"
+        target: "insurance:Claim"
+    allowed_values: ["ACTIVE", "LAPSED", "CANCELLED"]
+    examples: ["FR_POL_001"]
+  - id: "insurance:Claim"
+    name: "Claim"
+    version: "1.0.0"
+    definition: "A reported request for payment under an insurance policy."
+    description: "A claim is assessed, tracked by status, and associated with a policy and loss."
+    synonyms: ["Insurance Claim", "Loss claim"]
+    domain: "Claims"
+    owner: "GlobalSure Insurance Group"
+    classification: "Restricted"
+    sensitivity:
+      classification: "Confidential"
+      rationale: "Claims can contain sensitive incident and financial details."
+    relationships:
+      - predicate: "insurance:relatesToPolicy"
+        target: "insurance:Policy"
+      - predicate: "insurance:hasClaimStatus"
+        target: "insurance:ClaimStatus"
+      - predicate: "insurance:hasIncurredLoss"
+        target: "insurance:IncurredLoss"
+    allowed_values: ["OPEN", "PENDING", "SETTLED", "CANCELLED", "DUPLICATE"]
+    examples: ["FR_CLM_001"]
+  - id: "insurance:InsuranceProduct"
+    name: "Insurance Product"
+    version: "1.0.0"
+    definition: "A governed category of insurance coverage offered by GlobalSure."
+    description: "The product hierarchy provides the canonical grouping for policies."
+    synonyms: ["Product", "Insurance line"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Public"
+    relationships:
+      - predicate: "insurance:coversRisk"
+        target: "insurance:Risk"
+      - predicate: "insurance:hasCoverage"
+        target: "insurance:Coverage"
+    examples: ["insurance:MotorInsurance"]
+  - id: "insurance:MotorInsurance"
+    name: "Motor Insurance"
+    version: "1.0.0"
+    definition: "Insurance that covers risks associated with motor vehicles and their use."
+    description: "Canonical group concept for local motor, auto, and car product codes."
+    synonyms: ["Car Insurance", "Auto Insurance", "Motor cover"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Public"
+    relationships:
+      - predicate: "rdfs:subClassOf"
+        target: "insurance:InsuranceProduct"
+    examples: ["MOTOR", "MTR", "AUTO", "CAR"]
+  - id: "insurance:Risk"
+    name: "Risk"
+    version: "1.0.0"
+    definition: "An insured possibility of loss or harm."
+    description: "A risk is addressed by one or more coverages in a product."
+    synonyms: ["Insured risk", "Exposure"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Internal"
+    relationships: []
+    examples: ["Vehicle collision"]
+  - id: "insurance:Coverage"
+    name: "Coverage"
+    version: "1.0.0"
+    definition: "The protection and limits provided by an insurance policy."
+    description: "Coverage describes which risks a policy contract protects."
+    synonyms: ["Cover", "Protection"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Internal"
+    relationships: []
+    examples: ["Collision coverage"]
+  - id: "insurance:Premium"
+    name: "Premium"
+    version: "1.0.0"
+    definition: "The amount charged for insurance coverage during a policy period."
+    description: "Premium is a monetary measure associated with a policy."
+    synonyms: ["Insurance premium", "Policy price"]
+    domain: "Finance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Restricted"
+    sensitivity:
+      classification: "Confidential"
+    relationships: []
+    examples: ["1250.00 EUR"]
+  - id: "insurance:ClaimStatus"
+    name: "Claim Status"
+    version: "1.0.0"
+    definition: "The governed lifecycle state of an insurance claim."
+    description: "Status values support consistent filtering and quality checks."
+    synonyms: ["Claim state", "Lifecycle status"]
+    domain: "Claims"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Internal"
+    allowed_values: ["OPEN", "PENDING", "SETTLED", "CANCELLED", "DUPLICATE"]
+    examples: ["OPEN"]
+  - id: "insurance:Country"
+    name: "Country"
+    version: "1.0.0"
+    definition: "The country whose local entity governs a customer or policy record."
+    description: "Country scopes federation, residency, and authorization decisions."
+    synonyms: ["Market", "Jurisdiction"]
+    domain: "Governance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Internal"
+    allowed_values: ["FR", "GB", "DE"]
+    examples: ["FR"]
+  - id: "insurance:ActivePolicy"
+    name: "Active Policy"
+    version: "1.0.0"
+    definition: "A policy whose governed lifecycle status is ACTIVE."
+    description: "ActivePolicy is the reusable semantic subset for in-force contracts."
+    synonyms: ["In-force policy", "Current policy"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Confidential"
+    relationships:
+      - predicate: "rdfs:subClassOf"
+        target: "insurance:Policy"
+    allowed_values: ["ACTIVE"]
+    examples: ["FR_POL_001"]
+  - id: "insurance:QualifyingClaim"
+    name: "Qualifying Claim"
+    version: "1.0.0"
+    definition: "A claim eligible for governed claims metrics after exclusions."
+    description: "Qualifying claims exclude CANCELLED and DUPLICATE statuses."
+    synonyms: ["Included claim", "Metric claim"]
+    domain: "Claims"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Confidential"
+    relationships:
+      - predicate: "rdfs:subClassOf"
+        target: "insurance:Claim"
+    allowed_values: ["OPEN", "PENDING", "SETTLED"]
+    examples: ["FR_CLM_001"]
+  - id: "insurance:IncurredLoss"
+    name: "Incurred Loss"
+    version: "1.0.0"
+    definition: "The total financial loss incurred for an insurance claim."
+    description: "Incurred loss is non-negative and measured in the policy currency."
+    synonyms: ["Claim loss", "Incurred amount", "Loss amount"]
+    domain: "Finance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Restricted"
+    sensitivity:
+      classification: "Confidential"
+    relationships: []
+    examples: ["25000.00 EUR"]

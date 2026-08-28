@@ -1,0 +1,65 @@
+id: FabricGermanyMapping
+version: "1.0.0"
+owner: GlobalSure Germany Data Office
+platform: Microsoft Fabric
+location: DE
+data_products:
+  - Customer360
+  - PolicyMaster
+  - ClaimsAnalytics
+  - PremiumAnalytics
+source:
+  workspace: GlobalSure Germany Insurance
+  lakehouse: insurance_lakehouse
+  tables:
+    customers: customer_master
+    policies: policy_master
+    claims: claims
+    premiums: premiums
+fields:
+  customer_id: {physical_name: customer_number, concept: insurance:Customer, pii: true}
+  customer_name: {physical_name: customer_name, concept: insurance:Customer, pii: true}
+  email: {physical_name: email_address, concept: insurance:Customer, pii: true}
+  policy_id: {physical_name: policy_number, concept: insurance:Policy, pii: false}
+  policy_status: {physical_name: policy_state, concept: insurance:Policy, canonical_subset: insurance:ActivePolicy, pii: false}
+  effective_date: {physical_name: valid_from, concept: insurance:Policy, pii: false}
+  expiry_date: {physical_name: valid_to, concept: insurance:Policy, pii: false}
+  annual_premium_eur: {physical_name: annual_premium_eur, concept: insurance:Premium, pii: false}
+  claim_id: {physical_name: claim_number, concept: insurance:Claim, pii: false}
+  country: {physical_name: country_code, concept: insurance:Country, pii: false}
+  product: {physical_name: product_name, concept: insurance:InsuranceProduct, pii: false}
+  status: {physical_name: claim_status, concept: insurance:ClaimStatus, pii: false}
+  claim_date: {physical_name: date_of_loss, concept: insurance:Claim, pii: false}
+  incurred_loss_eur: {physical_name: incurred_loss, concept: insurance:IncurredLoss, pii: false}
+  premium_id: {physical_name: premium_number, concept: insurance:Premium, pii: false}
+  premium_date: {physical_name: premium_date, concept: insurance:Premium, pii: false}
+  premium_eur: {physical_name: premium_amount, concept: insurance:Premium, pii: false}
+normalization:
+  products:
+    MotorInsurance: insurance:MotorInsurance
+    MOTOR: insurance:MotorInsurance
+    insurance:MotorInsurance: insurance:MotorInsurance
+    HomeInsurance: insurance:HomeInsurance
+  statuses:
+    OFFEN: OPEN
+    IN_BEARBEITUNG: PENDING
+    REGULIERT: SETTLED
+    STORNIERT: CANCELLED
+    DOPPELT: DUPLICATE
+    OPEN: OPEN
+    PENDING: PENDING
+    SETTLED: SETTLED
+    CANCELLED: CANCELLED
+    DUPLICATE: DUPLICATE
+  policy_statuses:
+    AKTIV: ACTIVE
+    ABGELAUFEN: LAPSED
+    STORNIERT: CANCELLED
+    ACTIVE: ACTIVE
+    LAPSED: LAPSED
+    CANCELLED: CANCELLED
+lineage:
+  physical_sources:
+    - fabric://GlobalSure Germany Insurance.insurance_lakehouse.claims
+    - fabric://GlobalSure Germany Insurance.insurance_lakehouse.policy_master
+  semantic_target: Group insurance vocabulary 1.0.0

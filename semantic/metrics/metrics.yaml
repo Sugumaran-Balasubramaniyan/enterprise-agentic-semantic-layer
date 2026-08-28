@@ -1,0 +1,72 @@
+version: "1.0.0"
+owner: GlobalSure Insurance Group
+metrics:
+  - id: insurance:ClaimCount
+    name: ClaimCount
+    version: "1.0.0"
+    definition: Number of distinct qualifying claims in the selected time context.
+    concept: insurance:QualifyingClaim
+    expression: COUNT(DISTINCT claim_id)
+    aggregation: count_distinct
+    unit: claims
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics]
+  - id: insurance:TotalIncurredLoss
+    name: TotalIncurredLoss
+    version: "1.0.0"
+    definition: Sum of incurred loss for distinct qualifying claims in the selected time context.
+    concept: insurance:IncurredLoss
+    expression: SUM(incurred_loss_eur)
+    aggregation: sum
+    unit: EUR
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics]
+  - id: insurance:AverageClaimAmount
+    name: AverageClaimAmount
+    version: "1.0.0"
+    definition: Average incurred loss per distinct qualifying claim.
+    concept: insurance:IncurredLoss
+    expression: SUM(incurred_loss_eur) / NULLIF(COUNT(DISTINCT claim_id), 0)
+    aggregation: average
+    unit: EUR per claim
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics]
+  - id: insurance:ActivePolicyCount
+    name: ActivePolicyCount
+    version: "1.0.0"
+    definition: Number of policies whose governed lifecycle status is ACTIVE.
+    concept: insurance:ActivePolicy
+    expression: COUNT(DISTINCT policy_id) WHERE policy_status = 'ACTIVE'
+    aggregation: count_distinct
+    unit: policies
+    filter_rule: insurance:ActivePolicy
+    source_products: [PolicyMaster]
+  - id: insurance:ClaimsRatio
+    name: ClaimsRatio
+    version: "1.0.0"
+    definition: Separately aggregated qualifying incurred loss divided by separately aggregated written premium for the same aligned scope.
+    concept: insurance:IncurredLoss
+    expression: loss_aggregate.total_incurred_loss_eur / NULLIF(premium_aggregate.total_premium_eur, 0)
+    aggregation: ratio_of_aggregates
+    unit: ratio
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics, PremiumAnalytics]
+    dependencies: [insurance:TotalIncurredLoss]
+    numerator:
+      product: ClaimsAnalytics
+      measure: incurred_loss_eur
+      aggregation: SUM
+      filter_rule: insurance:QualifyingClaim
+      aggregate_name: total_incurred_loss_eur
+    denominator:
+      product: PremiumAnalytics
+      measure: premium_eur
+      aggregation: SUM
+      aggregate_name: total_premium_eur
+      filter_context: selected premium periods for the same scope
+    alignment:
+      dimensions: [customer_id, country, product]
+      join_keys: [customer_id, country, product]
+      time_context: same caller-selected as_of and reporting window, applied independently to claim_date and premium_date
+      pre_aggregate_each_product: true
+      join_multiplication: forbidden

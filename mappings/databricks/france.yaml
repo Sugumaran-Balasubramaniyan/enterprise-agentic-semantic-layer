@@ -1,0 +1,64 @@
+id: DatabricksFranceMapping
+version: "1.0.0"
+owner: GlobalSure France Data Office
+platform: Databricks
+location: FR
+data_products:
+  - Customer360
+  - PolicyMaster
+  - ClaimsAnalytics
+  - PremiumAnalytics
+source:
+  catalog: globalsure_france
+  schemas:
+    customers: insurance_customer
+    policies: insurance_policy
+    claims: insurance_claim
+    premiums: insurance_premium
+fields:
+  customer_id: {physical_name: customer_id, concept: insurance:Customer, pii: true}
+  customer_name: {physical_name: customer_name, concept: insurance:Customer, pii: true}
+  email: {physical_name: email, concept: insurance:Customer, pii: true}
+  policy_id: {physical_name: policy_id, concept: insurance:Policy, pii: false}
+  policy_status: {physical_name: policy_status_local, concept: insurance:Policy, canonical_subset: insurance:ActivePolicy, pii: false}
+  effective_date: {physical_name: effective_date, concept: insurance:Policy, pii: false}
+  expiry_date: {physical_name: expiry_date, concept: insurance:Policy, pii: false}
+  annual_premium_eur: {physical_name: annual_premium, concept: insurance:Premium, pii: false}
+  claim_id: {physical_name: claim_id, concept: insurance:Claim, pii: false}
+  country: {physical_name: market_code, concept: insurance:Country, pii: false}
+  product: {physical_name: product_code, concept: insurance:InsuranceProduct, pii: false}
+  status: {physical_name: claim_state, concept: insurance:ClaimStatus, pii: false}
+  claim_date: {physical_name: loss_date, concept: insurance:Claim, pii: false}
+  incurred_loss_eur: {physical_name: incurred_amount, concept: insurance:IncurredLoss, pii: false}
+  premium_id: {physical_name: premium_id, concept: insurance:Premium, pii: false}
+  premium_date: {physical_name: premium_date, concept: insurance:Premium, pii: false}
+  premium_eur: {physical_name: written_premium, concept: insurance:Premium, pii: false}
+normalization:
+  products:
+    MOTOR: insurance:MotorInsurance
+    MTR: insurance:MotorInsurance
+    insurance:MotorInsurance: insurance:MotorInsurance
+    HOME: insurance:HomeInsurance
+  statuses:
+    OUVERTE: OPEN
+    EN_ATTENTE: PENDING
+    REGLEE: SETTLED
+    ANNULEE: CANCELLED
+    DOUBLON: DUPLICATE
+    OPEN: OPEN
+    PENDING: PENDING
+    SETTLED: SETTLED
+    CANCELLED: CANCELLED
+    DUPLICATE: DUPLICATE
+  policy_statuses:
+    EN_COURS: ACTIVE
+    ECHUE: LAPSED
+    ANNULEE: CANCELLED
+    ACTIVE: ACTIVE
+    LAPSED: LAPSED
+    CANCELLED: CANCELLED
+lineage:
+  physical_sources:
+    - databricks://globalsure_france.insurance_claim
+    - databricks://globalsure_france.insurance_policy
+  semantic_target: Group insurance vocabulary 1.0.0

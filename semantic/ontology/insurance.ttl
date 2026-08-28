@@ -1,0 +1,60 @@
+@prefix insurance: <https://globalsure.example/insurance/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+insurance: a owl:Ontology ;
+    rdfs:label "GlobalSure Insurance Ontology"@en ;
+    owl:versionInfo "1.0.0" ;
+    owl:versionIRI <https://globalsure.example/insurance/1.0.0> .
+
+insurance:Customer a owl:Class .
+insurance:Policy a owl:Class .
+insurance:Claim a owl:Class .
+insurance:InsuranceProduct a owl:Class .
+insurance:MotorInsurance a owl:Class ; rdfs:subClassOf insurance:InsuranceProduct .
+insurance:Risk a owl:Class .
+insurance:Coverage a owl:Class .
+insurance:Premium a owl:Class .
+insurance:ClaimStatus a owl:Class .
+insurance:Country a owl:Class .
+insurance:ActivePolicy a owl:Class ; rdfs:subClassOf insurance:Policy .
+insurance:QualifyingClaim a owl:Class ; rdfs:subClassOf insurance:Claim .
+insurance:IncurredLoss a owl:Class .
+
+insurance:ownsPolicy a owl:ObjectProperty ;
+    rdfs:domain insurance:Customer ; rdfs:range insurance:Policy .
+insurance:submitsClaim a owl:ObjectProperty ;
+    rdfs:domain insurance:Policy ; rdfs:range insurance:Claim .
+insurance:relatesToPolicy a owl:ObjectProperty ;
+    rdfs:domain insurance:Claim ; rdfs:range insurance:Policy .
+insurance:hasProduct a owl:ObjectProperty ;
+    rdfs:domain insurance:Policy ; rdfs:range insurance:InsuranceProduct .
+insurance:coversRisk a owl:ObjectProperty ;
+    rdfs:domain insurance:InsuranceProduct ; rdfs:range insurance:Risk .
+insurance:hasCoverage a owl:ObjectProperty ;
+    rdfs:domain insurance:InsuranceProduct ; rdfs:range insurance:Coverage .
+insurance:generatesPremium a owl:ObjectProperty ;
+    rdfs:domain insurance:Policy ; rdfs:range insurance:Premium .
+insurance:claimPolicy a owl:ObjectProperty ;
+    rdfs:subPropertyOf insurance:relatesToPolicy ;
+    rdfs:domain insurance:Claim ; rdfs:range insurance:Policy .
+insurance:policyProduct a owl:ObjectProperty ;
+    rdfs:subPropertyOf insurance:hasProduct ;
+    rdfs:domain insurance:Policy ; rdfs:range insurance:InsuranceProduct .
+
+insurance:customerId a owl:DatatypeProperty ; rdfs:domain insurance:Customer ; rdfs:range xsd:string .
+insurance:policyId a owl:DatatypeProperty ; rdfs:domain insurance:Policy ; rdfs:range xsd:string .
+insurance:claimId a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:string .
+insurance:claimDate a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:date .
+insurance:claimStatus a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:string .
+insurance:policyStatus a owl:DatatypeProperty ; rdfs:domain insurance:Policy ; rdfs:range xsd:string .
+insurance:incurredLoss a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:decimal .
+insurance:hasClaimStatus a owl:ObjectProperty ;
+    rdfs:domain insurance:Claim ; rdfs:range insurance:ClaimStatus .
+insurance:hasIncurredLoss a owl:ObjectProperty ;
+    rdfs:domain insurance:Claim ; rdfs:range insurance:IncurredLoss .
+insurance:statusValue a owl:DatatypeProperty ;
+    rdfs:domain insurance:ClaimStatus ; rdfs:range xsd:string .
+insurance:amountValue a owl:DatatypeProperty ;
+    rdfs:domain insurance:IncurredLoss ; rdfs:range xsd:decimal .
