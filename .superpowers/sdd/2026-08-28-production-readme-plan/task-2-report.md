@@ -27,6 +27,22 @@ synthetic data lifecycle in production-oriented terms.
 - `pytest tests/unit/test_documentation_contract.py -q`: 12 passed.
 - `ruff check .`: passed.
 - `git diff --check`: passed.
+
+## Setup-path correction
+
+Scoped re-review found that `make PYTHON=.venv/bin/python setup` is invalid in
+a fresh checkout because that interpreter does not exist until the target has
+created the environment. The README now documents `make setup` as the valid
+fresh-checkout convenience path, explains that the Makefile uses `python3` to
+create `.venv`, and retains the explicit `.venv/bin/python` installation path
+as the canonical reproducible sequence. The documentation contract now also
+guards against reintroducing the invalid command.
+
+Follow-up verification:
+
+- `pytest tests/unit/test_documentation_contract.py -q`: 12 passed.
+- `ruff check .`: passed.
+- `git diff --check`: passed.
 - `make PYTHON=.venv/bin/python validate-semantic`: valid graph conforms and
   invalid fixture fails as expected.
 - `make PYTHON=.venv/bin/python demo`: completed with deterministic `FR_001`

@@ -138,7 +138,7 @@ def test_readme_documents_data_contract_and_clean_install() -> None:
     readme = (ROOT / "README.md").read_text()
     for fragment in [
         "git clone",
-        "make PYTHON=.venv/bin/python setup",
+        "make setup",
         "schemas",
         "grain",
         "join keys",
@@ -146,3 +146,4 @@ def test_readme_documents_data_contract_and_clean_install() -> None:
         "configuration matrix",
     ]:
         assert fragment in readme, fragment
+    assert "make PYTHON=.venv/bin/python setup" not in readme

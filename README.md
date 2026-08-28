@@ -84,11 +84,12 @@ The editable install makes `src/semantic_layer` importable while keeping the
 repository assets at their checked-out paths. Do not install into the system
 interpreter. The explicit sequence above is the canonical clean-install path;
 do not run both it and the convenience setup target in the same fresh checkout.
-For an existing checkout where `.venv` does not yet exist, the equivalent
-convenience command is `make PYTHON=.venv/bin/python setup`; it creates the
-managed environment and installs the editable project in one step. A failed
-install should be treated as an environment issue, not solved by weakening the
-declared dependency constraints.
+For a fresh checkout, the valid convenience command is `make setup`; the
+Makefile selects `python3` to create `.venv`, then installs the editable project
+into that environment. Once `.venv` exists, targets can be pinned explicitly
+with `make PYTHON=.venv/bin/python <target>`. A failed install should be
+treated as an environment issue, not solved by weakening the declared
+dependency constraints.
 
 ### Configuration matrix
 
