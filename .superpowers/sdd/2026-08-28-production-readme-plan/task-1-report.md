@@ -43,7 +43,7 @@ exit status 0
 
 ## Commit and push
 
-Commit: pending until the task changes are committed.
+Commit: `56b1d1ea7ff636d12bd89005e49504a664c21e12` (before report metadata amend).
 
 Push target: `origin/feat/semantic-layer-implementation`.
 
