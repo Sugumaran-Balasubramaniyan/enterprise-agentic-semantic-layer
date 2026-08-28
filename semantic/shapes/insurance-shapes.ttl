@@ -1,6 +1,10 @@
 @prefix insurance: <https://globalsure.example/insurance/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+insurance:InsuranceShapes a sh:NodeShape ;
+    owl:versionInfo "1.0.0" .
 
 insurance:ClaimShape a sh:NodeShape ;
     sh:targetClass insurance:Claim ;

@@ -1,6 +1,6 @@
 # Semantic asset contract
 
-GlobalSure keeps the canonical business vocabulary in versioned YAML and the relationship vocabulary in OWL/RDFS. Every vocabulary record includes an identifier, definition, owner, semantic version, synonyms, classification, sensitivity, relationships or allowed values, and examples. This makes a concept reviewable by people and loadable by typed Python services.
+GlobalSure keeps the canonical business vocabulary in versioned YAML and the relationship vocabulary in OWL/RDFS. The YAML document itself carries a required semantic version, namespace, and owner; `load_vocabulary` retains those fields alongside the list of typed concepts and enforces semantic-version syntax at both levels. Every vocabulary record includes an identifier, definition, owner, semantic version, synonyms, classification, sensitivity, relationships or allowed values, and examples. This makes a concept reviewable by people and loadable by typed Python services.
 
 The three semantic layers have distinct responsibilities:
 

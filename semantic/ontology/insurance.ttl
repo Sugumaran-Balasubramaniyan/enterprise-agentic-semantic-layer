@@ -5,6 +5,7 @@
 
 insurance: a owl:Ontology ;
     rdfs:label "GlobalSure Insurance Ontology"@en ;
+    owl:versionInfo "1.0.0" ;
     owl:versionIRI <https://globalsure.example/insurance/1.0.0> .
 
 insurance:Customer a owl:Class .
@@ -49,5 +50,11 @@ insurance:claimDate a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:
 insurance:claimStatus a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:string .
 insurance:policyStatus a owl:DatatypeProperty ; rdfs:domain insurance:Policy ; rdfs:range xsd:string .
 insurance:incurredLoss a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:decimal .
-insurance:hasClaimStatus a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:string .
-insurance:hasIncurredLoss a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:decimal .
+insurance:hasClaimStatus a owl:ObjectProperty ;
+    rdfs:domain insurance:Claim ; rdfs:range insurance:ClaimStatus .
+insurance:hasIncurredLoss a owl:ObjectProperty ;
+    rdfs:domain insurance:Claim ; rdfs:range insurance:IncurredLoss .
+insurance:statusValue a owl:DatatypeProperty ;
+    rdfs:domain insurance:ClaimStatus ; rdfs:range xsd:string .
+insurance:amountValue a owl:DatatypeProperty ;
+    rdfs:domain insurance:IncurredLoss ; rdfs:range xsd:decimal .

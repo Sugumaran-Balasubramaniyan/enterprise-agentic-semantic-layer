@@ -1,7 +1,9 @@
 @prefix insurance: <https://globalsure.example/insurance/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
 insurance:InsuranceProductScheme a skos:ConceptScheme ;
+    owl:versionInfo "1.0.0" ;
     skos:prefLabel "GlobalSure Insurance Product Taxonomy"@en ;
     skos:hasTopConcept insurance:InsuranceProduct .
 

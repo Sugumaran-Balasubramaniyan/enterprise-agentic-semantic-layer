@@ -1,6 +1,8 @@
 @prefix insurance: <https://globalsure.example/insurance/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
+insurance:SampleGraphValid a owl:Ontology ; owl:versionInfo "1.0.0" .
 insurance:customer-FR-001 a insurance:Customer ;
     insurance:customerId "FR_001" .
 insurance:policy-FR-001 a insurance:Policy ;
@@ -13,4 +15,8 @@ insurance:claim-FR-001 a insurance:Claim ;
     insurance:claimDate "2026-06-01"^^xsd:date ;
     insurance:claimStatus "OPEN" ;
     insurance:claimPolicy insurance:policy-FR-001 ;
-    insurance:incurredLoss "25000.00"^^xsd:decimal .
+    insurance:incurredLoss "25000.00"^^xsd:decimal ;
+    insurance:hasClaimStatus insurance:status-open ;
+    insurance:hasIncurredLoss insurance:loss-FR-001 .
+insurance:status-open a insurance:ClaimStatus ; insurance:statusValue "OPEN" .
+insurance:loss-FR-001 a insurance:IncurredLoss ; insurance:amountValue "25000.00"^^xsd:decimal .

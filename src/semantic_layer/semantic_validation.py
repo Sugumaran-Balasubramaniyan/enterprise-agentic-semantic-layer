@@ -1,12 +1,15 @@
 """Typed loading and validation helpers for the canonical semantic assets."""
 
 from pathlib import Path
-from typing import Any
+from typing import Annotated
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pyshacl import validate as shacl_validate
 from rdflib import Graph
+
+SEMVER_PATTERN = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+SemanticVersion = Annotated[str, StringConstraints(pattern=SEMVER_PATTERN)]
 
 
 class Sensitivity(BaseModel):
@@ -35,7 +38,7 @@ class Concept(BaseModel):
 
     id: str
     name: str
-    version: str
+    version: SemanticVersion
     definition: str
     description: str
     synonyms: list[str] = Field(default_factory=list)
@@ -46,6 +49,48 @@ class Concept(BaseModel):
     relationships: list[Relationship] = Field(default_factory=list)
     allowed_values: list[str] = Field(default_factory=list)
     examples: list[str] = Field(default_factory=list)
+
+
+class VocabularyMetadata(BaseModel):
+    """Document-level governance metadata for a vocabulary file."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: SemanticVersion
+    namespace: str = Field(min_length=1)
+    owner: str = Field(min_length=1)
+
+
+class LoadedVocabulary(list[Concept]):
+    """List-compatible vocabulary that retains its document metadata."""
+
+    def __init__(self, concepts: list[Concept], metadata: VocabularyMetadata) -> None:
+        super().__init__(concepts)
+        self.metadata = metadata
+
+    @property
+    def version(self) -> str:
+        return self.metadata.version
+
+    @property
+    def namespace(self) -> str:
+        return self.metadata.namespace
+
+    @property
+    def owner(self) -> str:
+        return self.metadata.owner
+
+    @property
+    def document_version(self) -> str:
+        return self.metadata.version
+
+    @property
+    def document_namespace(self) -> str:
+        return self.metadata.namespace
+
+    @property
+    def document_owner(self) -> str:
+        return self.metadata.owner
 
 
 class ValidationResult(BaseModel):
@@ -59,14 +104,15 @@ class ValidationResult(BaseModel):
     shapes_path: Path
 
 
-def _concept_payloads(document: Any) -> list[dict[str, Any]]:
-    if isinstance(document, dict):
-        concepts = document.get("concepts")
-    else:
-        concepts = document
-    if not isinstance(concepts, list):
-        raise TypeError("Vocabulary must contain a 'concepts' list")
-    return concepts
+class VocabularyDocument(BaseModel):
+    """Typed YAML document containing metadata and canonical concepts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: SemanticVersion
+    namespace: str = Field(min_length=1)
+    owner: str = Field(min_length=1)
+    concepts: list[Concept] = Field(min_length=1)
 
 
 def load_vocabulary(path: Path) -> list[Concept]:
@@ -74,7 +120,9 @@ def load_vocabulary(path: Path) -> list[Concept]:
 
     with path.open(encoding="utf-8") as stream:
         document = yaml.safe_load(stream)
-    return [Concept.model_validate(item) for item in _concept_payloads(document)]
+    parsed = VocabularyDocument.model_validate(document)
+    metadata = VocabularyMetadata.model_validate(parsed.model_dump(exclude={"concepts"}))
+    return LoadedVocabulary(parsed.concepts, metadata)
 
 
 def validate_graph(data_path: Path, shapes_path: Path) -> ValidationResult:
