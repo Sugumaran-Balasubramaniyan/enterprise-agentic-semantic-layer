@@ -189,3 +189,21 @@ class SemanticQueryPlan(SqlFreeSemanticModel):
     selected_products: list[ProductId] = Field(default_factory=list)
     caller: CallerContext
     target_platform: Literal["DuckDB", "Databricks", "Snowflake", "Microsoft Fabric"] = "DuckDB"
+
+    def with_country(self, country: CountryCode) -> SemanticQueryPlan:
+        """Return a copy scoped to one governed country without accepting raw query text."""
+
+        country_filters = [
+            query_filter
+            for query_filter in self.filters
+            if query_filter.concept_id != "insurance:Country"
+        ]
+        country_filters.append(
+            Filter(concept_id="insurance:Country", operator="=", value=country)
+        )
+        return self.model_copy(
+            update={
+                "filters": country_filters,
+                "caller": self.caller.model_copy(update={"country": country}),
+            }
+        )
