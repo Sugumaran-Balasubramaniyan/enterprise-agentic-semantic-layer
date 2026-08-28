@@ -2,7 +2,10 @@
 
 from pathlib import Path
 
+import pytest
+
 from semantic_layer.evaluation import GOLDEN_CASES, load_golden_cases, run_evaluation
+from semantic_layer.evaluation.runner import _evaluate_case
 from semantic_layer.registry import SemanticRegistry
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -39,3 +42,51 @@ def test_primary_golden_answer_is_deterministic() -> None:
         {"customer_id": "FR_001", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 24000.0},
         {"customer_id": "FR_002", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 25000.0},
     ]
+
+
+def test_golden_questions_are_natural_language_unique() -> None:
+    cases = load_golden_cases(GOLDEN_CASES)
+    assert len({case.question for case in cases}) == len(cases)
+
+
+@pytest.mark.parametrize("missing", ["concepts", "relationships", "products", "metrics", "authorization"])
+def test_golden_loader_requires_every_governance_expectation(tmp_path: Path, missing: str) -> None:
+    expected = {
+        "concepts": [],
+        "relationships": [],
+        "products": [],
+        "metrics": [],
+        "authorization": {"allowed": True, "reason_code": "ALLOWED"},
+    }
+    del expected[missing]
+    source = tmp_path / "questions.yaml"
+    source.write_text(
+        "questions:\n  - id: incomplete\n    question: A unique governed question\n    role: ClaimsAnalystFR\n    expected:\n"
+        + "\n".join(f"      {key}: {value!r}" for key, value in expected.items()),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=f"missing expected field: {missing}"):
+        load_golden_cases(source)
+
+
+def test_secondary_constraints_reference_existing_semantic_assets() -> None:
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    case = next(case for case in load_golden_cases(GOLDEN_CASES) if case.id == "secondary-01-active-french")
+    case.expected["deterministic"]["answer_constraints"]["rule"] = "insurance:NotARealRule"
+
+    result = _evaluate_case(case, registry, REPOSITORY_ROOT)
+
+    assert result.deterministic_answer is False
+    assert any("unknown governed rule" in error for error in result.errors)
+
+
+def test_secondary_constraints_must_match_discovered_metric() -> None:
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    case = next(case for case in load_golden_cases(GOLDEN_CASES) if case.id == "secondary-01-active-french")
+    case.expected["deterministic"]["answer_constraints"]["metric"] = "insurance:ClaimsRatio"
+
+    result = _evaluate_case(case, registry, REPOSITORY_ROOT)
+
+    assert result.deterministic_answer is False
+    assert any("not present in discovered metrics" in error for error in result.errors)

@@ -190,8 +190,29 @@ def load_golden_cases(path: Path | str) -> list[GoldenCase]:
             raise ValueError(f"golden question {identifier} has no question")
         if not isinstance(role, str) or not role.strip() or not isinstance(expected, dict):
             raise ValueError(f"golden question {identifier} has invalid role or expected fields")
+        required = ("concepts", "relationships", "products", "metrics", "authorization")
+        missing = [field for field in required if field not in expected]
+        if missing:
+            raise ValueError(f"golden question {identifier} missing expected field: {missing[0]}")
+        for field in required[:-1]:
+            if not isinstance(expected[field], list):
+                raise TypeError(f"golden question {identifier} expected {field} must be a list")
+        if not isinstance(expected["authorization"], dict):
+            raise TypeError(f"golden question {identifier} expected authorization must be a mapping")
+        for field in ("allowed", "reason_code"):
+            if field not in expected["authorization"]:
+                raise ValueError(
+                    f"golden question {identifier} authorization missing expected field: {field}"
+                )
+        if not isinstance(expected["authorization"]["allowed"], bool):
+            raise TypeError(f"golden question {identifier} authorization allowed must be boolean")
+        if not isinstance(expected["authorization"]["reason_code"], str):
+            raise TypeError(f"golden question {identifier} authorization reason_code must be a string")
         seen.add(identifier)
         cases.append(GoldenCase(identifier, question, role, expected))
+    questions = [case.question for case in cases]
+    if len(set(questions)) != len(questions):
+        raise ValueError("golden questions must have unique natural-language question text")
     return cases
 
 
@@ -205,6 +226,61 @@ def _triples(discovery: QueryDiscovery) -> list[str]:
 def _expected_list(expected: dict[str, Any], key: str) -> list[Any] | None:
     value = expected.get(key)
     return value if isinstance(value, list) else None
+
+
+def _validate_answer_constraints(
+    constraints: Any, registry: SemanticRegistry, discovery: QueryDiscovery | None
+) -> tuple[bool, list[str]]:
+    """Validate constraint references and semantics against registry discovery."""
+
+    if not isinstance(constraints, dict):
+        return False, ["answer_constraints must be a mapping"]
+    mode = constraints.get("mode")
+    if mode not in {"discovery_only", "governed_primary_variant", "governed_threshold_variant"}:
+        return False, [f"unknown answer constraint mode: {mode!r}"]
+    errors: list[str] = []
+    actual_metrics = (
+        {predicate.metric_id for predicate in discovery.metric_predicates}
+        if discovery is not None
+        else set()
+    )
+    actual_rules = {
+        registry.metrics[metric_id].filter_rule
+        for metric_id in actual_metrics
+        if metric_id in registry.metrics and registry.metrics[metric_id].filter_rule
+    }
+
+    metric_ids: list[str] = []
+    if "metric" in constraints:
+        metric_ids.append(constraints["metric"])
+    required_metrics = constraints.get("required_metrics", [])
+    if not isinstance(required_metrics, list):
+        errors.append("required_metrics must be a list")
+    else:
+        metric_ids.extend(required_metrics)
+    for metric_id in metric_ids:
+        if not isinstance(metric_id, str) or metric_id not in registry.metrics:
+            errors.append(f"unknown governed metric: {metric_id}")
+        elif metric_id not in actual_metrics:
+            errors.append(f"metric {metric_id} is not present in discovered metrics")
+
+    rule_ids: list[str] = []
+    if "rule" in constraints:
+        rule_ids.append(constraints["rule"])
+    required_rules = constraints.get("required_rules", [])
+    if not isinstance(required_rules, list):
+        errors.append("required_rules must be a list")
+    else:
+        rule_ids.extend(required_rules)
+    for rule_id in rule_ids:
+        if not isinstance(rule_id, str) or rule_id not in registry.rules:
+            errors.append(f"unknown governed rule: {rule_id}")
+        elif rule_id not in actual_rules:
+            errors.append(f"rule {rule_id} is not present in discovered metrics")
+
+    if mode == "discovery_only" and not metric_ids and not rule_ids:
+        errors.append("discovery_only constraints must reference a metric or rule")
+    return not errors, errors
 
 
 def _evaluate_case(
@@ -276,12 +352,10 @@ def _evaluate_case(
         if not deterministic_ok:
             errors.append(f"answer expected {expected_answer}, got {answer}")
     elif "answer_constraints" in deterministic:
-        # Constraints are intentionally simple and data-independent so they can be
-        # used for discovery-only cases without pretending they were executed.
-        constraints = deterministic["answer_constraints"]
-        deterministic_ok = isinstance(constraints, dict) and bool(constraints)
-        if not deterministic_ok:
-            errors.append("answer_constraints must be a non-empty mapping")
+        deterministic_ok, constraint_errors = _validate_answer_constraints(
+            deterministic["answer_constraints"], registry, discovery
+        )
+        errors.extend(constraint_errors)
 
     return CaseEvaluation(
         case_id=case.id,

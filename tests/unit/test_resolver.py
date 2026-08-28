@@ -63,3 +63,19 @@ def test_resolver_grounds_local_mapping_values_in_motor_insurance(local_value: s
     resolution = registry.resolve(f"Find {local_value} customers")
 
     assert resolution.matched_terms["insurance:MotorInsurance"] == local_value.casefold()
+
+
+def test_resolver_grounds_governed_plural_business_terms() -> None:
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+
+    resolution = registry.resolve(
+        "Find French customers with qualifying claims and active policies."
+    )
+
+    assert {
+        "insurance:ActivePolicy",
+        "insurance:Claim",
+        "insurance:Customer",
+        "insurance:Policy",
+        "insurance:QualifyingClaim",
+    }.issubset(resolution.concept_ids)
