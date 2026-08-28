@@ -81,11 +81,11 @@
 
 **Interfaces:**
 - Consumes: Existing asset layout, ADRs, CI gates, golden evaluation corpus, and federated mappings.
-- Produces: Ownership/review workflow, PR checklist, semantic compatibility/deprecation/migration policy, new-country onboarding path, capability traceability matrix, production extension matrix, and support/escalation guidance.
+- Produces: Ownership/review workflow, PR checklist, semantic compatibility/deprecation/migration policy, new-country onboarding path, capability traceability matrix, pilot implementation plan, scale-out milestones with promotion criteria, production extension matrix, and support/escalation guidance.
 
 - [ ] **Step 1: Add contract assertions** for required links/assets, semantic versioning, CI gates, and onboarding stages.
 - [ ] **Step 2: Run focused tests** and confirm they fail until the handbook content exists.
-- [ ] **Step 3: Add contribution/release/federation/traceability sections** with direct links to authoritative files and tests.
+- [ ] **Step 3: Add contribution/release/federation/traceability sections, plus a pilot implementation and scale-out plan** with direct links to authoritative files and tests.
 - [ ] **Step 4: Run link checks, full tests, lint, semantic validation, golden evaluation, and demo.**
 - [ ] **Step 5: Commit and push** with `docs: complete repository handbook and extension guide`.
 

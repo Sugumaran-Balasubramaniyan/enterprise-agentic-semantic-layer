@@ -71,6 +71,8 @@ The final README must include:
 - CI coverage and local-only verification boundaries;
 - semantic asset contribution, ownership, review, release, deprecation, and
   migration policy;
+- pilot implementation plan, 30/60/90-day milestones, scale-out stages, and
+  measurable promotion/exit criteria;
 - production extension patterns for Databricks, Snowflake, Fabric, MCP, LLM
   enhancement, KMS/HSM, and policy services;
 - traceability matrix from requested capability to implementation, tests, and
