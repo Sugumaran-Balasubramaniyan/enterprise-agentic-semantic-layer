@@ -19,7 +19,7 @@ French, UK, and German local product values.”
 
 ## 2-minute narrative
 
-Run `make demo` and point out the stable headings: `SEMANTIC RESOLUTION`,
+Run `make PYTHON=.venv/bin/python demo` and point out the stable headings: `SEMANTIC RESOLUTION`,
 `DATA PRODUCTS`, `SEMANTIC QUERY PLAN`, `GENERATED SQL`, `VALIDATION`,
 `RESULT`, and `PROVENANCE`. Explain that `QualifyingClaim` excludes
 `CANCELLED` and `DUPLICATE`, and that the answer contains two deterministic
@@ -36,9 +36,10 @@ From the repository root, install dependencies and run the complete local
 path:
 
 ```bash
-python3 -m pip install -e '.[dev]'
-make PYTHON=python3 validate-semantic
-make PYTHON=python3 demo
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+make PYTHON=.venv/bin/python validate-semantic
+make PYTHON=.venv/bin/python demo
 ```
 
 The first command installs only local Python dependencies. The validation
@@ -56,7 +57,7 @@ expected to contain exactly:
 Then show one API request in a second terminal:
 
 ```bash
-make PYTHON=python3 run-api
+make PYTHON=.venv/bin/python run-api
 curl -s http://127.0.0.1:8000/health
 curl -s -X POST http://127.0.0.1:8000/execute \
   -H 'content-type: application/json' \

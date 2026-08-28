@@ -50,3 +50,27 @@ def test_demo_guide_has_all_interview_timeboxes_and_cloud_boundary() -> None:
         assert heading in guide
     assert "not executed" in guide
     assert "curl" in guide
+
+
+def test_demo_commands_create_and_use_a_local_venv() -> None:
+    required = [
+        "python3 -m venv .venv",
+        ".venv/bin/python -m pip install -e '.[dev]'",
+        "make PYTHON=.venv/bin/python validate-semantic",
+        "make PYTHON=.venv/bin/python demo",
+    ]
+    for path in [ROOT / "README.md", ROOT / "docs" / "interview-demo-guide.md"]:
+        text = path.read_text()
+        for command in required:
+            assert command in text, (path, command)
+        assert not any(line.strip() == "make demo" for line in text.splitlines())
+        assert "make PYTHON=python3" not in text
+
+
+def test_each_adr_has_required_decision_sections() -> None:
+    adr_paths = sorted((ROOT / "docs" / "decisions").glob("ADR-00[1-8]-*.md"))
+    assert len(adr_paths) == 8
+    for path in adr_paths:
+        text = path.read_text()
+        for heading in ["## Context", "## Decision", "## Alternatives", "## Consequences"]:
+            assert heading in text, (path, heading)

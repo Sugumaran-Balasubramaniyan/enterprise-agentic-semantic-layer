@@ -9,7 +9,10 @@ The three semantic layers have distinct responsibilities:
 - `semantic/ontology/insurance.ttl` defines OWL classes and property domain/range constraints.
 - `semantic/shapes/insurance-shapes.ttl` validates insurance instances. Claims require an ID, date, status, policy, and non-negative incurred loss; policies require an ID, product, and status.
 
-Use `python -m semantic_layer.validation` to load all 13 canonical concepts and validate both sample graphs. The valid graph conforms; the deliberately incomplete graph fails with an expected SHACL report and does not make the command fail.
+Use `make PYTHON=.venv/bin/python validate-semantic` to load all 13 canonical
+concepts and validate both sample graphs. The valid graph conforms; the
+deliberately incomplete graph fails with an expected SHACL report and does not
+make the command fail.
 
 ## Contract boundaries
 

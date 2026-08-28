@@ -36,13 +36,14 @@ claim and premium rows, which would multiply measures for customers with more
 than one claim or premium period. A zero premium denominator produces a null
 ratio rather than an unbounded value.
 
-Generate the same dataset for any explicit as-of date with:
+Generate the same dataset for any explicit as-of date with the project
+environment active:
 
 ```bash
-python -c "from datetime import date; from pathlib import Path; from semantic_layer.data_generation import generate_demo_data; generate_demo_data(Path('data'), date(2026, 8, 28))"
+.venv/bin/python -c "from datetime import date; from pathlib import Path; from semantic_layer.data_generation import generate_demo_data; generate_demo_data(Path('data'), date(2026, 8, 28))"
 ```
 
-The repository script uses the same fixed date: `python data/generate_demo_data.py`.
+The repository script uses the same fixed date: `.venv/bin/python data/generate_demo_data.py`.
 
 ## Certification boundary
 

@@ -21,7 +21,7 @@ claims template is an executable adapter contract.
 Run the evaluation from the repository root:
 
 ```bash
-make evaluate
+make PYTHON=.venv/bin/python evaluate
 ```
 
 Example output from the current synthetic fixture set:

@@ -90,3 +90,53 @@ No cloud execution or benchmark claim is made. Databricks, Snowflake, and
 Fabric remain documented extension artifacts; DuckDB is the only executed
 adapter. The data is synthetic and the provenance ID/digests are runtime
 values.
+
+## Round 1 review remediation
+
+The runnable snippets now create and use a repository-local virtual
+environment, avoiding Ubuntu PEP 668 system-install failures:
+
+```text
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+make PYTHON=.venv/bin/python validate-semantic
+make PYTHON=.venv/bin/python demo
+```
+
+The documentation contract was strengthened to require those setup/demo
+commands in both README and interview guide, reject bare `make demo` command
+lines, and verify `## Context`, `## Decision`, `## Alternatives`, and
+`## Consequences` in every ADR-001 through ADR-008.
+
+Fresh remediation verification:
+
+```text
+python -m pytest tests/unit/test_documentation_contract.py -q
+.......                                                                  [100%]
+7 passed in 0.03s
+
+The post-fix full matrix used the documented repository-local interpreter:
+
+```text
+make PYTHON=.venv/bin/python lint
+All checks passed!
+
+make PYTHON=.venv/bin/python test
+======================== 138 passed, 1 warning in 9.19s ========================
+
+make PYTHON=.venv/bin/python validate-semantic
+Vocabulary: 13 concepts loaded
+sample-graph-valid.ttl: CONFORMS (conforms)
+sample-graph-invalid.ttl: DOES NOT CONFORM (fails as expected)
+
+make PYTHON=.venv/bin/python evaluate
+Golden evaluation: 31/31 cases passed (resolution=31/31, relationships=31/31, products=31/31, metrics=31/31, authorization=31/31, deterministic_answers=31/31)
+
+make PYTHON=.venv/bin/python demo
+RESULT: FR_001/FR/3/24000.0 and FR_002/FR/3/25000.0
+```
+
+The additional ADR/runnable-command assertions account for the increase from
+136 to 138 total tests. The sole warning remains the pre-existing
+Starlette/httpx deprecation notice.
+```
