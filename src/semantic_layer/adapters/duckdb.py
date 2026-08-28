@@ -76,6 +76,7 @@ class ExecutionResult(Sequence[dict[str, Any]]):
             "query": self.query_digest,
             "parameters": self.parameter_digest,
             "authorization": self.authorization_digest,
+            "authorization_outcome": self.authorization_outcome,
             "plan": self.plan_digest,
             "caller": self.caller_digest,
             "products": self.approved_products,
@@ -170,6 +171,7 @@ class LocalDuckDBAdapter:
             or authorization.caller_digest != query.caller_digest
             or authorization.caller_digest != digest(caller)
             or authorization.registry_digest != registry_digest(self.registry)
+            or query.authorization_outcome != authorization.reason_code
             or query.authorization_digest
             != digest(
                 {

@@ -16,7 +16,7 @@ The required local matrix completed before this report was added:
 | `make PYTHON=.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed` with every reported dimension at `31/31`. |
 | `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB claims demonstration described below. |
 | `git diff --check` | Exit status 0 with no whitespace errors reported. |
-| scoped credential-pattern scan | Exit status 0; four source-code identifier matches were reviewed below. |
+| scoped credential-pattern scan | Exit status 0; eight source-code identifier matches were reviewed below. |
 
 Supplemental CI-aligned checks also completed: YAML parsing reported 11 files;
 mapping/quality checks had 21 passing tests; golden tests had 11 passing tests;
@@ -59,9 +59,12 @@ about production accuracy.
 ## Security and secret scan
 
 The requested case-insensitive scan for credential-like assignment patterns,
-excluding lock files, returned four matches:
+excluding lock files, returned eight matches:
 
-- `src/semantic_layer/query_planner/service.py:99` is a local parser variable
+- `src/semantic_layer/query_planner/service.py:62`, `:64`, `:65`, and `:66`
+  are parser regular-expression constants (`_NUMBER_TOKEN`,
+  `_COUNTRY_TOKEN`, `_PRODUCT_TOKEN`, and `_SUBJECT_TOKEN`).
+- `src/semantic_layer/query_planner/service.py:130` is a local parser variable
   named `token`.
 - `src/semantic_layer/models.py:17`, `:22`, and `:27` are regular-expression
   constants used to recognize SQL-shaped input.
@@ -200,3 +203,35 @@ Fresh full-matrix verification for this follow-up:
 | `make check-compiler` | `4 passed` |
 | `make evaluate` | `Golden evaluation: 31/31 cases passed`; `discovery_only=10/10`. |
 | `make demo` | Completed the governed DuckDB demonstration and returned FR_001/FR_002. |
+
+## Final integrity evidence follow-up (2026-08-28 UTC)
+
+The final integrity review is closed with focused regression coverage:
+
+- Golden executable cases now receive and execute against the exact supplied
+  `SemanticRegistry`; mutating the supplied `QualifyingClaim` rule therefore
+  changes the evaluation outcome instead of being hidden by a disk reload.
+- `authorization_outcome` is included in the signed execution payload and is
+  checked against the authorization capability by the adapter and provenance
+  store. A tampered outcome is rejected before durable provenance is written.
+- Curated quality validation rejects blank or literal-null values for every
+  required join identifier: customer, policy, claim, and premium identifiers
+  wherever those joins apply.
+- The governed example command uses `.venv/bin/python`, matching the managed
+  project environment.
+
+Fresh matrix after these changes:
+
+| Command | Observed result |
+| --- | --- |
+| `make PYTHON=.venv/bin/python lint` | `All checks passed!` |
+| `make PYTHON=.venv/bin/python test` | `195 passed, 1 warning`; the warning is the existing third-party TestClient deprecation. |
+| `make PYTHON=.venv/bin/python validate-semantic` | Valid graph conforms; invalid graph fails as expected; exit status 0. |
+| `make PYTHON=.venv/bin/python check-yaml` | `YAML: 11 files parsed` |
+| `make PYTHON=.venv/bin/python check-mappings-quality` | `42 passed` |
+| `make PYTHON=.venv/bin/python check-golden` | `13 passed` |
+| `make PYTHON=.venv/bin/python check-compiler` | `4 passed` |
+| `make PYTHON=.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed`; `discovery_only=10/10`. |
+| `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB demonstration and returned FR_001/FR_002. |
+| `git diff --check` | Exit status 0 with no whitespace errors reported. |
+| scoped credential-pattern scan | Exit status 0; eight benign source-code identifier matches, with no credential values. |

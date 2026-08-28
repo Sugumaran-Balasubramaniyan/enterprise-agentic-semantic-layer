@@ -126,11 +126,15 @@ class ClaimsInvestigationAgent:
         self,
         repository_root: Path | None = None,
         *,
+        registry: SemanticRegistry | None = None,
         provenance_path: Path | None = None,
     ) -> None:
-        root = (repository_root or _repository_root()).resolve()
+        root = (repository_root or (registry.root if registry is not None else _repository_root())).resolve()
         provenance_path = provenance_path or (gettempdir() and Path(gettempdir()) / f"semantic-layer-{uuid4()}.sqlite")
-        registry = SemanticRegistry.from_repository(root)
+        if registry is None:
+            registry = SemanticRegistry.from_repository(root)
+        elif type(registry) is not SemanticRegistry:
+            raise TypeError("agent requires the repository-issued semantic registry")
         self.tools = SemanticAgentTools(
             registry,
             root / "data" / "curated",

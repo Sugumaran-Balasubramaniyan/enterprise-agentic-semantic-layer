@@ -222,6 +222,8 @@ class ProvenanceStore:
             self._verify_chain()
             if type(execution) is not ExecutionResult or not execution._verify_integrity():
                 raise ValueError("execution integrity signature is invalid")
+            if execution.authorization_outcome != "ALLOWED":
+                raise ValueError("execution authorization outcome is not allowed")
             if digest(question) != execution.question_digest:
                 raise ValueError("question does not match the executed semantic plan")
             values: dict[str, object] = {

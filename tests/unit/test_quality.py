@@ -1,5 +1,6 @@
 """Behavioural tests for curated-data quality controls."""
 
+import csv
 from pathlib import Path
 
 import pytest
@@ -70,3 +71,40 @@ def test_quality_rejects_rows_using_an_unregistered_product_extension(tmp_path: 
 
     assert report.status == "FAIL"
     assert "INVALID_PRODUCT_MAPPING" in {issue.code for issue in report.issues}
+
+
+@pytest.mark.parametrize(
+    ("file_name", "field"),
+    [
+        ("customers.csv", "customer_id"),
+        ("policies.csv", "policy_id"),
+        ("policies.csv", "customer_id"),
+        ("claims.csv", "claim_id"),
+        ("claims.csv", "policy_id"),
+        ("claims.csv", "customer_id"),
+        ("premiums.csv", "premium_id"),
+        ("premiums.csv", "policy_id"),
+        ("premiums.csv", "customer_id"),
+    ],
+)
+@pytest.mark.parametrize("missing_value", ["", "null"])
+def test_quality_rejects_blank_or_null_join_identifiers(
+    tmp_path: Path, file_name: str, field: str, missing_value: str
+) -> None:
+    """Every identifier used to join governed products must be present, not only its primary key."""
+
+    for source in (REPOSITORY_ROOT / "data" / "curated").glob("*.csv"):
+        with source.open(encoding="utf-8", newline="") as stream:
+            rows = list(csv.DictReader(stream))
+        fieldnames = list(rows[0])
+        if source.name == file_name:
+            rows[0][field] = missing_value
+        with (tmp_path / source.name).open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+    report = validate_curated_data(tmp_path)
+
+    assert report.status == "FAIL"
+    assert any(issue.file == file_name and issue.field == field for issue in report.issues)

@@ -48,6 +48,17 @@ def test_rows_only_fake_execution_result_fails_deterministic_evidence(
     assert any("evidence" in error for error in result.errors)
 
 
+def test_evaluation_executes_against_the_supplied_registry_rules() -> None:
+    registry = SemanticRegistry.from_repository(ROOT)
+    case = next(case for case in load_golden_cases(GOLDEN_CASES) if case.id == "primary-claims")
+    registry.rules["insurance:QualifyingClaim"].include_statuses = []
+
+    result = runner._evaluate_case(case, registry, ROOT)
+
+    assert result.deterministic_answer is False
+    assert any("execution evidence" in error for error in result.errors)
+
+
 def test_discovery_only_denominator_includes_failed_applicable_cases(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -69,8 +69,8 @@ def test_demo_commands_create_and_use_a_local_venv() -> None:
 
 def test_example_questions_does_not_require_bare_python() -> None:
     text = (ROOT / "examples" / "example_questions.md").read_text()
-    assert "python3 -m semantic_layer.demo" in text
-    assert "python -m semantic_layer.demo" not in text
+    assert ".venv/bin/python -m semantic_layer.demo" in text
+    assert "\npython -m semantic_layer.demo" not in text
 
 
 def test_each_adr_has_required_decision_sections() -> None:

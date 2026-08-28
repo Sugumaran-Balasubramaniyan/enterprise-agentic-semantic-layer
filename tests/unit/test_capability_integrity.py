@@ -219,6 +219,21 @@ def test_provenance_detects_mutated_execution_and_signed_storage_rows(tmp_path: 
         store.record(question=PRIMARY_QUESTION, execution=execution)
 
 
+def test_authorization_outcome_is_bound_through_execution_and_provenance(tmp_path: Path) -> None:
+    """An altered authorization outcome must invalidate execution evidence before storage."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    execution = adapter.execute(query, decision, caller, quality)
+    assert execution.authorization_outcome == decision.reason_code == "ALLOWED"
+    object.__setattr__(execution, "authorization_outcome", "DENIED")
+
+    assert execution._verify_integrity() is False
+    with pytest.raises(ValueError, match="integrity|signature"):
+        ProvenanceStore(tmp_path / "provenance.sqlite").record(
+            question=PRIMARY_QUESTION, execution=execution
+        )
+
+
 def test_provenance_nested_metadata_is_defensive_and_immutable(tmp_path: Path) -> None:
     """Mutating a returned metadata container must not alter the signed record."""
 

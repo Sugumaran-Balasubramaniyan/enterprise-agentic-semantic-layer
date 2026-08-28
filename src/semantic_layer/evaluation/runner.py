@@ -368,7 +368,9 @@ def _execute_case(
     try:
         with TemporaryDirectory(prefix="semantic-layer-evaluation-") as directory:
             agent = ClaimsInvestigationAgent(
-                repository_root, provenance_path=Path(directory) / "provenance.sqlite"
+                repository_root,
+                registry=registry,
+                provenance_path=Path(directory) / "provenance.sqlite",
             )
             actual = agent.answer(case.question, discovery.caller)
         rows = list(actual.rows)
@@ -382,6 +384,10 @@ def _execute_case(
             errors.append("execution provenance quality evidence does not match quality report")
         if not authorization.allowed or authorization.reason_code != "ALLOWED":
             errors.append("execution authorization evidence is not an allowed decision")
+        if compiled_query.authorization_outcome != authorization.reason_code:
+            errors.append("compiled query authorization outcome does not match authorization")
+        if provenance.authorization_outcome != authorization.reason_code:
+            errors.append("execution provenance authorization outcome does not match authorization")
         expected_metrics = tuple(predicate.metric_id for predicate in actual.plan.metric_predicates)
         if tuple(compiled_query.metric_ids) != expected_metrics or not expected_metrics:
             errors.append("compiled query metric evidence does not match the plan")
