@@ -24,7 +24,7 @@ def _primary_execution() -> tuple[SemanticRegistry, object, object, object, obje
     assert authorization.allowed is True
     quality = validate_curated_data(REPOSITORY_ROOT / "data" / "curated", registry)
     assert quality.status == "PASS"
-    compiled = DuckDBCompiler(registry).compile(plan, authorization, plan.caller)
+    compiled = DuckDBCompiler(registry).compile(plan, authorization, plan.caller, PRIMARY_QUESTION)
     rows = LocalDuckDBAdapter(REPOSITORY_ROOT / "data" / "curated", registry).execute(
         compiled, authorization, plan.caller, quality
     )
@@ -55,4 +55,4 @@ def test_provenance_persists_semantic_sources_for_the_executed_answer(tmp_path: 
     assert provenance.data_products == ["Customer360", "PolicyMaster", "ClaimsAnalytics"]
     assert "ClaimsAnalytics" in provenance.data_products
     assert persisted == provenance
-    assert any(source.startswith("databricks://") for source in provenance.physical_sources)
+    assert all(source.endswith(".csv") for source in provenance.physical_sources)

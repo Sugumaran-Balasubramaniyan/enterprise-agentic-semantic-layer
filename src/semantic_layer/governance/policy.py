@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from semantic_layer.control import digest, registry_digest
+from semantic_layer.control import digest, has_valid_signature, registry_digest, signature
 from semantic_layer.models import CallerContext, SemanticQueryPlan
 from semantic_layer.registry import SemanticRegistry
 
@@ -12,14 +12,11 @@ _ROLE_PRODUCTS = {
     "ClaimsManagerGroup": {"Customer360", "PolicyMaster", "ClaimsAnalytics"},
     "FinanceAnalyst": {"PremiumAnalytics"},
 }
-_DECISION_ISSUER = object()
-
-
 class AuthorizationDecision:
     """Opaque authorization capability issued only by :func:`authorize`."""
 
     __slots__ = (
-        "_issuer",
+        "_signature",
         "allowed",
         "caller_digest",
         "message",
@@ -31,30 +28,22 @@ class AuthorizationDecision:
     def __init__(self, *_: object, **__: object) -> None:
         raise TypeError("AuthorizationDecision instances are authorization-issued only")
 
-    @classmethod
-    def _issue(
-        cls,
-        *,
-        allowed: bool,
-        reason_code: str,
-        message: str,
-        plan_digest: str,
-        caller_digest: str,
-        registry_fingerprint: str,
-    ) -> AuthorizationDecision:
-        decision = object.__new__(cls)
-        object.__setattr__(decision, "allowed", allowed)
-        object.__setattr__(decision, "reason_code", reason_code)
-        object.__setattr__(decision, "message", message)
-        object.__setattr__(decision, "plan_digest", plan_digest)
-        object.__setattr__(decision, "caller_digest", caller_digest)
-        object.__setattr__(decision, "registry_digest", registry_fingerprint)
-        object.__setattr__(decision, "_issuer", _DECISION_ISSUER)
-        return decision
+    def __setattr__(self, _name: str, _value: object) -> None:
+        raise AttributeError("AuthorizationDecision capabilities are immutable")
+
+    def _payload(self) -> dict[str, object]:
+        return {
+            "allowed": self.allowed,
+            "reason_code": self.reason_code,
+            "message": self.message,
+            "plan_digest": self.plan_digest,
+            "caller_digest": self.caller_digest,
+            "registry_digest": self.registry_digest,
+        }
 
     def _matches(self, plan: SemanticQueryPlan, caller: CallerContext, registry: SemanticRegistry) -> bool:
         return (
-            self._issuer is _DECISION_ISSUER
+            self._verify_integrity()
             and self.allowed
             and self.plan_digest == digest(plan)
             and self.caller_digest == digest(caller)
@@ -62,7 +51,10 @@ class AuthorizationDecision:
         )
 
     def _is_issued(self) -> bool:
-        return self._issuer is _DECISION_ISSUER
+        return self._verify_integrity()
+
+    def _verify_integrity(self) -> bool:
+        return has_valid_signature("AuthorizationDecision", self._payload(), self._signature)
 
 
 def _countries_in(plan: SemanticQueryPlan) -> set[str]:
@@ -91,25 +83,6 @@ def _projected_pii_fields(plan: SemanticQueryPlan, registry: SemanticRegistry) -
     }
 
 
-def _issue(
-    *,
-    allowed: bool,
-    reason_code: str,
-    message: str,
-    plan: SemanticQueryPlan,
-    caller: CallerContext,
-    registry: SemanticRegistry,
-) -> AuthorizationDecision:
-    return AuthorizationDecision._issue(
-        allowed=allowed,
-        reason_code=reason_code,
-        message=message,
-        plan_digest=digest(plan),
-        caller_digest=digest(caller),
-        registry_fingerprint=registry_digest(registry),
-    )
-
-
 def authorize(
     plan: SemanticQueryPlan,
     caller: CallerContext,
@@ -117,70 +90,67 @@ def authorize(
 ) -> AuthorizationDecision:
     """Issue an authorization capability for exactly one plan/caller/asset context."""
 
-    if not isinstance(plan, SemanticQueryPlan) or not isinstance(caller, CallerContext):
+    if type(plan) is not SemanticQueryPlan or type(caller) is not CallerContext:
         raise TypeError("authorization requires validated plan and authenticated caller contexts")
+    if type(registry) is not SemanticRegistry:
+        raise TypeError("authorization requires the repository-issued semantic registry")
+
+    def issue(*, allowed: bool, reason_code: str, message: str) -> AuthorizationDecision:
+        decision = object.__new__(AuthorizationDecision)
+        payload = {
+            "allowed": allowed,
+            "reason_code": reason_code,
+            "message": message,
+            "plan_digest": digest(plan),
+            "caller_digest": digest(caller),
+            "registry_digest": registry_digest(registry),
+        }
+        for name, value in payload.items():
+            object.__setattr__(decision, name, value)
+        object.__setattr__(decision, "_signature", signature("AuthorizationDecision", decision._payload()))
+        return decision
+
     allowed_products = _ROLE_PRODUCTS.get(caller.role)
     if allowed_products is None:
-        return _issue(
+        return issue(
             allowed=False,
             reason_code="ROLE_DENIED",
             message=f"role {caller.role} has no semantic query permission",
-            plan=plan,
-            caller=caller,
-            registry=registry,
         )
     if plan.caller.model_dump() != caller.model_dump():
-        return _issue(
+        return issue(
             allowed=False,
             reason_code="CALLER_CONTEXT_MISMATCH",
             message="plan caller does not match the authenticated caller context",
-            plan=plan,
-            caller=caller,
-            registry=registry,
         )
     if not set(plan.selected_products).issubset(allowed_products):
-        return _issue(
+        return issue(
             allowed=False,
             reason_code="PRODUCT_DENIED",
             message="role cannot access one or more selected data products",
-            plan=plan,
-            caller=caller,
-            registry=registry,
         )
     countries = _countries_in(plan)
     if caller.country is not None and countries != {caller.country}:
-        return _issue(
+        return issue(
             allowed=False,
             reason_code="COUNTRY_SCOPE_DENIED",
             message="plan country scope does not match the authenticated caller",
-            plan=plan,
-            caller=caller,
-            registry=registry,
         )
     if caller.role == "ClaimsAnalystFR" and countries != {"FR"}:
-        return _issue(
+        return issue(
             allowed=False,
             reason_code="COUNTRY_SCOPE_DENIED",
             message="ClaimsAnalystFR is limited to French records",
-            plan=plan,
-            caller=caller,
-            registry=registry,
         )
     pii_fields = _projected_pii_fields(plan, registry)
     if caller.role == "FinanceAnalyst" and pii_fields:
-        return _issue(
+        return issue(
             allowed=False,
             reason_code="PII_FIELD_DENIED",
             message=f"FinanceAnalyst cannot retrieve derived PII fields: {sorted(pii_fields)}",
-            plan=plan,
-            caller=caller,
-            registry=registry,
         )
-    return _issue(
+    return issue(
         allowed=True,
         reason_code="ALLOWED",
         message="governed access granted",
-        plan=plan,
-        caller=caller,
-        registry=registry,
     )

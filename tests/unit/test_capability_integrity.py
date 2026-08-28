@@ -1,0 +1,218 @@
+"""Adversarial integrity tests for issued execution capabilities and provenance."""
+
+from pathlib import Path
+
+import pytest
+
+import semantic_layer.adapters.duckdb as duckdb_adapter
+import semantic_layer.compiler.base as compiler_base
+import semantic_layer.governance.policy as policy_module
+import semantic_layer.provenance.store as provenance_module
+import semantic_layer.quality.checks as quality_module
+from semantic_layer.adapters import LocalDuckDBAdapter
+from semantic_layer.compiler import CompiledQuery, DuckDBCompiler
+from semantic_layer.governance import AuthorizationDecision, authorize
+from semantic_layer.models import CallerContext, RelationshipPath
+from semantic_layer.provenance import ProvenanceStore
+from semantic_layer.quality import QualityReport, validate_curated_data
+from semantic_layer.query_planner import build_plan
+from semantic_layer.registry import SemanticRegistry
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+PRIMARY_QUESTION = (
+    "Find French motor-insurance customers with at least three qualifying claims "
+    "in the last 12 months and total incurred loss above EUR 20,000."
+)
+
+
+def _issued_context():
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    caller = CallerContext(role="ClaimsAnalystFR", country="FR")
+    decision = authorize(plan, caller, registry)
+    query = DuckDBCompiler(registry).compile(plan, decision, caller, PRIMARY_QUESTION)
+    quality = validate_curated_data(REPOSITORY_ROOT / "data" / "curated", registry)
+    adapter = LocalDuckDBAdapter(REPOSITORY_ROOT / "data" / "curated", registry)
+    return registry, plan, caller, decision, query, quality, adapter
+
+
+def test_capabilities_expose_no_callable_issue_helpers() -> None:
+    """A public issuance helper must allow an attacker to mint an execution capability."""
+
+    for capability in (CompiledQuery, AuthorizationDecision, QualityReport):
+        assert not hasattr(capability, "_issue")
+    for module, helper in (
+        (compiler_base, "_create_compiled_query"),
+        (policy_module, "_issue"),
+        (quality_module, "_create_quality_report"),
+        (duckdb_adapter, "_create_execution_result"),
+        (provenance_module, "_create_provenance"),
+    ):
+        assert not hasattr(module, helper)
+
+
+def test_issued_query_decision_and_quality_are_immutable() -> None:
+    """Mutable capability fields must let callers alter SQL, policy, or quality after issuance."""
+
+    _, _, _, decision, query, quality, _ = _issued_context()
+
+    with pytest.raises(AttributeError):
+        query.sql = "SELECT 'forged'"
+    with pytest.raises(AttributeError):
+        query.parameters += ("forged",)
+    with pytest.raises(AttributeError):
+        decision.allowed = False
+    with pytest.raises(AttributeError):
+        quality.status = "FAIL"
+    with pytest.raises(TypeError):
+        query.field_evidence["field:claim_id"] = "forged"
+    with pytest.raises(TypeError):
+        quality.source_digests["claims.csv"] = "forged"
+
+
+def test_adapter_detects_low_level_query_decision_and_quality_tampering() -> None:
+    """Rebinding slots with object internals must fail integrity verification before DuckDB runs."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    object.__setattr__(query, "sql", "SELECT 'forged'")
+
+    with pytest.raises(ValueError, match="integrity|signature"):
+        adapter.execute(query, decision, caller, quality)
+
+
+def test_compiler_rejects_capability_subclasses_that_override_integrity() -> None:
+    """An attacker must not bypass signed authorization by overriding a virtual check."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    caller = CallerContext(role="ClaimsAnalystFR", country="FR")
+
+    class ForgedDecision(AuthorizationDecision):
+        allowed = True
+        plan_digest = "forged"
+        caller_digest = "forged"
+        registry_digest = "forged"
+        reason_code = "ALLOWED"
+
+        def __init__(self) -> None:
+            pass
+
+        def _matches(self, *_args: object, **_kwargs: object) -> bool:
+            return True
+
+    with pytest.raises((TypeError, ValueError), match="authorization|capability"):
+        DuckDBCompiler(registry).compile(plan, ForgedDecision(), caller, PRIMARY_QUESTION)
+
+
+def test_adapter_rejects_capability_subclasses_that_override_integrity() -> None:
+    """Execution must accept only exact issued query and policy artifact types."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+
+    class ForgedQuery(CompiledQuery):
+        def _verify_integrity(self) -> bool:
+            return True
+
+    forged = object.__new__(ForgedQuery)
+    with pytest.raises((TypeError, ValueError), match="query|capability|integrity"):
+        adapter.execute(forged, decision, caller, quality)
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    object.__setattr__(decision, "allowed", False)
+
+    with pytest.raises(ValueError, match="integrity|signature"):
+        adapter.execute(query, decision, caller, quality)
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    object.__setattr__(quality, "status", "FAIL")
+
+    with pytest.raises(ValueError, match="integrity|signature"):
+        adapter.execute(query, decision, caller, quality)
+
+
+def test_quality_rejects_missing_required_csv_schema_field(tmp_path: Path) -> None:
+    """A report must not pass when a required canonical source column is absent."""
+
+    for source in (REPOSITORY_ROOT / "data" / "curated").glob("*.csv"):
+        contents = source.read_text(encoding="utf-8")
+        if source.name == "claims.csv":
+            contents = contents.replace(",incurred_loss_eur", "", 1)
+            contents = "\n".join(",".join(row.split(",")[:-1]) for row in contents.splitlines()) + "\n"
+        (tmp_path / source.name).write_text(contents, encoding="utf-8")
+
+    report = validate_curated_data(tmp_path)
+
+    assert report.status == "FAIL"
+    assert "MISSING_SCHEMA_FIELD" in {issue.code for issue in report.issues}
+
+
+def test_compiler_rejects_a_relationship_with_correct_nodes_but_wrong_predicate() -> None:
+    """Comparing only source/target must let an ungoverned relationship change the query meaning."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    mutated = plan.model_copy(
+        update={
+            "relationships": [
+                RelationshipPath(
+                    source="insurance:Customer",
+                    predicate="insurance:submitsClaim",
+                    target="insurance:Policy",
+                ),
+                plan.relationships[1],
+            ]
+        }
+    )
+    caller = CallerContext(role="ClaimsAnalystFR", country="FR")
+    decision = authorize(mutated, caller, registry)
+
+    with pytest.raises(ValueError, match="relationship"):
+        DuckDBCompiler(registry).compile(mutated, decision, caller, PRIMARY_QUESTION)
+
+
+def test_question_and_concepts_are_bound_to_plan_execution_and_local_provenance(tmp_path: Path) -> None:
+    """A different question or cloud mapping name must not be attested for a local execution."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    execution = adapter.execute(query, decision, caller, quality)
+    store = ProvenanceStore(tmp_path / "provenance.sqlite")
+
+    with pytest.raises(ValueError, match="question"):
+        store.record(question="Find German claims.", execution=execution)
+    provenance = store.record(question=PRIMARY_QUESTION, execution=execution)
+
+    assert provenance.concepts
+    assert provenance.question_digest == query.question_digest
+    assert provenance.physical_sources == tuple(provenance.local_sources.values())
+    assert all("databricks://" not in source for source in provenance.physical_sources)
+    assert all("customer_id" in evidence or "claim" in evidence or "policy" in evidence for evidence in provenance.field_evidence.values())
+
+
+def test_provenance_detects_mutated_execution_and_signed_storage_rows(tmp_path: Path) -> None:
+    """Forged execution objects or altered SQLite documents must never be attested as real results."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    execution = adapter.execute(query, decision, caller, quality)
+    object.__setattr__(execution, "plan_digest", "forged")
+    store = ProvenanceStore(tmp_path / "provenance.sqlite")
+
+    with pytest.raises(ValueError, match="integrity|signature"):
+        store.record(question=PRIMARY_QUESTION, execution=execution)
+
+
+def test_provenance_nested_metadata_is_defensive_and_immutable(tmp_path: Path) -> None:
+    """Mutating a returned metadata container must not alter the signed record."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    execution = adapter.execute(query, decision, caller, quality)
+    store = ProvenanceStore(tmp_path / "provenance.sqlite")
+    provenance = store.record(question=PRIMARY_QUESTION, execution=execution)
+    original_products = list(provenance.data_products)
+    products = provenance.data_products
+    products.append("ForgedProduct")
+    sources = provenance.source_digests
+    sources["claims.csv"] = "forged"
+
+    assert provenance.data_products == original_products
+    assert provenance.source_digests == execution.source_digests
+    assert provenance._verify_integrity()

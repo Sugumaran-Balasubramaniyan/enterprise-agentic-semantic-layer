@@ -7,8 +7,15 @@ import math
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from types import MappingProxyType
 
-from semantic_layer.control import digest, file_digest, registry_digest
+from semantic_layer.control import (
+    digest,
+    file_digest,
+    has_valid_signature,
+    registry_digest,
+    signature,
+)
 from semantic_layer.registry import SemanticRegistry
 
 AS_OF_DATE = date(2026, 8, 28)
@@ -21,7 +28,16 @@ _ID_COLUMNS = {
     "policies.csv": "policy_id",
     "premiums.csv": "premium_id",
 }
-_REPORT_ISSUER = object()
+_REQUIRED_FIELDS = {
+    "claims.csv": {
+        "claim_id", "policy_id", "customer_id", "country", "product", "status", "claim_date", "incurred_loss_eur"
+    },
+    "customers.csv": {"customer_id", "customer_name", "country", "email"},
+    "policies.csv": {
+        "policy_id", "customer_id", "country", "product", "policy_status", "effective_date", "expiry_date", "annual_premium_eur"
+    },
+    "premiums.csv": {"premium_id", "policy_id", "customer_id", "country", "product", "premium_date", "premium_eur"},
+}
 
 
 @dataclass(frozen=True)
@@ -39,7 +55,7 @@ class QualityReport:
     """Opaque passing capability bound to exact expected source-file contents."""
 
     __slots__ = (
-        "_issuer",
+        "_signature",
         "digest",
         "expected_datasets",
         "issues",
@@ -53,45 +69,27 @@ class QualityReport:
     def __init__(self, *_: object, **__: object) -> None:
         raise TypeError("QualityReport instances are validator-issued only")
 
-    @classmethod
-    def _issue(
-        cls,
-        *,
-        status: str,
-        score: int,
-        issues: list[QualityIssue],
-        expected_datasets: tuple[str, ...],
-        source_digests: dict[str, str],
-        mapping_evidence: dict[str, str],
-        registry_fingerprint: str,
-    ) -> QualityReport:
-        report = object.__new__(cls)
-        object.__setattr__(report, "status", status)
-        object.__setattr__(report, "score", score)
-        object.__setattr__(report, "issues", tuple(issues))
-        object.__setattr__(report, "expected_datasets", expected_datasets)
-        object.__setattr__(report, "source_digests", dict(sorted(source_digests.items())))
-        object.__setattr__(report, "mapping_evidence", dict(sorted(mapping_evidence.items())))
-        object.__setattr__(report, "registry_digest", registry_fingerprint)
-        object.__setattr__(
-            report,
-            "digest",
-            digest(
-                {
-                    "status": status,
-                    "issues": issues,
-                    "expected_datasets": expected_datasets,
-                    "source_digests": source_digests,
-                    "mapping_evidence": mapping_evidence,
-                    "registry": registry_fingerprint,
-                }
-            ),
+    def __setattr__(self, _name: str, _value: object) -> None:
+        raise AttributeError("QualityReport capabilities are immutable")
+
+    def _payload(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "score": self.score,
+            "issues": self.issues,
+            "expected_datasets": self.expected_datasets,
+            "source_digests": self.source_digests,
+            "mapping_evidence": self.mapping_evidence,
+            "registry_digest": self.registry_digest,
+        }
+
+    def _verify_integrity(self) -> bool:
+        return self.digest == digest(self._payload()) and has_valid_signature(
+            "QualityReport", self._payload(), self._signature
         )
-        object.__setattr__(report, "_issuer", _REPORT_ISSUER)
-        return report
 
     def _matches(self, path: Path, registry: SemanticRegistry) -> bool:
-        if self._issuer is not _REPORT_ISSUER or self.status != "PASS":
+        if not self._verify_integrity() or self.status != "PASS":
             return False
         if self.registry_digest != registry_digest(registry):
             return False
@@ -153,6 +151,8 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
     """Validate every expected curated dataset and bind its passing result to file digests."""
 
     registry = registry or SemanticRegistry.from_repository(_repository_root())
+    if type(registry) is not SemanticRegistry:
+        raise TypeError("quality validation requires the repository-issued semantic registry")
     issues: list[QualityIssue] = []
     source_digests: dict[str, str] = {}
     mapping_evidence: dict[str, str] = {}
@@ -167,7 +167,18 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
         seen_ids: set[str] = set()
         row_count = 0
         with csv_path.open(newline="", encoding="utf-8") as stream:
-            for row_number, row in enumerate(csv.DictReader(stream), start=2):
+            reader = csv.DictReader(stream)
+            present_fields = set(reader.fieldnames or [])
+            for missing_field in sorted(_REQUIRED_FIELDS[file_name] - present_fields):
+                _issue(
+                    issues,
+                    "MISSING_SCHEMA_FIELD",
+                    file_name,
+                    1,
+                    missing_field,
+                    "required canonical CSV field is missing",
+                )
+            for row_number, row in enumerate(reader, start=2):
                 row_count += 1
                 identifier = (row.get(id_column) or "").strip()
                 if not identifier:
@@ -234,12 +245,18 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
         if row_count == 0:
             _issue(issues, "EMPTY_EXPECTED_DATASET", file_name, 1, "path", "curated CSV has no rows")
     score = max(0, 100 - len(issues))
-    return QualityReport._issue(
-        status="PASS" if not issues else "FAIL",
-        score=score,
-        issues=issues,
-        expected_datasets=expected_datasets,
-        source_digests=source_digests,
-        mapping_evidence=mapping_evidence,
-        registry_fingerprint=registry_digest(registry),
-    )
+    report = object.__new__(QualityReport)
+    payload = {
+        "status": "PASS" if not issues else "FAIL",
+        "score": score,
+        "issues": tuple(issues),
+        "expected_datasets": tuple(expected_datasets),
+        "source_digests": MappingProxyType(dict(sorted(source_digests.items()))),
+        "mapping_evidence": MappingProxyType(dict(sorted(mapping_evidence.items()))),
+        "registry_digest": registry_digest(registry),
+    }
+    for name, value in payload.items():
+        object.__setattr__(report, name, value)
+    object.__setattr__(report, "digest", digest(report._payload()))
+    object.__setattr__(report, "_signature", signature("QualityReport", report._payload()))
+    return report

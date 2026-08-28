@@ -1,29 +1,28 @@
-"""Opaque compiler artifacts that carry a bound execution context."""
+"""Signed immutable compiler capabilities; issuance remains module-private."""
 
 from __future__ import annotations
 
-from typing import Any
-
-from semantic_layer.control import digest
-
-_QUERY_ISSUER = object()
+from semantic_layer.control import digest, has_valid_signature
 
 
 class CompiledQuery:
-    """A non-forgeable, compiler-issued SQL capability for one execution context."""
+    """A signed, immutable query capability bound to one reviewed execution context."""
 
     __slots__ = (
-        "_issuer",
+        "_signature",
         "approved_products",
         "authorization_digest",
         "authorization_outcome",
         "caller_digest",
+        "concepts",
         "field_evidence",
-        "lineage",
+        "mapping_ids",
+        "metric_ids",
         "parameter_digest",
         "parameters",
         "plan_digest",
         "query_digest",
+        "question_digest",
         "registry_digest",
         "semantic_versions",
         "sql",
@@ -33,39 +32,30 @@ class CompiledQuery:
     def __init__(self, *_: object, **__: object) -> None:
         raise TypeError("CompiledQuery artifacts are compiler-issued only")
 
-    @classmethod
-    def _issue(
-        cls,
-        *,
-        sql: str,
-        parameters: tuple[Any, ...],
-        approved_products: tuple[str, ...],
-        plan_digest: str,
-        caller_digest: str,
-        authorization_digest: str,
-        authorization_outcome: str,
-        registry_digest: str,
-        lineage: object,
-        field_evidence: dict[str, str],
-        semantic_versions: dict[str, str],
-    ) -> CompiledQuery:
-        query = object.__new__(cls)
-        object.__setattr__(query, "sql", sql)
-        object.__setattr__(query, "parameters", parameters)
-        object.__setattr__(query, "approved_products", approved_products)
-        object.__setattr__(query, "target_platform", "DuckDB")
-        object.__setattr__(query, "plan_digest", plan_digest)
-        object.__setattr__(query, "caller_digest", caller_digest)
-        object.__setattr__(query, "authorization_digest", authorization_digest)
-        object.__setattr__(query, "authorization_outcome", authorization_outcome)
-        object.__setattr__(query, "registry_digest", registry_digest)
-        object.__setattr__(query, "parameter_digest", digest(parameters))
-        object.__setattr__(query, "query_digest", digest({"sql": sql, "parameters": parameters}))
-        object.__setattr__(query, "lineage", lineage)
-        object.__setattr__(query, "field_evidence", dict(sorted(field_evidence.items())))
-        object.__setattr__(query, "semantic_versions", dict(sorted(semantic_versions.items())))
-        object.__setattr__(query, "_issuer", _QUERY_ISSUER)
-        return query
+    def __setattr__(self, _name: str, _value: object) -> None:
+        raise AttributeError("CompiledQuery capabilities are immutable")
 
-    def _is_issued(self) -> bool:
-        return self._issuer is _QUERY_ISSUER
+    def _payload(self) -> dict[str, object]:
+        return {
+            "sql": self.sql,
+            "parameters": self.parameters,
+            "approved_products": self.approved_products,
+            "plan_digest": self.plan_digest,
+            "question_digest": self.question_digest,
+            "concepts": self.concepts,
+            "caller_digest": self.caller_digest,
+            "authorization_digest": self.authorization_digest,
+            "authorization_outcome": self.authorization_outcome,
+            "registry_digest": self.registry_digest,
+            "mapping_ids": self.mapping_ids,
+            "metric_ids": self.metric_ids,
+            "field_evidence": self.field_evidence,
+            "semantic_versions": self.semantic_versions,
+        }
+
+    def _verify_integrity(self) -> bool:
+        return (
+            self.parameter_digest == digest(self.parameters)
+            and self.query_digest == digest({"sql": self.sql, "parameters": self.parameters})
+            and has_valid_signature("CompiledQuery", self._payload(), self._signature)
+        )
