@@ -3,20 +3,22 @@
 from __future__ import annotations
 
 from datetime import date
+from types import MappingProxyType
 
 from semantic_layer.compiler.base import CompiledQuery
-from semantic_layer.control import digest, registry_digest
+from semantic_layer.control import _sign, digest, registry_digest
 from semantic_layer.governance import AuthorizationDecision
 from semantic_layer.lineage import LineageService
 from semantic_layer.models import CallerContext, SemanticQueryPlan
+from semantic_layer.query_planner import build_plan
 from semantic_layer.registry import SemanticRegistry
 
 _AS_OF_DATE = date(2026, 8, 28)
 _PRIMARY_PRODUCTS = ("Customer360", "PolicyMaster", "ClaimsAnalytics")
 _PRIMARY_DIMENSIONS = ("insurance:Customer", "insurance:Country")
 _PRIMARY_EDGES = (
-    ("insurance:Customer", "insurance:Policy"),
-    ("insurance:Policy", "insurance:Claim"),
+    ("insurance:Customer", "insurance:ownsPolicy", "insurance:Policy"),
+    ("insurance:Policy", "insurance:submitsClaim", "insurance:Claim"),
 )
 _COUNTRY_CONCEPT = "insurance:Country"
 _PRODUCT_CONCEPT = "insurance:InsuranceProduct"
@@ -32,6 +34,16 @@ _USED_FIELDS = (
     "claim_date",
     "incurred_loss_eur",
 )
+_LOCAL_FIELD_SOURCES = {
+    "customer_id": ("customers.csv:customer_id", "policies.csv:customer_id", "claims.csv:customer_id"),
+    "policy_id": ("policies.csv:policy_id", "claims.csv:policy_id"),
+    "claim_id": ("claims.csv:claim_id",),
+    "country": ("customers.csv:country", "policies.csv:country", "claims.csv:country"),
+    "product": ("policies.csv:product", "claims.csv:product"),
+    "status": ("claims.csv:status",),
+    "claim_date": ("claims.csv:claim_date",),
+    "incurred_loss_eur": ("claims.csv:incurred_loss_eur",),
+}
 
 
 class DuckDBCompiler:
@@ -54,7 +66,7 @@ class DuckDBCompiler:
     def _validate(
         self, plan: SemanticQueryPlan
     ) -> tuple[str, str, int | float, int | float, dict[str, str], dict[str, str]]:
-        if not isinstance(plan, SemanticQueryPlan):
+        if type(plan) is not SemanticQueryPlan:
             raise TypeError("compiler accepts validated SemanticQueryPlan instances only")
         if plan.target_platform != "DuckDB":
             raise ValueError("DuckDB compiler cannot compile a non-DuckDB plan")
@@ -75,7 +87,10 @@ class DuckDBCompiler:
             raise ValueError("plan selects a product that is not certified")
         if plan.time_context is None or plan.time_context.window != "last_12_months":
             raise ValueError("trusted claims template requires a last_12_months context")
-        if tuple((edge.source, edge.target) for edge in plan.relationships) != _PRIMARY_EDGES:
+        if (
+            tuple((edge.source, edge.predicate, edge.target) for edge in plan.relationships)
+            != _PRIMARY_EDGES
+        ):
             raise ValueError("plan relationships do not exactly match the approved claims join path")
         expected_metrics = (_CLAIM_COUNT, _TOTAL_LOSS)
         if tuple(predicate.metric_id for predicate in plan.metric_predicates) != expected_metrics:
@@ -98,7 +113,7 @@ class DuckDBCompiler:
         if product not in set(mapping.normalization.get("products", {}).values()):
             raise ValueError("plan product has no approved local mapping")
         field_evidence = {
-            f"field:{field_name}": f"{mapping.id}@{mapping.version}:{mapping.fields[field_name].physical_name}"
+            f"field:{field_name}": "local CSV columns: " + ", ".join(_LOCAL_FIELD_SOURCES[field_name])
             for field_name in _USED_FIELDS
         }
         versions = {
@@ -124,14 +139,22 @@ class DuckDBCompiler:
         plan: SemanticQueryPlan,
         authorization: AuthorizationDecision,
         caller: CallerContext,
+        question: str,
     ) -> CompiledQuery:
         """Emit a parameterized capability bound to plan, caller, policy, and assets."""
 
-        if not isinstance(authorization, AuthorizationDecision):
+        if type(authorization) is not AuthorizationDecision:
             raise TypeError("authorization decision is required before compilation")
+        if type(caller) is not CallerContext:
+            raise TypeError("compiler requires an authenticated caller context")
         if not authorization._matches(plan, caller, self.registry):
             raise ValueError("authorization decision does not match plan, caller, or reviewed assets")
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("question is required to bind compilation to the requested semantic intent")
         country, product, claim_count, total_loss, field_evidence, versions = self._validate(plan)
+        expected_plan = build_plan(question, caller.role, self.registry)
+        if digest(expected_plan) != digest(plan):
+            raise ValueError("question does not resolve to the submitted semantic plan")
         start_date = _AS_OF_DATE.replace(year=_AS_OF_DATE.year - 1)
         statuses = self.registry.rules["insurance:QualifyingClaim"].include_statuses
         if not statuses:
@@ -176,13 +199,26 @@ ORDER BY customer.customer_id
         )
         lineage = LineageService(self.registry).for_plan(plan)
         versions.update(lineage.semantic_versions)
-        return CompiledQuery._issue(
-            sql=sql,
-            parameters=parameters,
-            approved_products=_PRIMARY_PRODUCTS,
-            plan_digest=digest(plan),
-            caller_digest=digest(caller),
-            authorization_digest=digest(
+        concepts = tuple(
+            dict.fromkeys(
+                [
+                    plan.root_entity,
+                    *plan.projected_dimensions,
+                    *(query_filter.concept_id for query_filter in plan.filters),
+                    *(predicate.metric_id for predicate in plan.metric_predicates),
+                ]
+            )
+        )
+        query = object.__new__(CompiledQuery)
+        payload = {
+            "sql": sql,
+            "parameters": tuple(parameters),
+            "approved_products": tuple(_PRIMARY_PRODUCTS),
+            "plan_digest": digest(plan),
+            "question_digest": digest(question),
+            "concepts": concepts,
+            "caller_digest": digest(caller),
+            "authorization_digest": digest(
                 {
                     "plan": authorization.plan_digest,
                     "caller": authorization.caller_digest,
@@ -190,9 +226,17 @@ ORDER BY customer.customer_id
                     "outcome": authorization.reason_code,
                 }
             ),
-            authorization_outcome=authorization.reason_code,
-            registry_digest=registry_digest(self.registry),
-            lineage=lineage,
-            field_evidence=field_evidence,
-            semantic_versions=versions,
-        )
+            "authorization_outcome": authorization.reason_code,
+            "registry_digest": registry_digest(self.registry),
+            "mapping_ids": tuple(lineage.mapping_ids),
+            "metric_ids": tuple(lineage.metric_ids),
+            "field_evidence": MappingProxyType(dict(sorted(field_evidence.items()))),
+            "semantic_versions": MappingProxyType(dict(sorted(versions.items()))),
+        }
+        for name, value in payload.items():
+            object.__setattr__(query, name, value)
+        object.__setattr__(query, "target_platform", "DuckDB")
+        object.__setattr__(query, "parameter_digest", digest(query.parameters))
+        object.__setattr__(query, "query_digest", digest({"sql": query.sql, "parameters": query.parameters}))
+        object.__setattr__(query, "_signature", _sign("CompiledQuery", query._payload()))
+        return query

@@ -43,7 +43,7 @@ def test_compilation_requires_a_matching_allowed_decision_and_authenticated_call
     with pytest.raises(TypeError, match="authorization"):
         compiler.compile(plan)
     with pytest.raises(ValueError, match="caller|authorization"):
-        compiler.compile(plan, allowed, CallerContext(role="ClaimsAnalystFR", country="DE"))
+        compiler.compile(plan, allowed, CallerContext(role="ClaimsAnalystFR", country="DE"), PRIMARY_QUESTION)
 
 
 def test_authorization_requires_authenticated_country_and_derives_pii_from_projection() -> None:
@@ -105,7 +105,7 @@ def test_compiler_rejects_every_unrepresented_plan_constraint(mutation) -> None:
 
     assert decision.allowed is True
     with pytest.raises(ValueError, match="unsupported|exactly|approved|relationships|metrics"):
-        DuckDBCompiler(registry).compile(mutated, decision, caller)
+        DuckDBCompiler(registry).compile(mutated, decision, caller, PRIMARY_QUESTION)
 
 
 def test_quality_requires_all_nonempty_expected_datasets_and_rejects_nonfinite_loss(tmp_path: Path) -> None:
@@ -152,7 +152,7 @@ def test_adapter_requires_current_quality_and_rejects_changed_source_data(tmp_pa
     registry, plan = _primary_plan_and_registry()
     caller = CallerContext(role="ClaimsAnalystFR", country="FR")
     decision = authorize(plan, caller, registry)
-    compiled = DuckDBCompiler(registry).compile(plan, decision, caller)
+    compiled = DuckDBCompiler(registry).compile(plan, decision, caller, PRIMARY_QUESTION)
     data_dir = tmp_path / "curated"
     data_dir.mkdir()
     for source in (REPOSITORY_ROOT / "data" / "curated").glob("*.csv"):
@@ -173,7 +173,7 @@ def test_provenance_is_append_only_and_bound_to_the_actual_execution(tmp_path: P
     registry, plan = _primary_plan_and_registry()
     caller = CallerContext(role="ClaimsAnalystFR", country="FR")
     decision = authorize(plan, caller, registry)
-    compiled = DuckDBCompiler(registry).compile(plan, decision, caller)
+    compiled = DuckDBCompiler(registry).compile(plan, decision, caller, PRIMARY_QUESTION)
     quality = validate_curated_data(REPOSITORY_ROOT / "data" / "curated", registry)
     execution = LocalDuckDBAdapter(REPOSITORY_ROOT / "data" / "curated", registry).execute(
         compiled, decision, caller, quality

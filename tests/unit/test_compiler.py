@@ -24,7 +24,7 @@ def test_duckdb_compiler_uses_the_approved_claims_join_and_bound_parameters() ->
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
     authorization = authorize(plan, plan.caller, registry)
 
-    compiled = DuckDBCompiler(registry).compile(plan, authorization, plan.caller)
+    compiled = DuckDBCompiler(registry).compile(plan, authorization, plan.caller, PRIMARY_QUESTION)
 
     assert compiled.approved_products == ("Customer360", "PolicyMaster", "ClaimsAnalytics")
     assert "JOIN policies" in compiled.sql
@@ -46,7 +46,7 @@ def test_compiler_rejects_a_plan_that_names_an_unapproved_product() -> None:
     authorization = authorize(unapproved, unapproved.caller, registry)
 
     with pytest.raises(ValueError, match="authorization|certified|approved"):
-        DuckDBCompiler(registry).compile(unapproved, authorization, unapproved.caller)
+        DuckDBCompiler(registry).compile(unapproved, authorization, unapproved.caller, PRIMARY_QUESTION)
 
 
 def test_documented_cloud_adapter_fails_closed_without_configuration() -> None:

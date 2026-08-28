@@ -1,4 +1,4 @@
-"""Local DuckDB execution guarded by compiler, authorization, and quality capabilities."""
+"""Local DuckDB execution guarded by signed compiler, policy, and quality capabilities."""
 
 from __future__ import annotations
 
@@ -6,40 +6,50 @@ import math
 from collections.abc import Iterator, Sequence
 from decimal import Decimal
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import MappingProxyType
 from typing import Any
 
 import duckdb
 
 from semantic_layer.compiler.base import CompiledQuery
-from semantic_layer.control import digest, file_digest, registry_digest
+from semantic_layer.control import (
+    _sign,
+    _verify,
+    digest,
+    file_digest,
+    registry_digest,
+)
 from semantic_layer.governance import AuthorizationDecision
 from semantic_layer.models import CallerContext
 from semantic_layer.quality import QualityReport
 from semantic_layer.registry import SemanticRegistry
 
 _VIEWS = {"customers": "customers.csv", "policies": "policies.csv", "claims": "claims.csv"}
-_EXECUTION_ISSUER = object()
 
 
 class ExecutionResult(Sequence[dict[str, Any]]):
-    """Immutable, execution-issued result carrying source and control fingerprints."""
+    """Signed immutable output from one verified local DuckDB execution."""
 
     __slots__ = (
-        "_issuer",
         "_rows",
+        "_signature",
         "approved_products",
         "authorization_digest",
         "authorization_outcome",
         "caller_digest",
+        "concepts",
         "digest",
         "field_evidence",
-        "lineage",
         "local_sources",
         "mapping_evidence",
+        "mapping_ids",
+        "metric_ids",
         "parameter_digest",
         "plan_digest",
         "quality_digest",
         "query_digest",
+        "question_digest",
         "semantic_versions",
         "source_digests",
     )
@@ -47,54 +57,34 @@ class ExecutionResult(Sequence[dict[str, Any]]):
     def __init__(self, *_: object, **__: object) -> None:
         raise TypeError("ExecutionResult instances are adapter-issued only")
 
-    @classmethod
-    def _issue(
-        cls,
-        *,
-        rows: list[dict[str, Any]],
-        query: CompiledQuery,
-        source_digests: dict[str, str],
-        local_sources: dict[str, str],
-        quality: QualityReport,
-    ) -> ExecutionResult:
-        result = object.__new__(cls)
-        immutable_rows = tuple(dict(row) for row in rows)
-        object.__setattr__(result, "_rows", immutable_rows)
-        object.__setattr__(result, "source_digests", dict(sorted(source_digests.items())))
-        object.__setattr__(result, "local_sources", dict(sorted(local_sources.items())))
-        object.__setattr__(result, "mapping_evidence", dict(quality.mapping_evidence))
-        object.__setattr__(result, "quality_digest", quality.digest)
-        object.__setattr__(result, "plan_digest", query.plan_digest)
-        object.__setattr__(result, "caller_digest", query.caller_digest)
-        object.__setattr__(result, "authorization_digest", query.authorization_digest)
-        object.__setattr__(result, "authorization_outcome", query.authorization_outcome)
-        object.__setattr__(result, "query_digest", query.query_digest)
-        object.__setattr__(result, "parameter_digest", query.parameter_digest)
-        object.__setattr__(result, "lineage", query.lineage)
-        object.__setattr__(result, "field_evidence", dict(query.field_evidence))
-        object.__setattr__(result, "semantic_versions", dict(query.semantic_versions))
-        object.__setattr__(result, "approved_products", query.approved_products)
-        object.__setattr__(
-            result,
-            "digest",
-            digest(
-                {
-                    "rows": immutable_rows,
-                    "sources": source_digests,
-                    "local_sources": local_sources,
-                    "mappings": quality.mapping_evidence,
-                    "quality": quality.digest,
-                    "query": query.query_digest,
-                    "parameters": query.parameter_digest,
-                    "authorization": query.authorization_digest,
-                }
-            ),
-        )
-        object.__setattr__(result, "_issuer", _EXECUTION_ISSUER)
-        return result
+    def __setattr__(self, _name: str, _value: object) -> None:
+        raise AttributeError("ExecutionResult capabilities are immutable")
 
-    def _is_issued(self) -> bool:
-        return self._issuer is _EXECUTION_ISSUER
+    def _payload(self) -> dict[str, object]:
+        return {
+            "rows": self._rows,
+            "sources": self.source_digests,
+            "local_sources": self.local_sources,
+            "mappings": self.mapping_evidence,
+            "quality": self.quality_digest,
+            "question": self.question_digest,
+            "concepts": self.concepts,
+            "query": self.query_digest,
+            "parameters": self.parameter_digest,
+            "authorization": self.authorization_digest,
+            "plan": self.plan_digest,
+            "caller": self.caller_digest,
+            "products": self.approved_products,
+            "mapping_ids": self.mapping_ids,
+            "metrics": self.metric_ids,
+            "fields": self.field_evidence,
+            "versions": self.semantic_versions,
+        }
+
+    def _verify_integrity(self) -> bool:
+        return self.digest == digest(self._payload()) and _verify(
+            "ExecutionResult", self._payload(), self._signature
+        )
 
     def __len__(self) -> int:
         return len(self._rows)
@@ -116,9 +106,11 @@ class ExecutionResult(Sequence[dict[str, Any]]):
 
 
 class LocalDuckDBAdapter:
-    """Execute only compiler-issued artifacts against quality-bound curated data."""
+    """Execute only signed capabilities against complete quality-bound local CSV sources."""
 
     def __init__(self, curated_data_path: Path, registry: SemanticRegistry) -> None:
+        if type(registry) is not SemanticRegistry:
+            raise TypeError("local execution requires the repository-issued semantic registry")
         self.curated_data_path = curated_data_path.resolve()
         self.registry = registry
         if not self.curated_data_path.is_dir():
@@ -129,16 +121,10 @@ class LocalDuckDBAdapter:
         return str(path).replace("'", "''")
 
     def _source_digests(self) -> dict[str, str]:
-        return {
-            name: file_digest(self.curated_data_path / name)
-            for name in sorted({*self._required_quality_datasets()})
-        }
+        return {name: file_digest(self.curated_data_path / name) for name in self._required_quality_datasets()}
 
     def _local_sources(self) -> dict[str, str]:
-        return {
-            name: str((self.curated_data_path / name).resolve())
-            for name in self._required_quality_datasets()
-        }
+        return {name: str((self.curated_data_path / name).resolve()) for name in self._required_quality_datasets()}
 
     @staticmethod
     def _required_quality_datasets() -> tuple[str, ...]:
@@ -160,14 +146,14 @@ class LocalDuckDBAdapter:
         caller: CallerContext,
         quality: QualityReport,
     ) -> ExecutionResult:
-        """Execute only matching compiler/auth/quality capabilities; raw SQL is impossible here."""
+        """Verify every transition before executing parameterized SQL against local canonical views."""
 
-        if not isinstance(query, CompiledQuery) or not query._is_issued():
-            raise TypeError("LocalDuckDBAdapter executes compiler-issued CompiledQuery artifacts only")
+        if type(query) is not CompiledQuery or not query._verify_integrity():
+            raise ValueError("compiled query integrity signature is invalid")
         if query.target_platform != "DuckDB" or query.registry_digest != registry_digest(self.registry):
             raise ValueError("compiled query is not bound to this local execution context")
-        if not isinstance(authorization, AuthorizationDecision) or not authorization._is_issued():
-            raise ValueError("authorization capability does not match execution context")
+        if type(authorization) is not AuthorizationDecision or not authorization._verify_integrity():
+            raise ValueError("authorization integrity signature is invalid")
         if (
             not authorization.allowed
             or authorization.plan_digest != query.plan_digest
@@ -176,38 +162,63 @@ class LocalDuckDBAdapter:
             or authorization.registry_digest != registry_digest(self.registry)
             or query.authorization_digest
             != digest(
-            {
-                "plan": authorization.plan_digest,
-                "caller": authorization.caller_digest,
-                "registry": authorization.registry_digest,
-                "outcome": authorization.reason_code,
-            }
+                {
+                    "plan": authorization.plan_digest,
+                    "caller": authorization.caller_digest,
+                    "registry": authorization.registry_digest,
+                    "outcome": authorization.reason_code,
+                }
             )
         ):
             raise ValueError("authorization capability does not match compiled query")
-        if not isinstance(quality, QualityReport) or not quality._matches(
-            self.curated_data_path, self.registry
-        ):
-            raise ValueError("quality report does not match complete current source data")
-        if quality.source_digests != self._source_digests():
+        if type(quality) is not QualityReport or not quality._matches(self.curated_data_path, self.registry):
+            raise ValueError("quality report integrity signature does not match complete current source data")
+        if dict(quality.source_digests) != self._source_digests():
             raise ValueError("quality source digests do not match current execution data")
         connection = duckdb.connect(database=":memory:")
         try:
-            for view, filename in _VIEWS.items():
-                csv_path = self.curated_data_path / filename
-                connection.execute(
-                    f"CREATE VIEW {view} AS SELECT * FROM read_csv_auto('{self._sql_literal(csv_path)}', HEADER=TRUE)"
-                )
-            cursor = connection.execute(query.sql, query.parameters)
-            columns = [column[0] for column in cursor.description]
-            rows = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
-            self._assert_finite_rows(rows)
-            return ExecutionResult._issue(
-                rows=rows,
-                query=query,
-                source_digests=self._source_digests(),
-                local_sources=self._local_sources(),
-                quality=quality,
-            )
+            # Execute against private copies of the bytes quality validated. A
+            # source replacement after the current-file checks cannot alter the
+            # rows or their signed source digests.
+            with TemporaryDirectory(prefix="semantic-layer-snapshot-") as temporary:
+                snapshot_root = Path(temporary)
+                for filename in quality.source_digests:
+                    (snapshot_root / filename).write_bytes(quality._source_bytes(filename))
+                for view, filename in _VIEWS.items():
+                    csv_path = snapshot_root / filename
+                    connection.execute(
+                        f"CREATE VIEW {view} AS SELECT * FROM read_csv_auto('{self._sql_literal(csv_path)}', HEADER=TRUE)"
+                    )
+                cursor = connection.execute(query.sql, query.parameters)
+                columns = [column[0] for column in cursor.description]
+                rows = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
+                self._assert_finite_rows(rows)
+                result = object.__new__(ExecutionResult)
+                frozen_rows = tuple(MappingProxyType(dict(row)) for row in rows)
+                payload = {
+                    "_rows": frozen_rows,
+                    "source_digests": MappingProxyType(dict(sorted(quality.source_digests.items()))),
+                    "local_sources": MappingProxyType(dict(sorted(self._local_sources().items()))),
+                    "mapping_evidence": MappingProxyType(dict(quality.mapping_evidence)),
+                    "quality_digest": quality.digest,
+                    "question_digest": query.question_digest,
+                    "concepts": tuple(query.concepts),
+                    "plan_digest": query.plan_digest,
+                    "caller_digest": query.caller_digest,
+                    "authorization_digest": query.authorization_digest,
+                    "authorization_outcome": query.authorization_outcome,
+                    "query_digest": query.query_digest,
+                    "parameter_digest": query.parameter_digest,
+                    "field_evidence": MappingProxyType(dict(query.field_evidence)),
+                    "semantic_versions": MappingProxyType(dict(query.semantic_versions)),
+                    "approved_products": tuple(query.approved_products),
+                    "mapping_ids": tuple(query.mapping_ids),
+                    "metric_ids": tuple(query.metric_ids),
+                }
+                for name, value in payload.items():
+                    object.__setattr__(result, name, value)
+                object.__setattr__(result, "digest", digest(result._payload()))
+                object.__setattr__(result, "_signature", _sign("ExecutionResult", result._payload()))
+                return result
         finally:
             connection.close()
