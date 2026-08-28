@@ -109,3 +109,40 @@ def test_readme_verification_section_identifies_latest_evidence() -> None:
     assert "2026-08-28 UTC" in readme
     assert "docs/verification-report.md" in readme
     assert "195 passed" in readme
+
+
+def test_readme_documents_local_prerequisites_and_reproducibility_contract() -> None:
+    readme = (ROOT / "README.md").read_text()
+    required_fragments = [
+        "Python 3.12",
+        "No cloud credentials",
+        "No LLM API key",
+        "SEMANTIC_LAYER_ENV",
+        "SEMANTIC_LAYER_SIGNING_KEY",
+        "raw/",
+        "curated/",
+        "generate_demo_data.py",
+        "seed",
+        "as-of",
+        "lockfile",
+        "customer_id",
+        "policy_id",
+        "claim_id",
+        "premium_id",
+    ]
+    for fragment in required_fragments:
+        assert fragment in readme, fragment
+
+
+def test_readme_documents_data_contract_and_clean_install() -> None:
+    readme = (ROOT / "README.md").read_text()
+    for fragment in [
+        "git clone",
+        "make PYTHON=.venv/bin/python setup",
+        "schemas",
+        "grain",
+        "join keys",
+        "curated fixtures",
+        "configuration matrix",
+    ]:
+        assert fragment in readme, fragment

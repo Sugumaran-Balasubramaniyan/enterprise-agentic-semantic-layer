@@ -37,6 +37,189 @@ The virtual environment keeps project dependencies isolated from Ubuntu's
 PEP 668 externally managed system Python. The `validate-semantic` target reports
 the valid graph as conforming and the invalid fixture as an expected failure.
 
+## Local developer and data lifecycle
+
+This section is the operational contract for a clean checkout. It is intended
+to be sufficient for a developer, CI runner, or platform team to reproduce the
+local reference environment without access to GlobalSure systems.
+
+### Prerequisites and support matrix
+
+| Component | Required for local execution | Supported baseline | Notes |
+| --- | --- | --- | --- |
+| Operating system | Yes | Linux, macOS, or Windows with a POSIX-compatible shell | CI runs on Ubuntu; Windows users can use WSL or invoke the equivalent commands in PowerShell. |
+| Python | Yes | Python 3.12 or newer | Declared by `pyproject.toml`; older interpreters are not supported. |
+| Git | Yes | Git 2.x | Required to obtain versioned semantic assets and history. |
+| Cloud account | No | None | No cloud credentials are required; local execution uses DuckDB and checked-in synthetic CSVs. |
+| LLM API key | No | None | No LLM API key is required; resolution and planning are deterministic and do not call an LLM. |
+| Docker | No | Docker Engine 24+ if used | There is no Docker dependency in the core path. |
+| Databricks, Snowflake, Fabric | No | Integration extension points only | Mappings and example SQL are documented artifacts; they are not cloud execution claims. |
+
+The local implementation deliberately has a small dependency surface: FastAPI
+and Uvicorn provide the HTTP boundary, Pydantic provides typed contracts,
+RDFLib/pySHACL handle semantic assets, DuckDB provides local execution, and
+PyYAML loads repository metadata. Development dependencies add pytest,
+httpx, and Ruff. Dependencies are specified with minimum versions in
+`pyproject.toml`; a committed lockfile is not currently provided, so transitive
+dependency resolution can vary between installations. For release engineering,
+generate and review a platform-specific lockfile (for example with `uv lock`)
+and retain the same Python/platform matrix used by CI.
+
+### Clean installation from a new checkout
+
+```bash
+git clone https://github.com/Sugumaran-Balasubramaniyan/enterprise-agentic-semantic-layer.git
+cd enterprise-agentic-semantic-layer
+python3 --version                 # must report 3.12 or newer
+python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -e '.[dev]'
+cp .env.example .env              # optional; inspect before changing values
+make PYTHON=.venv/bin/python setup # convenience target for subsequent checkouts
+make PYTHON=.venv/bin/python validate-semantic
+make PYTHON=.venv/bin/python test
+make PYTHON=.venv/bin/python demo
+```
+
+The editable install makes `src/semantic_layer` importable while keeping the
+repository assets at their checked-out paths. Do not install into the system
+interpreter. `make setup` is a convenience target that creates `.venv` and
+installs the project; the explicit sequence above is useful when diagnosing a
+fresh environment. A failed install should be treated as an environment issue,
+not solved by weakening the declared dependency constraints.
+
+### Configuration matrix
+
+The configuration matrix below is the supported local configuration surface.
+
+Configuration is intentionally small and fail-closed. There are no cloud
+credentials in the example configuration and no default network model call.
+
+| Variable | Default | Scope | Purpose and operational guidance |
+| --- | --- | --- | --- |
+| `SEMANTIC_LAYER_ENV` | `development` | Application | Labels the runtime environment. Use a deployment-specific value in production; it does not authenticate a caller. |
+| `SEMANTIC_LAYER_SIGNING_KEY` | unset | Provenance authority | Optional 64-character hexadecimal or 32-byte key for durable HMAC evidence. Configure exactly one signing variable. Store it in a secret manager, never in Git. |
+| `SEMANTIC_LAYER_SIGNING_KEY_FILE` | unset | Provenance authority | Path to a file containing the same key format. Useful for local restart-safe verification; protect file permissions. |
+| `SEMANTIC_LAYER_ROOT` | test-only | Integrity tests | Absolute repository root used by subprocess integrity checks. Do not use as an authorization boundary. |
+| `SEMANTIC_LAYER_DB` | test-only | Integrity tests | SQLite path used by isolated provenance tests. Production deployments should use managed durable storage. |
+| `SEMANTIC_LAYER_QUERY_ID` | test-only | Integrity tests | Query identifier supplied to a verification subprocess. |
+
+`SEMANTIC_LAYER_SIGNING_KEY` and `SEMANTIC_LAYER_SIGNING_KEY_FILE` are
+mutually exclusive. If neither is set, the process creates an ephemeral key;
+signatures can be verified only during that process lifetime. This is suitable
+for a disposable local run, not for durable evidence. The `.env` file is
+ignored by Git; `.env.example` is the only configuration file intended to be
+committed. Production identity, authorization claims, KMS keys, database
+endpoints, and cloud credentials must be injected by the deployment platform.
+
+### Registry and cache behavior
+
+The semantic registry has one authoritative source: reviewed YAML, Turtle,
+SHACL, and metric/rule assets in this repository. `SemanticRegistry.from_repository`
+loads and validates those files, checks cross-references, and builds an
+in-memory object model. It also populates an in-memory SQLite cache for indexed
+lookup; the cache is disposable and is never treated as the source of truth.
+
+This has important lifecycle implications:
+
+1. A process restart reconstructs the registry from the checked-out assets.
+2. Editing a semantic asset requires a new process (or a deliberate registry
+   reload) before the process observes the change.
+3. A cache cannot be promoted independently of the Git commit that produced
+   it; deployments should record the semantic commit and registry digest.
+4. Invalid or dangling references fail during registry construction rather than
+   becoming partially available runtime metadata.
+5. A production registry may materialize the same contracts in a catalog or
+   service, but Git review, semantic versioning, validation, and promotion gates
+   remain the control plane.
+
+### Data lifecycle and fixture policy
+
+The checked-in data is synthetic and intentionally split into two layers. The
+curated fixtures are the trusted local serving contract; raw fixtures are
+quality-test inputs only:
+
+```text
+data/raw/*.csv       source-like landing fixtures; include known defects
+        |
+        | quality checks, normalization, duplicate/future/invalid-value handling
+        v
+data/curated/*.csv   governed local execution fixtures; expected clean inputs
+        |
+        v
+DuckDB adapter       query execution for the local reference path
+```
+
+Raw fixtures contain representative failures such as missing identifiers,
+negative amounts, future dates, invalid statuses, and duplicate claims. They
+exist to exercise quality gates and should not be used as a trusted query
+source. Curated fixtures contain the rows consumed by the normal DuckDB path;
+they are a small, reviewable stand-in for certified data products. This policy
+mirrors production separation between landing data and a certified serving
+contract without pretending that CSV files are a production lakehouse.
+
+Regenerate both layers with:
+
+```bash
+.venv/bin/python data/generate_demo_data.py
+```
+
+The generator writes to `data/` relative to the repository and uses the fixed
+script as-of date `2026-08-28`. Its records are explicit and deterministic (the
+current implementation does not use a random-number generator); the documented
+seed policy is that any future randomized expansion must use a pinned seed and
+must preserve the explicit as-of date. The as-of date anchors all relative
+claim, policy, and premium dates, so results do not drift with wall-clock time.
+For a different reporting cut, call `generate_demo_data(output_dir, as_of)`
+from Python with an explicit `datetime.date`; do not silently replace it with
+`date.today()` in a test or production job.
+
+The generated fixtures are a reproducible test asset, not an ingestion process:
+they do not model CDC, late-arriving records, schema evolution, retention,
+encryption, regional residency, or production PII controls. Those concerns
+belong in the owning data product and platform adapter.
+
+### Local schemas, grain, and join keys
+
+The four CSV contracts below are intentionally narrow. Column names in the
+curated files are the local DuckDB representation; cloud mappings translate
+them to platform-specific physical names while preserving the same semantic
+concepts.
+
+| Dataset | Grain | Required key | Important join keys | Core fields |
+| --- | --- | --- | --- | --- |
+| `customers.csv` | One row per customer | `customer_id` | `customer_id` joins to policies and claims | `customer_name`, `country`, `email` |
+| `policies.csv` | One row per policy | `policy_id` | `customer_id` → customer; `policy_id` → claims/premiums | `country`, `product`, `policy_status`, `effective_date`, `expiry_date`, `annual_premium_eur` |
+| `claims.csv` | One row per claim | `claim_id` | `policy_id` → policy; `customer_id` → customer | `country`, `product`, `status`, `claim_date`, `incurred_loss_eur` |
+| `premiums.csv` | One row per premium posting | `premium_id` | `policy_id` → policy; `customer_id` → customer | `country`, `product`, `premium_date`, `premium_eur` |
+
+The principal relationship path is
+`customers.customer_id → policies.customer_id → claims.policy_id`.
+`claims.customer_id` is retained as a denormalized consistency check, not a
+replacement for validating the policy relationship. Premiums are independently
+aggregated for `ClaimsRatio`; joining claims directly to premium postings can
+fan out totals and is therefore prohibited by the metric/compiler contract.
+The product code is normalized through the checked-in platform mapping before
+it is compared with the canonical `insurance:MotorInsurance` concept.
+
+### Running data and semantic checks together
+
+Use the following order after changing fixtures or semantic assets:
+
+```bash
+make PYTHON=.venv/bin/python validate-semantic
+make PYTHON=.venv/bin/python check-yaml
+make PYTHON=.venv/bin/python check-mappings-quality
+make PYTHON=.venv/bin/python test
+make PYTHON=.venv/bin/python demo
+```
+
+If a curated fixture is missing, empty, malformed, or fails its required
+quality checks, execution is rejected. A successful local answer therefore
+means both that the logical plan compiled and that the selected local product
+passed the configured quality gate. It does not certify an external source or
+prove a cloud platform integration.
+
 ## 5-minute interview demo
 
 Use the full narrative in [the interview demo guide](docs/interview-demo-guide.md).
