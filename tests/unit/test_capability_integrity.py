@@ -318,3 +318,39 @@ print(record.query_id)
     )
 
     assert reopened.stdout.strip() == "PASS"
+
+
+def test_provenance_rejects_signed_record_substitution(tmp_path: Path) -> None:
+    """A valid signed document copied under another SQLite key must fail closed."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    execution = adapter.execute(query, decision, caller, quality)
+    store = ProvenanceStore(tmp_path / "provenance.sqlite")
+    first = store.record(question=PRIMARY_QUESTION, execution=execution)
+    second = store.record(question=PRIMARY_QUESTION, execution=execution)
+    document, stored_signature = store._connection.execute(
+        "SELECT document, signature FROM provenance WHERE query_id = ?", (first.query_id,)
+    ).fetchone()
+    store._connection.execute(
+        "UPDATE provenance SET document = ?, signature = ? WHERE query_id = ?",
+        (document, stored_signature, second.query_id),
+    )
+    store._connection.commit()
+
+    with pytest.raises(ValueError, match="query_id|integrity|chain"):
+        store.get(second.query_id)
+
+
+def test_provenance_detects_deletion_from_the_sqlite_chain(tmp_path: Path) -> None:
+    """Deleting a persisted record must invalidate the durable chain checkpoint."""
+
+    _, _, caller, decision, query, quality, adapter = _issued_context()
+    execution = adapter.execute(query, decision, caller, quality)
+    store = ProvenanceStore(tmp_path / "provenance.sqlite")
+    first = store.record(question=PRIMARY_QUESTION, execution=execution)
+    second = store.record(question=PRIMARY_QUESTION, execution=execution)
+    store._connection.execute("DELETE FROM provenance WHERE query_id = ?", (second.query_id,))
+    store._connection.commit()
+
+    with pytest.raises(ValueError, match="chain|checkpoint|integrity"):
+        store.get(first.query_id)
