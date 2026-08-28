@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import base64
 import csv
+import hashlib
+import io
 import math
 from dataclasses import dataclass
 from datetime import date
@@ -10,11 +13,11 @@ from pathlib import Path
 from types import MappingProxyType
 
 from semantic_layer.control import (
+    _sign,
+    _verify,
     digest,
     file_digest,
-    has_valid_signature,
     registry_digest,
-    signature,
 )
 from semantic_layer.registry import SemanticRegistry
 
@@ -56,6 +59,7 @@ class QualityReport:
 
     __slots__ = (
         "_signature",
+        "_source_snapshots",
         "digest",
         "expected_datasets",
         "issues",
@@ -81,10 +85,11 @@ class QualityReport:
             "source_digests": self.source_digests,
             "mapping_evidence": self.mapping_evidence,
             "registry_digest": self.registry_digest,
+            "source_snapshots": self._source_snapshots,
         }
 
     def _verify_integrity(self) -> bool:
-        return self.digest == digest(self._payload()) and has_valid_signature(
+        return self.digest == digest(self._payload()) and _verify(
             "QualityReport", self._payload(), self._signature
         )
 
@@ -95,10 +100,27 @@ class QualityReport:
             return False
         if set(self.expected_datasets) != set(_ID_COLUMNS) or not self.expected_datasets:
             return False
+        if set(self.source_digests) != set(_ID_COLUMNS) or set(self._source_snapshots) != set(_ID_COLUMNS):
+            return False
         return all(
-            (path / name).is_file() and file_digest(path / name) == expected_digest
+            (path / name).is_file()
+            and file_digest(path / name) == expected_digest
+            and hashlib.sha256(self._source_bytes(name)).hexdigest() == expected_digest
             for name, expected_digest in self.source_digests.items()
         )
+
+    def _source_bytes(self, name: str) -> bytes:
+        """Return the exact bytes validated when this quality capability was issued."""
+
+        if not self._verify_integrity() or name not in self._source_snapshots:
+            raise ValueError("quality source snapshot integrity is invalid")
+        try:
+            content = base64.b64decode(self._source_snapshots[name], validate=True)
+        except (ValueError, TypeError):
+            raise ValueError("quality source snapshot encoding is invalid") from None
+        if hashlib.sha256(content).hexdigest() != self.source_digests.get(name):
+            raise ValueError("quality source snapshot digest is invalid")
+        return content
 
 
 def _repository_root() -> Path:
@@ -155,6 +177,7 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
         raise TypeError("quality validation requires the repository-issued semantic registry")
     issues: list[QualityIssue] = []
     source_digests: dict[str, str] = {}
+    source_snapshots: dict[str, str] = {}
     mapping_evidence: dict[str, str] = {}
     expected_datasets = tuple(sorted(_ID_COLUMNS))
     for file_name in expected_datasets:
@@ -162,11 +185,13 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
         if not csv_path.is_file():
             _issue(issues, "MISSING_EXPECTED_DATASET", file_name, 0, "path", "required curated CSV is missing")
             continue
-        source_digests[file_name] = file_digest(csv_path)
+        content = csv_path.read_bytes()
+        source_digests[file_name] = hashlib.sha256(content).hexdigest()
+        source_snapshots[file_name] = base64.b64encode(content).decode("ascii")
         id_column = _ID_COLUMNS[file_name]
         seen_ids: set[str] = set()
         row_count = 0
-        with csv_path.open(newline="", encoding="utf-8") as stream:
+        with io.StringIO(content.decode("utf-8", errors="strict"), newline="") as stream:
             reader = csv.DictReader(stream)
             present_fields = set(reader.fieldnames or [])
             for missing_field in sorted(_REQUIRED_FIELDS[file_name] - present_fields):
@@ -254,9 +279,10 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
         "source_digests": MappingProxyType(dict(sorted(source_digests.items()))),
         "mapping_evidence": MappingProxyType(dict(sorted(mapping_evidence.items()))),
         "registry_digest": registry_digest(registry),
+        "source_snapshots": MappingProxyType(dict(sorted(source_snapshots.items()))),
     }
     for name, value in payload.items():
-        object.__setattr__(report, name, value)
+        object.__setattr__(report, "_source_snapshots" if name == "source_snapshots" else name, value)
     object.__setattr__(report, "digest", digest(report._payload()))
-    object.__setattr__(report, "_signature", signature("QualityReport", report._payload()))
+    object.__setattr__(report, "_signature", _sign("QualityReport", report._payload()))
     return report

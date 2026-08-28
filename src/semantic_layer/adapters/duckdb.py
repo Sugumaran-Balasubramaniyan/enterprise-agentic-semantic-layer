@@ -6,6 +6,7 @@ import math
 from collections.abc import Iterator, Sequence
 from decimal import Decimal
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import MappingProxyType
 from typing import Any
 
@@ -13,11 +14,11 @@ import duckdb
 
 from semantic_layer.compiler.base import CompiledQuery
 from semantic_layer.control import (
+    _sign,
+    _verify,
     digest,
     file_digest,
-    has_valid_signature,
     registry_digest,
-    signature,
 )
 from semantic_layer.governance import AuthorizationDecision
 from semantic_layer.models import CallerContext
@@ -81,7 +82,7 @@ class ExecutionResult(Sequence[dict[str, Any]]):
         }
 
     def _verify_integrity(self) -> bool:
-        return self.digest == digest(self._payload()) and has_valid_signature(
+        return self.digest == digest(self._payload()) and _verify(
             "ExecutionResult", self._payload(), self._signature
         )
 
@@ -176,41 +177,48 @@ class LocalDuckDBAdapter:
             raise ValueError("quality source digests do not match current execution data")
         connection = duckdb.connect(database=":memory:")
         try:
-            for view, filename in _VIEWS.items():
-                csv_path = self.curated_data_path / filename
-                connection.execute(
-                    f"CREATE VIEW {view} AS SELECT * FROM read_csv_auto('{self._sql_literal(csv_path)}', HEADER=TRUE)"
-                )
-            cursor = connection.execute(query.sql, query.parameters)
-            columns = [column[0] for column in cursor.description]
-            rows = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
-            self._assert_finite_rows(rows)
-            result = object.__new__(ExecutionResult)
-            frozen_rows = tuple(MappingProxyType(dict(row)) for row in rows)
-            payload = {
-                "_rows": frozen_rows,
-                "source_digests": MappingProxyType(dict(sorted(self._source_digests().items()))),
-                "local_sources": MappingProxyType(dict(sorted(self._local_sources().items()))),
-                "mapping_evidence": MappingProxyType(dict(quality.mapping_evidence)),
-                "quality_digest": quality.digest,
-                "question_digest": query.question_digest,
-                "concepts": tuple(query.concepts),
-                "plan_digest": query.plan_digest,
-                "caller_digest": query.caller_digest,
-                "authorization_digest": query.authorization_digest,
-                "authorization_outcome": query.authorization_outcome,
-                "query_digest": query.query_digest,
-                "parameter_digest": query.parameter_digest,
-                "field_evidence": MappingProxyType(dict(query.field_evidence)),
-                "semantic_versions": MappingProxyType(dict(query.semantic_versions)),
-                "approved_products": tuple(query.approved_products),
-                "mapping_ids": tuple(query.mapping_ids),
-                "metric_ids": tuple(query.metric_ids),
-            }
-            for name, value in payload.items():
-                object.__setattr__(result, name, value)
-            object.__setattr__(result, "digest", digest(result._payload()))
-            object.__setattr__(result, "_signature", signature("ExecutionResult", result._payload()))
-            return result
+            # Execute against private copies of the bytes quality validated. A
+            # source replacement after the current-file checks cannot alter the
+            # rows or their signed source digests.
+            with TemporaryDirectory(prefix="semantic-layer-snapshot-") as temporary:
+                snapshot_root = Path(temporary)
+                for filename in quality.source_digests:
+                    (snapshot_root / filename).write_bytes(quality._source_bytes(filename))
+                for view, filename in _VIEWS.items():
+                    csv_path = snapshot_root / filename
+                    connection.execute(
+                        f"CREATE VIEW {view} AS SELECT * FROM read_csv_auto('{self._sql_literal(csv_path)}', HEADER=TRUE)"
+                    )
+                cursor = connection.execute(query.sql, query.parameters)
+                columns = [column[0] for column in cursor.description]
+                rows = [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
+                self._assert_finite_rows(rows)
+                result = object.__new__(ExecutionResult)
+                frozen_rows = tuple(MappingProxyType(dict(row)) for row in rows)
+                payload = {
+                    "_rows": frozen_rows,
+                    "source_digests": MappingProxyType(dict(sorted(quality.source_digests.items()))),
+                    "local_sources": MappingProxyType(dict(sorted(self._local_sources().items()))),
+                    "mapping_evidence": MappingProxyType(dict(quality.mapping_evidence)),
+                    "quality_digest": quality.digest,
+                    "question_digest": query.question_digest,
+                    "concepts": tuple(query.concepts),
+                    "plan_digest": query.plan_digest,
+                    "caller_digest": query.caller_digest,
+                    "authorization_digest": query.authorization_digest,
+                    "authorization_outcome": query.authorization_outcome,
+                    "query_digest": query.query_digest,
+                    "parameter_digest": query.parameter_digest,
+                    "field_evidence": MappingProxyType(dict(query.field_evidence)),
+                    "semantic_versions": MappingProxyType(dict(query.semantic_versions)),
+                    "approved_products": tuple(query.approved_products),
+                    "mapping_ids": tuple(query.mapping_ids),
+                    "metric_ids": tuple(query.metric_ids),
+                }
+                for name, value in payload.items():
+                    object.__setattr__(result, name, value)
+                object.__setattr__(result, "digest", digest(result._payload()))
+                object.__setattr__(result, "_signature", _sign("ExecutionResult", result._payload()))
+                return result
         finally:
             connection.close()

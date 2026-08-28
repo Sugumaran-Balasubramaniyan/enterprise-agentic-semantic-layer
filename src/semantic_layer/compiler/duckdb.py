@@ -6,7 +6,7 @@ from datetime import date
 from types import MappingProxyType
 
 from semantic_layer.compiler.base import CompiledQuery
-from semantic_layer.control import digest, registry_digest, signature
+from semantic_layer.control import _sign, digest, registry_digest
 from semantic_layer.governance import AuthorizationDecision
 from semantic_layer.lineage import LineageService
 from semantic_layer.models import CallerContext, SemanticQueryPlan
@@ -238,5 +238,5 @@ ORDER BY customer.customer_id
         object.__setattr__(query, "target_platform", "DuckDB")
         object.__setattr__(query, "parameter_digest", digest(query.parameters))
         object.__setattr__(query, "query_digest", digest({"sql": query.sql, "parameters": query.parameters}))
-        object.__setattr__(query, "_signature", signature("CompiledQuery", query._payload()))
+        object.__setattr__(query, "_signature", _sign("CompiledQuery", query._payload()))
         return query

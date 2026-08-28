@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from semantic_layer.control import digest, has_valid_signature
+from semantic_layer.control import _verify, digest
 
 
 class CompiledQuery:
@@ -57,5 +57,5 @@ class CompiledQuery:
         return (
             self.parameter_digest == digest(self.parameters)
             and self.query_digest == digest({"sql": self.sql, "parameters": self.parameters})
-            and has_valid_signature("CompiledQuery", self._payload(), self._signature)
+            and _verify("CompiledQuery", self._payload(), self._signature)
         )

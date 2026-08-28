@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from semantic_layer.control import digest, has_valid_signature, registry_digest, signature
+from semantic_layer.control import _sign, _verify, digest, registry_digest
 from semantic_layer.models import CallerContext, SemanticQueryPlan
 from semantic_layer.registry import SemanticRegistry
 
@@ -54,7 +54,7 @@ class AuthorizationDecision:
         return self._verify_integrity()
 
     def _verify_integrity(self) -> bool:
-        return has_valid_signature("AuthorizationDecision", self._payload(), self._signature)
+        return _verify("AuthorizationDecision", self._payload(), self._signature)
 
 
 def _countries_in(plan: SemanticQueryPlan) -> set[str]:
@@ -107,7 +107,7 @@ def authorize(
         }
         for name, value in payload.items():
             object.__setattr__(decision, name, value)
-        object.__setattr__(decision, "_signature", signature("AuthorizationDecision", decision._payload()))
+        object.__setattr__(decision, "_signature", _sign("AuthorizationDecision", decision._payload()))
         return decision
 
     allowed_products = _ROLE_PRODUCTS.get(caller.role)

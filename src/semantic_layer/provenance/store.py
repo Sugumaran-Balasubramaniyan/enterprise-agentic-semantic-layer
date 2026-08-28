@@ -11,7 +11,7 @@ from types import MappingProxyType
 from uuid import uuid4
 
 from semantic_layer.adapters.duckdb import ExecutionResult
-from semantic_layer.control import digest, has_valid_signature, signature
+from semantic_layer.control import _sign, _verify, digest
 
 
 class _FrozenList(tuple):
@@ -42,7 +42,7 @@ class Provenance:
         return {name: _thaw(value) for name, value in self._values.items()}
 
     def _verify_integrity(self) -> bool:
-        return has_valid_signature("Provenance", self._payload(), self._signature)
+        return _verify("Provenance", self._payload(), self._signature)
 
 
 def _freeze(value: object) -> object:
@@ -112,7 +112,7 @@ class ProvenanceStore:
         record = object.__new__(Provenance)
         immutable_values = MappingProxyType({key: _freeze(value) for key, value in values.items()})
         object.__setattr__(record, "_values", immutable_values)
-        object.__setattr__(record, "_signature", signature("Provenance", record._payload()))
+        object.__setattr__(record, "_signature", _sign("Provenance", record._payload()))
         self._connection.execute(
             "INSERT INTO provenance (query_id, document, signature) VALUES (?, ?, ?)",
             (record.query_id, json.dumps(record._payload(), sort_keys=True), record._signature),
@@ -133,7 +133,7 @@ class ProvenanceStore:
         record = object.__new__(Provenance)
         immutable_values = MappingProxyType({key: _freeze(value) for key, value in values.items()})
         object.__setattr__(record, "_values", immutable_values)
-        object.__setattr__(record, "_signature", signature("Provenance", record._payload()))
+        object.__setattr__(record, "_signature", _sign("Provenance", record._payload()))
         if record._signature != stored_signature:
             raise ValueError("stored provenance integrity signature is invalid")
         return record

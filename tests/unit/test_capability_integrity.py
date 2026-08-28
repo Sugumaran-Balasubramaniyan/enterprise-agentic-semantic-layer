@@ -1,11 +1,15 @@
 """Adversarial integrity tests for issued execution capabilities and provenance."""
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 import semantic_layer.adapters.duckdb as duckdb_adapter
 import semantic_layer.compiler.base as compiler_base
+import semantic_layer.control as control_module
 import semantic_layer.governance.policy as policy_module
 import semantic_layer.provenance.store as provenance_module
 import semantic_layer.quality.checks as quality_module
@@ -34,6 +38,21 @@ def _issued_context():
     quality = validate_curated_data(REPOSITORY_ROOT / "data" / "curated", registry)
     adapter = LocalDuckDBAdapter(REPOSITORY_ROOT / "data" / "curated", registry)
     return registry, plan, caller, decision, query, quality, adapter
+
+
+def test_signing_authority_is_not_part_of_the_public_package_api() -> None:
+    """The capability signer must stay behind the internal control-plane boundary."""
+
+    import semantic_layer
+
+    assert "signature" not in getattr(semantic_layer, "__all__", ())
+    assert "has_valid_signature" not in getattr(semantic_layer, "__all__", ())
+    assert not hasattr(semantic_layer, "signature")
+    assert not hasattr(semantic_layer, "has_valid_signature")
+    assert not hasattr(control_module, "_SIGNING_KEY")
+    assert not hasattr(control_module, "signature")
+    assert not hasattr(control_module, "has_valid_signature")
+    assert "_sign" not in control_module.__all__
 
 
 def test_capabilities_expose_no_callable_issue_helpers() -> None:
@@ -216,3 +235,86 @@ def test_provenance_nested_metadata_is_defensive_and_immutable(tmp_path: Path) -
     assert provenance.data_products == original_products
     assert provenance.source_digests == execution.source_digests
     assert provenance._verify_integrity()
+
+
+def test_execution_uses_the_validated_snapshot_when_source_changes_after_digest_check(tmp_path: Path) -> None:
+    """A source race after validation must not change the rows that are attested."""
+
+    registry, _, caller, decision, query, _, _ = _issued_context()
+    data_dir = tmp_path / "curated"
+    data_dir.mkdir()
+    for source in (REPOSITORY_ROOT / "data" / "curated").glob("*.csv"):
+        (data_dir / source.name).write_bytes(source.read_bytes())
+    quality = validate_curated_data(data_dir, registry)
+    adapter = LocalDuckDBAdapter(data_dir, registry)
+    original_source_digests = adapter._source_digests
+    changed = False
+
+    def digest_then_replace() -> dict[str, str]:
+        nonlocal changed
+        digests = original_source_digests()
+        if not changed:
+            changed = True
+            claims = data_dir / "claims.csv"
+            claims.write_text(claims.read_text(encoding="utf-8").replace("9000.00", "9001.00", 1), encoding="utf-8")
+        return digests
+
+    adapter._source_digests = digest_then_replace
+    execution = adapter.execute(query, decision, caller, quality)
+
+    assert execution == [
+        {"customer_id": "FR_001", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 24000.0},
+        {"customer_id": "FR_002", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 25000.0},
+    ]
+
+
+def test_provenance_can_be_reopened_in_a_new_process_with_a_configured_key(tmp_path: Path) -> None:
+    """A configured signing key lets a second process verify persisted evidence."""
+
+    database = tmp_path / "provenance.sqlite"
+    key_file = tmp_path / "signing-key"
+    key_file.write_text("11" * 32, encoding="ascii")
+    source_root = REPOSITORY_ROOT.as_posix()
+    script = """
+from pathlib import Path
+from semantic_layer.adapters import LocalDuckDBAdapter
+from semantic_layer.compiler import DuckDBCompiler
+from semantic_layer.governance import authorize
+from semantic_layer.provenance import ProvenanceStore
+from semantic_layer.quality import validate_curated_data
+from semantic_layer.query_planner import build_plan
+from semantic_layer.registry import SemanticRegistry
+
+root = Path(__import__("os").environ["SEMANTIC_LAYER_ROOT"])
+question = "Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000."
+registry = SemanticRegistry.from_repository(root)
+plan = build_plan(question, role="ClaimsAnalystFR", registry=registry)
+authorization = authorize(plan, plan.caller, registry)
+compiled = DuckDBCompiler(registry).compile(plan, authorization, plan.caller, question)
+quality = validate_curated_data(root / "data" / "curated", registry)
+execution = LocalDuckDBAdapter(root / "data" / "curated", registry).execute(compiled, authorization, plan.caller, quality)
+store = ProvenanceStore(Path(__import__("os").environ["SEMANTIC_LAYER_DB"]))
+record = store.record(question=question, execution=execution)
+print(record.query_id)
+"""
+    env = os.environ | {
+        "PYTHONPATH": str(REPOSITORY_ROOT / "src"),
+        "SEMANTIC_LAYER_ROOT": source_root,
+        "SEMANTIC_LAYER_DB": str(database),
+        "SEMANTIC_LAYER_SIGNING_KEY_FILE": str(key_file),
+    }
+    created = subprocess.run([sys.executable, "-c", script], check=True, capture_output=True, text=True, env=env)
+    query_id = created.stdout.strip()
+    reopened = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from semantic_layer.provenance import ProvenanceStore; import os; from pathlib import Path; print(ProvenanceStore(Path(os.environ['SEMANTIC_LAYER_DB'])).get(os.environ['SEMANTIC_LAYER_QUERY_ID']).quality_status)",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env | {"SEMANTIC_LAYER_QUERY_ID": query_id},
+    )
+
+    assert reopened.stdout.strip() == "PASS"
