@@ -121,3 +121,20 @@
 - [ ] **Step 3: Remove or rewrite interview-specific content** while preserving technical demonstrations as neutral operational walkthroughs.
 - [ ] **Step 4: Run repository-wide text scan, link checks, and documentation tests.**
 - [ ] **Step 5: Commit and push** with `docs: remove interview preparation material`.
+
+### Task 7: Add future-development examples and capability traceability
+
+**Files:**
+- Modify: `README.md`
+- Test: `tests/unit/test_documentation_contract.py`
+- Inspect: `examples/`, `semantic/`, `data_products/`, `mappings/`, `src/semantic_layer/`, `tests/`
+
+**Interfaces:**
+- Consumes: All runnable examples, canonical assets, source modules, and test suites.
+- Produces: A capability matrix that points each semantic-layer concern to a concrete asset, runnable command/API example, test, and production extension seam; plus contribution guidance for adding new examples.
+
+- [ ] **Step 1: Add failing contract assertions** requiring traceability coverage for vocabulary, taxonomy, ontology, SHACL, graph, products, mappings, metrics, registry, resolver, planner, compiler, adapters, governance, quality, lineage, provenance, API, agent tools, evaluation, CI, and federation.
+- [ ] **Step 2: Run focused tests** and confirm the matrix is absent/incomplete.
+- [ ] **Step 3: Add the capability/examples matrix, example index, and “how to add a domain/use case” guidance.**
+- [ ] **Step 4: Run all examples/commands that are advertised and the complete verification suite.**
+- [ ] **Step 5: Commit and push** with `docs: add future development examples and traceability matrix`.
