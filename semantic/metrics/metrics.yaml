@@ -1,0 +1,54 @@
+version: "1.0.0"
+owner: GlobalSure Insurance Group
+metrics:
+  - id: insurance:ClaimCount
+    name: ClaimCount
+    version: "1.0.0"
+    definition: Number of distinct qualifying claims in the selected time context.
+    concept: insurance:QualifyingClaim
+    expression: COUNT(DISTINCT claim_id)
+    aggregation: count_distinct
+    unit: claims
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics]
+  - id: insurance:TotalIncurredLoss
+    name: TotalIncurredLoss
+    version: "1.0.0"
+    definition: Sum of incurred loss for distinct qualifying claims in the selected time context.
+    concept: insurance:IncurredLoss
+    expression: SUM(incurred_loss_eur)
+    aggregation: sum
+    unit: EUR
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics]
+  - id: insurance:AverageClaimAmount
+    name: AverageClaimAmount
+    version: "1.0.0"
+    definition: Average incurred loss per distinct qualifying claim.
+    concept: insurance:IncurredLoss
+    expression: SUM(incurred_loss_eur) / NULLIF(COUNT(DISTINCT claim_id), 0)
+    aggregation: average
+    unit: EUR per claim
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics]
+  - id: insurance:ActivePolicyCount
+    name: ActivePolicyCount
+    version: "1.0.0"
+    definition: Number of policies whose governed lifecycle status is ACTIVE.
+    concept: insurance:ActivePolicy
+    expression: COUNT(DISTINCT policy_id) WHERE policy_status = 'ACTIVE'
+    aggregation: count_distinct
+    unit: policies
+    filter_rule: insurance:ActivePolicy
+    source_products: [PolicyMaster]
+  - id: insurance:ClaimsRatio
+    name: ClaimsRatio
+    version: "1.0.0"
+    definition: Total qualifying incurred loss divided by written premium for the same scope.
+    concept: insurance:IncurredLoss
+    expression: SUM(incurred_loss_eur) / NULLIF(SUM(premium_eur), 0)
+    aggregation: ratio
+    unit: ratio
+    filter_rule: insurance:QualifyingClaim
+    source_products: [ClaimsAnalytics, PremiumAnalytics]
+    dependencies: [insurance:TotalIncurredLoss]

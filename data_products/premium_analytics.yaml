@@ -1,0 +1,63 @@
+id: PremiumAnalytics
+name: Premium Analytics
+version: "1.0.0"
+owner: GlobalSure Group Finance Data Office
+platform: Federated
+location: Group
+grain: one row per policy and premium period
+sla: daily by 07:00 UTC
+classification: Confidential
+pii:
+  - customer_id
+quality:
+  status: CERTIFIED
+  checks:
+    - premium_id is non-null and unique
+    - premium_eur is non-negative
+    - policy_id references PolicyMaster
+    - product resolves through a certified local mapping
+lineage:
+  upstream:
+    - local billing and policy systems in France, United Kingdom, and Germany
+  transformations:
+    - premium amounts are conformed to EUR for the demo currency
+    - local product codes are normalized to the Group product taxonomy
+concepts:
+  - insurance:Premium
+  - insurance:Policy
+  - insurance:Customer
+  - insurance:InsuranceProduct
+schema:
+  - name: premium_id
+    type: string
+    concept: insurance:Premium
+    nullable: false
+  - name: policy_id
+    type: string
+    concept: insurance:Policy
+    nullable: false
+  - name: customer_id
+    type: string
+    concept: insurance:Customer
+    nullable: false
+    pii: true
+  - name: country
+    type: string
+    concept: insurance:Country
+    nullable: false
+  - name: product
+    type: string
+    concept: insurance:InsuranceProduct
+    nullable: false
+  - name: premium_date
+    type: date
+    concept: insurance:Premium
+    nullable: false
+  - name: premium_eur
+    type: decimal
+    concept: insurance:Premium
+    nullable: false
+certification:
+  status: CERTIFIED
+  certified_by: GlobalSure Group Finance Data Office
+  certified_at: "2026-08-28"

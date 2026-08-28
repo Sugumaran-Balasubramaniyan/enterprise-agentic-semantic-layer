@@ -1,0 +1,50 @@
+id: FabricGermanyMapping
+version: "1.0.0"
+owner: GlobalSure Germany Data Office
+platform: Microsoft Fabric
+location: DE
+data_products:
+  - Customer360
+  - PolicyMaster
+  - ClaimsAnalytics
+  - PremiumAnalytics
+source:
+  workspace: GlobalSure Germany Insurance
+  lakehouse: insurance_lakehouse
+  tables:
+    customers: customer_master
+    policies: policy_master
+    claims: claims
+    premiums: premiums
+fields:
+  customer_id: {physical_name: customer_number, concept: insurance:Customer, pii: true}
+  policy_id: {physical_name: policy_number, concept: insurance:Policy, pii: false}
+  claim_id: {physical_name: claim_number, concept: insurance:Claim, pii: false}
+  country: {physical_name: country_code, concept: insurance:Country, pii: false}
+  product: {physical_name: product_name, concept: insurance:InsuranceProduct, pii: false}
+  status: {physical_name: claim_status, concept: insurance:ClaimStatus, pii: false}
+  claim_date: {physical_name: date_of_loss, concept: insurance:Claim, pii: false}
+  incurred_loss_eur: {physical_name: incurred_loss, concept: insurance:IncurredLoss, pii: false}
+  premium_eur: {physical_name: premium_amount, concept: insurance:Premium, pii: false}
+normalization:
+  products:
+    MotorInsurance: insurance:MotorInsurance
+    MOTOR: insurance:MotorInsurance
+    insurance:MotorInsurance: insurance:MotorInsurance
+    HomeInsurance: insurance:HomeInsurance
+  statuses:
+    OFFEN: OPEN
+    IN_BEARBEITUNG: PENDING
+    REGULIERT: SETTLED
+    STORNIERT: CANCELLED
+    DOPPELT: DUPLICATE
+    OPEN: OPEN
+    PENDING: PENDING
+    SETTLED: SETTLED
+    CANCELLED: CANCELLED
+    DUPLICATE: DUPLICATE
+lineage:
+  physical_sources:
+    - fabric://GlobalSure Germany Insurance.insurance_lakehouse.claims
+    - fabric://GlobalSure Germany Insurance.insurance_lakehouse.policy_master
+  semantic_target: Group insurance vocabulary 1.0.0

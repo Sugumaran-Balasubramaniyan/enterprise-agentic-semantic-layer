@@ -1,0 +1,8 @@
+policy_id,customer_id,country,product,policy_status,effective_date,expiry_date,annual_premium_eur
+FR_POL_001,FR_001,FR,insurance:MotorInsurance,ACTIVE,2024-09-07,2026-09-07,1350.00
+FR_POL_002,FR_001,FR,insurance:MotorInsurance,LAPSED,2024-03-11,2025-07-24,850.00
+FR_POL_003,FR_002,FR,insurance:MotorInsurance,ACTIVE,2025-04-15,2026-10-07,1490.00
+FR_POL_004,FR_003,FR,insurance:HomeInsurance,ACTIVE,2025-11-01,2026-12-06,620.00
+UK_POL_001,UK_001,GB,insurance:MotorInsurance,ACTIVE,2024-11-16,2026-09-17,1120.00
+DE_POL_001,DE_001,DE,insurance:MotorInsurance,ACTIVE,2025-01-05,2026-09-27,980.00
+RAW_NEGATIVE,FR_001,FR,insurance:MotorInsurance,ACTIVE,2024-09-07,2026-09-07,-1.00

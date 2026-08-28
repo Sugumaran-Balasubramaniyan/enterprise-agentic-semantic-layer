@@ -1,0 +1,21 @@
+version: "1.0.0"
+owner: GlobalSure Insurance Group
+rules:
+  - id: insurance:QualifyingClaim
+    name: Qualifying Claim
+    version: "1.0.0"
+    applies_to: insurance:Claim
+    definition: A claim eligible for governed claims metrics after exclusions.
+    include_statuses: [OPEN, PENDING, SETTLED]
+    exclude_statuses: [CANCELLED, DUPLICATE]
+    predicate: status IN ('OPEN', 'PENDING', 'SETTLED')
+    rationale: Cancellation and duplicate records remain auditable but must not inflate claim metrics.
+  - id: insurance:ActivePolicy
+    name: Active Policy
+    version: "1.0.0"
+    applies_to: insurance:Policy
+    definition: A policy currently in force under the governed lifecycle vocabulary.
+    include_statuses: [ACTIVE]
+    exclude_statuses: [LAPSED, CANCELLED]
+    predicate: policy_status = 'ACTIVE'
+    rationale: Only in-force policies count toward ActivePolicyCount.
