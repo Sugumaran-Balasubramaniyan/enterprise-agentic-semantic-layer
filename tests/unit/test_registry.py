@@ -1,6 +1,11 @@
 """Behavioural tests for the Git-sourced semantic registry."""
 
+import shutil
 from pathlib import Path
+
+import pytest
+import yaml
+from pydantic import ValidationError
 
 from semantic_layer.registry import SemanticRegistry
 
@@ -27,3 +32,17 @@ def test_registry_selects_only_certified_products_for_a_concept() -> None:
     products = registry.certified_products_for("insurance:QualifyingClaim")
 
     assert [product.id for product in products] == ["ClaimsAnalytics"]
+
+
+def test_registry_reuses_the_vocabulary_semver_contract(tmp_path: Path) -> None:
+    """Weakening vocabulary validation must permit this invalid Git asset."""
+
+    repository = tmp_path / "repository"
+    shutil.copytree(REPOSITORY_ROOT, repository, ignore=shutil.ignore_patterns(".git", ".venv"))
+    vocabulary_path = repository / "semantic" / "vocabulary" / "insurance.yaml"
+    document = yaml.safe_load(vocabulary_path.read_text())
+    document["version"] = "1.0.0-01"
+    vocabulary_path.write_text(yaml.safe_dump(document, sort_keys=False))
+
+    with pytest.raises(ValidationError):
+        SemanticRegistry.from_repository(repository)

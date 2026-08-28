@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from semantic_layer.registry import SemanticRegistry
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -26,3 +28,14 @@ def test_resolver_does_not_match_a_term_inside_an_unrelated_word() -> None:
     resolution = registry.resolve("The claimant is unrelated to this insurance product")
 
     assert "insurance:Claim" not in resolution.concept_ids
+
+
+@pytest.mark.parametrize("local_value", ["MTR", "AUTO"])
+def test_resolver_grounds_local_mapping_values_in_motor_insurance(local_value: str) -> None:
+    """Ignoring mapping normalization must break local product grounding."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+
+    resolution = registry.resolve(f"Find {local_value} customers")
+
+    assert resolution.matched_terms["insurance:MotorInsurance"] == local_value.casefold()

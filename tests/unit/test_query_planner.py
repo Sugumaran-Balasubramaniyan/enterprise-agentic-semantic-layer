@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from semantic_layer.models import SemanticQueryPlan
+from semantic_layer.models import SemanticQueryPlan, TimeContext
 from semantic_layer.query_planner import build_plan
 from semantic_layer.registry import SemanticRegistry
 
@@ -55,3 +55,91 @@ def test_active_policy_question_uses_current_year_and_never_carries_raw_sql() ->
     assert plan.time_context.window == "current_year"
     with pytest.raises(ValidationError):
         SemanticQueryPlan.model_validate({"root_entity": "insurance:Customer", "sql": "SELECT 1"})
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("root_entity", "insurance:Customer; SELECT customer_id FROM customers"),
+        ("projected_dimensions", ["insurance:Customer", "SELECT customer_id FROM customers"]),
+        (
+            "filters",
+            [
+                {
+                    "concept_id": "insurance:Country",
+                    "operator": "=",
+                    "value": "FR' OR 1=1 --",
+                }
+            ],
+        ),
+        (
+            "metric_predicates",
+            [
+                {
+                    "metric_id": "insurance:ClaimCount; DELETE FROM claims",
+                    "operator": ">=",
+                    "value": 3,
+                }
+            ],
+        ),
+    ],
+)
+def test_semantic_query_plan_rejects_sql_shaped_values_everywhere(field: str, value: object) -> None:
+    """Removing recursive SQL validation must admit an executable payload."""
+
+    plan = {
+        "root_entity": "insurance:Customer",
+        "projected_dimensions": ["insurance:Customer"],
+        "filters": [{"concept_id": "insurance:Country", "operator": "=", "value": "FR"}],
+        "metric_predicates": [
+            {"metric_id": "insurance:ClaimCount", "operator": ">=", "value": 3}
+        ],
+        "caller": {"role": "ClaimsAnalystFR", "country": "FR"},
+    }
+    plan[field] = value
+
+    with pytest.raises(ValidationError):
+        SemanticQueryPlan.model_validate(plan)
+
+
+@pytest.mark.parametrize(
+    "window, months",
+    [("last_12_months", 11), ("current_year", 12)],
+)
+def test_time_context_rejects_inconsistent_window_state(window: str, months: int) -> None:
+    """Removing the window invariant must allow ambiguous compiler inputs."""
+
+    with pytest.raises(ValidationError):
+        TimeContext(window=window, months=months)
+
+
+def test_planner_uses_mapping_normalization_instead_of_product_name_literals() -> None:
+    """Hard-coding MotorInsurance must hide a broken local mapping asset."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    registry.mappings["DatabricksFranceMapping"].normalization["products"]["MTR"] = "insurance:Claim"
+
+    with pytest.raises(ValueError, match="insurance:MotorInsurance"):
+        build_plan(PRIMARY_QUESTION.replace("motor-insurance", "MTR"), "ClaimsAnalystFR", registry)
+
+
+def test_planner_rejects_an_asset_metric_with_an_uncertified_source_product() -> None:
+    """Bypassing metric source-product validation must select a non-governed product."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    registry.metrics["insurance:ClaimCount"].source_products = ["UncertifiedClaims"]
+
+    with pytest.raises(ValueError, match="UncertifiedClaims"):
+        build_plan(PRIMARY_QUESTION, "ClaimsAnalystFR", registry)
+
+
+def test_planner_parses_number_words_beyond_three() -> None:
+    """Limiting grammar to the original word three must make this threshold wrong."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+
+    plan = build_plan(
+        PRIMARY_QUESTION.replace("at least three", "at least twelve"), "ClaimsAnalystFR", registry
+    )
+
+    assert plan.metric_predicates[0].value == 12

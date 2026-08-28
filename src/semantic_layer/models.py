@@ -2,9 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+import re
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+
+CanonicalSemanticId = Annotated[
+    str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]*:[A-Za-z][A-Za-z0-9_-]*$")
+]
+CanonicalValue = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9:_-]+$")]
+ProductId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][A-Za-z0-9]*$")]
+RoleId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z][A-Za-z0-9]*$")]
+CountryCode = Annotated[str, StringConstraints(pattern=r"^[A-Z]{2}$")]
+_SQL_TOKEN = re.compile(
+    r"(?:;|--|/\*|\*/|\b(?:alter|create|delete|drop|execute|insert|select|union|update|with)\b)",
+    re.IGNORECASE,
+)
 
 
 class SemanticModel(BaseModel):
@@ -13,26 +26,25 @@ class SemanticModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ConceptRelationship(SemanticModel):
-    predicate: str
-    target: str
-    description: str | None = None
+def _contains_sql_shape(value: Any) -> bool:
+    if isinstance(value, str):
+        return bool(_SQL_TOKEN.search(value))
+    if isinstance(value, dict):
+        return any(_contains_sql_shape(item) for pair in value.items() for item in pair)
+    if isinstance(value, (list, tuple, set)):
+        return any(_contains_sql_shape(item) for item in value)
+    return False
 
 
-class SemanticConcept(SemanticModel):
-    id: str
-    name: str
-    version: str
-    definition: str
-    description: str
-    synonyms: list[str] = Field(default_factory=list)
-    domain: str
-    owner: str
-    classification: str
-    sensitivity: dict[str, Any]
-    relationships: list[ConceptRelationship] = Field(default_factory=list)
-    allowed_values: list[str] = Field(default_factory=list)
-    examples: list[str] = Field(default_factory=list)
+class SqlFreeSemanticModel(SemanticModel):
+    """Reject SQL-shaped strings recursively before logical-plan coercion."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_sql_shaped_values(cls, value: Any) -> Any:
+        if _contains_sql_shape(value):
+            raise ValueError("logical semantic contracts cannot contain SQL-shaped values")
+        return value
 
 
 class Certification(SemanticModel):
@@ -127,44 +139,52 @@ class Resolution(SemanticModel):
     matched_terms: dict[str, str] = Field(default_factory=dict)
 
 
-class CallerContext(SemanticModel):
-    role: str
-    country: str | None = None
+class CallerContext(SqlFreeSemanticModel):
+    role: RoleId
+    country: CountryCode | None = None
     purpose: str = "semantic_query"
 
 
-class Filter(SemanticModel):
-    concept_id: str
+class Filter(SqlFreeSemanticModel):
+    concept_id: CanonicalSemanticId
     operator: Literal["=", "!=", ">", ">=", "<", "<=", "IN"]
-    value: str | int | float | list[str]
+    value: CanonicalValue | int | float | list[CanonicalValue]
 
 
-class MetricPredicate(SemanticModel):
-    metric_id: str
+class MetricPredicate(SqlFreeSemanticModel):
+    metric_id: CanonicalSemanticId
     operator: Literal["=", "!=", ">", ">=", "<", "<="]
     value: int | float
 
 
-class RelationshipPath(SemanticModel):
-    source: str
-    predicate: str
-    target: str
+class RelationshipPath(SqlFreeSemanticModel):
+    source: CanonicalSemanticId
+    predicate: CanonicalSemanticId
+    target: CanonicalSemanticId
 
 
-class TimeContext(SemanticModel):
+class TimeContext(SqlFreeSemanticModel):
     window: Literal["last_12_months", "current_year"]
     months: int | None = Field(default=None, ge=1)
 
+    @model_validator(mode="after")
+    def require_unambiguous_window(self) -> TimeContext:
+        if self.window == "last_12_months" and self.months != 12:
+            raise ValueError("last_12_months requires months=12")
+        if self.window == "current_year" and self.months is not None:
+            raise ValueError("current_year must not specify months")
+        return self
 
-class SemanticQueryPlan(SemanticModel):
+
+class SemanticQueryPlan(SqlFreeSemanticModel):
     """A validated logical plan; physical SQL is intentionally not representable."""
 
-    root_entity: str
-    projected_dimensions: list[str] = Field(default_factory=list)
+    root_entity: CanonicalSemanticId
+    projected_dimensions: list[CanonicalSemanticId] = Field(default_factory=list)
     filters: list[Filter] = Field(default_factory=list)
     relationships: list[RelationshipPath] = Field(default_factory=list)
     metric_predicates: list[MetricPredicate] = Field(default_factory=list)
     time_context: TimeContext | None = None
-    selected_products: list[str] = Field(default_factory=list)
+    selected_products: list[ProductId] = Field(default_factory=list)
     caller: CallerContext
     target_platform: str = "DuckDB"
