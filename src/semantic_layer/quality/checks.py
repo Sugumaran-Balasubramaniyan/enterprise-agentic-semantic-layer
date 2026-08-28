@@ -228,8 +228,9 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
                 else:
                     mapping_evidence[f"{file_name}:{row_number}"] = f"{mapping.id}@{mapping.version}"
                     product = row.get("product")
-                    if product is not None and product not in set(
-                        mapping.normalization.get("products", {}).values()
+                    mapped_products = set(mapping.normalization.get("products", {}).values())
+                    if product is not None and (
+                        product not in mapped_products or product not in registry.concepts
                     ):
                         _issue(
                             issues,

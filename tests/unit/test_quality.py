@@ -52,3 +52,21 @@ def test_claim_quality_rejects_duplicate_ids_invalid_values_and_future_dates(tmp
         "FUTURE_DATE",
         "NEGATIVE_LOSS",
     }
+
+
+def test_quality_rejects_rows_using_an_unregistered_product_extension(tmp_path: Path) -> None:
+    """A mapping target absent from the vocabulary cannot receive a PASS quality report."""
+
+    for name in ("customers.csv", "policies.csv", "premiums.csv"):
+        source = REPOSITORY_ROOT / "data" / "curated" / name
+        (tmp_path / name).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    (tmp_path / "claims.csv").write_text(
+        "claim_id,policy_id,customer_id,country,product,status,claim_date,incurred_loss_eur\n"
+        "C_HOME,P_HOME,FR_001,FR,insurance:HomeInsurance,OPEN,2026-08-01,1.00\n",
+        encoding="utf-8",
+    )
+
+    report = validate_curated_data(tmp_path)
+
+    assert report.status == "FAIL"
+    assert "INVALID_PRODUCT_MAPPING" in {issue.code for issue in report.issues}

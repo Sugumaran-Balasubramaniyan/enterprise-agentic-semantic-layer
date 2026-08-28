@@ -32,13 +32,19 @@ class QuestionRequest(BaseModel):
 
 
 class SemanticRequest(QuestionRequest):
-    """Business question plus an authenticated role and optional country scope."""
+    """Business question plus a simulated caller role for the local demo.
+
+    The role is supplied by the requester and is not an authentication
+    assertion. A production transport must derive caller attributes from its
+    identity provider before invoking the governed workflow.
+    """
 
     role: str = Field(min_length=1)
     country: str | None = None
     purpose: str = "semantic_query"
 
     def caller(self) -> CallerContext:
+        """Build the demo caller context; this method does not authenticate anyone."""
         return CallerContext(role=self.role, country=self.country, purpose=self.purpose)
 
 
@@ -60,7 +66,15 @@ def create_app(repository_root: Path | None = None, *, provenance_path: Path | N
     root = (repository_root or _repository_root()).resolve()
     store_path = provenance_path or (Path(gettempdir()) / f"semantic-layer-api-{uuid4()}.sqlite")
     agent = ClaimsInvestigationAgent(root, provenance_path=store_path)
-    application = FastAPI(title="Federated Semantic Layer", version="0.1.0")
+    application = FastAPI(
+        title="Federated Semantic Layer",
+        version="0.1.0",
+        description=(
+            "Local reference API. Caller role and country fields are simulated "
+            "request context, not authentication; production authentication "
+            "must be supplied by an identity-aware transport."
+        ),
+    )
     application.state.agent = agent
 
     def current_agent(request: Request) -> ClaimsInvestigationAgent:

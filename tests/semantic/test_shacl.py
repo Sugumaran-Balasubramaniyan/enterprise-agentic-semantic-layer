@@ -24,6 +24,19 @@ def test_valid_claim_graph_conforms_to_shacl_shapes() -> None:
     assert result.conforms is True
 
 
+def test_valid_graph_contains_relationship_links_and_country_context() -> None:
+    graph = Graph().parse(VALID_GRAPH, format="turtle")
+    insurance = Namespace("https://globalsure.example/insurance/")
+    customer = insurance["customer-FR-001"]
+    policy = insurance["policy-FR-001"]
+    claim = insurance["claim-FR-001"]
+
+    assert (customer, insurance.ownsPolicy, policy) in graph
+    assert (policy, insurance.submitsClaim, claim) in graph
+    assert (customer, insurance.countryCode, None) in graph
+    assert (policy, insurance.countryCode, None) in graph
+
+
 def test_shacl_validation_reports_fixture_paths() -> None:
     result = validate_graph(INVALID_GRAPH, SHAPES)
     assert result.data_path == INVALID_GRAPH

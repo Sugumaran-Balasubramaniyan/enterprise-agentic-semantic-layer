@@ -91,8 +91,9 @@ graphs; certified analytical products and compilers handle aggregation.
 
 Every successful answer carries a provenance envelope containing the question
 and plan digests, canonical concepts, metrics, selected products, mappings,
-physical CSV sources, semantic versions, authorization and quality outcomes,
-row count, timestamp, and integrity evidence. The API exposes the envelope at
+queried physical CSV sources separately from all quality-validated CSV sources,
+semantic versions, authorization and quality outcomes, row count, timestamp,
+and integrity evidence. The API exposes the envelope at
 `/provenance/{query_id}`. A local signing key can be configured for restart
 safe demo signatures; production should use an external KMS or signing
 service.

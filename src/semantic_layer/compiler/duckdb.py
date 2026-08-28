@@ -148,7 +148,7 @@ class DuckDBCompiler:
         if type(authorization) is not AuthorizationDecision:
             raise TypeError("authorization decision is required before compilation")
         if type(caller) is not CallerContext:
-            raise TypeError("compiler requires an authenticated caller context")
+            raise TypeError("compiler requires a validated caller context")
         if not authorization._matches(plan, caller, self.registry):
             raise ValueError("authorization decision does not match plan, caller, or reviewed assets")
         if not isinstance(question, str) or not question.strip():
@@ -201,16 +201,41 @@ ORDER BY customer.customer_id
         )
         lineage = LineageService(self.registry).for_plan(plan)
         versions.update(lineage.semantic_versions)
-        concepts = tuple(
-            dict.fromkeys(
-                [
-                    plan.root_entity,
-                    *plan.projected_dimensions,
-                    *(query_filter.concept_id for query_filter in plan.filters),
-                    *(predicate.metric_id for predicate in plan.metric_predicates),
-                ]
-            )
-        )
+        concepts_seen: set[str] = set()
+
+        def add_concept(concept_id: str) -> None:
+            if concept_id in self.registry.concepts:
+                concepts_seen.add(concept_id)
+
+        add_concept(plan.root_entity)
+        for concept_id in plan.projected_dimensions:
+            add_concept(concept_id)
+        for query_filter in plan.filters:
+            add_concept(query_filter.concept_id)
+            if isinstance(query_filter.value, str):
+                add_concept(query_filter.value)
+        for relationship in plan.relationships:
+            add_concept(relationship.source)
+            add_concept(relationship.target)
+        for predicate in plan.metric_predicates:
+            # Metric IDs are governed semantic references but are stored in a
+            # separate registry collection from vocabulary concepts.
+            concepts_seen.add(predicate.metric_id)
+            metric = self.registry.metrics.get(predicate.metric_id)
+            if metric is None:
+                continue
+            add_concept(metric.concept)
+            if metric.filter_rule:
+                add_concept(metric.filter_rule)
+                rule = self.registry.rules.get(metric.filter_rule)
+                if rule is not None:
+                    add_concept(rule.applies_to)
+            for dependency in metric.dependencies:
+                concepts_seen.add(dependency)
+                dependency_metric = self.registry.metrics.get(dependency)
+                if dependency_metric is not None:
+                    add_concept(dependency_metric.concept)
+        concepts = tuple(sorted(concepts_seen))
         query = object.__new__(CompiledQuery)
         payload = {
             "sql": sql,

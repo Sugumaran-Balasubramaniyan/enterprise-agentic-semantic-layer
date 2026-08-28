@@ -6,6 +6,7 @@ import pytest
 
 from semantic_layer.adapters.cloud import CloudAdapterConfigurationError, DatabricksAdapter
 from semantic_layer.compiler import DuckDBCompiler
+from semantic_layer.compiler.cloud_examples import documented_cloud_sql
 from semantic_layer.governance import authorize
 from semantic_layer.query_planner import build_plan
 from semantic_layer.registry import SemanticRegistry
@@ -54,3 +55,17 @@ def test_documented_cloud_adapter_fails_closed_without_configuration() -> None:
 
     with pytest.raises(CloudAdapterConfigurationError, match="credentials|configuration"):
         DatabricksAdapter().execute("SELECT 1")
+
+
+def test_cloud_sql_output_is_explicitly_an_incomplete_non_equivalent_fragment() -> None:
+    """A partial dialect sketch must not be mistaken for governed plan parity."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    authorization = authorize(plan, plan.caller, registry)
+    query = DuckDBCompiler(registry).compile(plan, authorization, plan.caller, PRIMARY_QUESTION)
+
+    example = documented_cloud_sql(query, "Databricks")
+
+    assert "INCOMPLETE" in example
+    assert "not equivalent" in example.lower()

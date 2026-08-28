@@ -50,6 +50,8 @@ def provenance_as_dict(provenance: Provenance) -> dict[str, object]:
         "result_digest",
         "source_digests",
         "local_sources",
+        "queried_sources",
+        "quality_validated_sources",
         "mapping_evidence",
         "concepts",
         "metric_ids",

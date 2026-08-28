@@ -130,3 +130,37 @@ Fresh verification after these changes:
 | `.venv/bin/ruff check .` | `All checks passed!` |
 | `.venv/bin/pytest -q` | `149 passed, 1 warning in 18.94s`; the warning is the existing third-party TestClient deprecation. |
 | `.venv/bin/python -m semantic_layer.evaluation` | `Golden evaluation: 31/31 cases passed` with `discovery_only=10/10`; executable variants were run rather than metadata-only checked. |
+
+## Important final-review findings (2026-08-28 UTC)
+
+The final-review follow-up is implemented in one focused change:
+
+- The local HTTP API and deterministic evaluation now label requester-supplied
+  roles as simulated caller context, explicitly not authentication. Governance
+  enforces role-specific maximum product classifications and denies unknown or
+  over-classified products with `CLASSIFICATION_DENIED`.
+- Primary provenance now records the complete plan/rule/metric semantic
+  closure, including Customer, Policy, MotorInsurance, Claim,
+  QualifyingClaim, IncurredLoss, ClaimCount, and TotalIncurredLoss. It also
+  separates the physical sources actually queried from all sources validated
+  by the quality gate.
+- HOME remains an intentionally unregistered extension: normalization and
+  quality validation reject it as governed, and the generated curated fixture
+  contains only registered products so its quality gate remains PASS.
+- Cloud SQL files and the cloud rendering helper are explicitly marked as
+  unexecuted, incomplete, and not equivalent to the governed plan. The valid
+  RDF fixture now includes Customer-to-Policy and Policy-to-Claim links plus
+  country context.
+
+Fresh verification for this follow-up:
+
+| Command | Observed result |
+| --- | --- |
+| `make PYTHON=./.venv/bin/python lint` | `All checks passed!` |
+| `make PYTHON=./.venv/bin/python validate-semantic` | Valid graph conforms; invalid graph fails as expected. |
+| `make PYTHON=./.venv/bin/python check-yaml` | `YAML: 11 files parsed` |
+| `make PYTHON=./.venv/bin/python check-mappings-quality` | `24 passed` |
+| `make PYTHON=./.venv/bin/python check-compiler` | `4 passed` |
+| `make PYTHON=./.venv/bin/python check-golden` | `13 passed` |
+| `make PYTHON=./.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed`; `discovery_only=10/10`. |
+| `make PYTHON=./.venv/bin/python test` | `158 passed, 1 warning`; the warning is the existing third-party TestClient deprecation. |

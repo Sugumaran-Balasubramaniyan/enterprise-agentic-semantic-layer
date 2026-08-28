@@ -238,11 +238,16 @@ class ProvenanceStore:
                 "result_digest": digest(tuple(execution)),
                 "source_digests": dict(execution.source_digests),
                 "local_sources": dict(execution.local_sources),
+                "queried_sources": dict(execution.queried_sources),
+                "quality_validated_sources": dict(execution.quality_validated_sources),
                 "mapping_evidence": dict(execution.mapping_evidence),
                 "concepts": tuple(execution.concepts),
                 "metric_ids": tuple(execution.metric_ids),
                 "data_products": list(execution.approved_products),
                 "mapping_ids": tuple(execution.mapping_ids),
+                # Preserve the established physical-source envelope for
+                # compatibility; the explicit source-role fields below make
+                # queried versus quality-validated scope unambiguous.
                 "physical_sources": tuple(execution.local_sources.values()),
                 "field_evidence": dict(execution.field_evidence),
                 "semantic_versions": dict(execution.semantic_versions),

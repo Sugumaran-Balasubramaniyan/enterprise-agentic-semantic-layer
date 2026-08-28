@@ -25,8 +25,10 @@ flowchart TB
 
 ## Request flow
 
-The public API accepts business language plus a caller context. It never
-accepts a SQL string and the agent has no arbitrary-SQL tool. The planner
+The local demo API accepts business language plus a caller context whose role
+and country are requester-supplied simulation fields, not authentication. A
+production transport must derive those attributes from an identity provider.
+The API never accepts a SQL string and the agent has no arbitrary-SQL tool. The planner
 emits `SemanticQueryPlan`, a Pydantic contract containing canonical concepts,
 relationships, filters, metric predicates, a time context, certified product
 IDs, caller context, and a target platform.
@@ -100,8 +102,9 @@ flowchart LR
 ```
 
 DuckDB is the fully implemented adapter and runs against deterministic
-synthetic CSVs. A production adapter would delegate authentication,
-row-level security, network policy, and audit to the native platform; the
+synthetic CSVs. A production adapter would delegate authentication (the local
+API does not authenticate callers), row-level security, network policy, and
+audit to the native platform; the
 semantic compiler must not bypass those controls.
 
 ## Cross-cutting controls

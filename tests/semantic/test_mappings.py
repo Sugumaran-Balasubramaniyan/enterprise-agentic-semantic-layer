@@ -49,6 +49,11 @@ def test_unknown_local_product_is_rejected() -> None:
         raise AssertionError("unknown local product must fail closed")
 
 
+def test_unregistered_home_extension_is_not_a_governed_product() -> None:
+    with pytest.raises(ValueError, match="HomeInsurance|unregistered"):
+        canonical_product("databricks", "HOME")
+
+
 @pytest.mark.parametrize("mapping_path", MAPPING_FILES)
 @pytest.mark.parametrize("product_path", PRODUCT_FILES)
 def test_each_platform_maps_every_certified_product_schema_field(

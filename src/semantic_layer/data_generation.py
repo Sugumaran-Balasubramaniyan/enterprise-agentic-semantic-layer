@@ -15,6 +15,7 @@ from pathlib import Path
 import yaml
 
 _CANONICAL_MOTOR = "insurance:MotorInsurance"
+_GOVERNED_PRODUCT_CONCEPTS = {_CANONICAL_MOTOR}
 _PLATFORM_DIRECTORIES = {
     "databricks": "databricks/france.yaml",
     "snowflake": "snowflake/united_kingdom.yaml",
@@ -45,7 +46,10 @@ def canonical_product(platform: str, value: str) -> str:
     products = document.get("normalization", {}).get("products", {})
     for local_value, canonical_value in products.items():
         if str(local_value).strip().casefold() == value_key:
-            return str(canonical_value)
+            canonical = str(canonical_value)
+            if canonical not in _GOVERNED_PRODUCT_CONCEPTS:
+                raise ValueError(f"unregistered governed product {canonical!r}")
+            return canonical
     raise ValueError(f"unmapped product {value!r} for platform {platform!r}")
 
 
@@ -75,7 +79,6 @@ def _records(as_of: date) -> dict[str, list[dict[str, object]]]:
         {"policy_id": "FR_POL_001", "customer_id": "FR_001", "country": "FR", "product": _CANONICAL_MOTOR, "policy_status": "ACTIVE", "effective_date": d(720), "expiry_date": d(-10), "annual_premium_eur": "1350.00"},
         {"policy_id": "FR_POL_002", "customer_id": "FR_001", "country": "FR", "product": _CANONICAL_MOTOR, "policy_status": "LAPSED", "effective_date": d(900), "expiry_date": d(400), "annual_premium_eur": "850.00"},
         {"policy_id": "FR_POL_003", "customer_id": "FR_002", "country": "FR", "product": _CANONICAL_MOTOR, "policy_status": "ACTIVE", "effective_date": d(500), "expiry_date": d(-40), "annual_premium_eur": "1490.00"},
-        {"policy_id": "FR_POL_004", "customer_id": "FR_003", "country": "FR", "product": "insurance:HomeInsurance", "policy_status": "ACTIVE", "effective_date": d(300), "expiry_date": d(-100), "annual_premium_eur": "620.00"},
         {"policy_id": "UK_POL_001", "customer_id": "UK_001", "country": "GB", "product": _CANONICAL_MOTOR, "policy_status": "ACTIVE", "effective_date": d(650), "expiry_date": d(-20), "annual_premium_eur": "1120.00"},
         {"policy_id": "DE_POL_001", "customer_id": "DE_001", "country": "DE", "product": _CANONICAL_MOTOR, "policy_status": "ACTIVE", "effective_date": d(600), "expiry_date": d(-30), "annual_premium_eur": "980.00"},
     ]
@@ -89,7 +92,6 @@ def _records(as_of: date) -> dict[str, list[dict[str, object]]]:
         {"claim_id": "FR_CLM_007", "policy_id": "FR_POL_003", "customer_id": "FR_002", "country": "FR", "product": _CANONICAL_MOTOR, "status": "OPEN", "claim_date": d(60), "incurred_loss_eur": "12000.00"},
         {"claim_id": "FR_CLM_008", "policy_id": "FR_POL_003", "customer_id": "FR_002", "country": "FR", "product": _CANONICAL_MOTOR, "status": "PENDING", "claim_date": d(160), "incurred_loss_eur": "11000.00"},
         {"claim_id": "FR_CLM_009", "policy_id": "FR_POL_003", "customer_id": "FR_002", "country": "FR", "product": _CANONICAL_MOTOR, "status": "SETTLED", "claim_date": d(240), "incurred_loss_eur": "2000.00"},
-        {"claim_id": "FR_CLM_010", "policy_id": "FR_POL_004", "customer_id": "FR_003", "country": "FR", "product": "insurance:HomeInsurance", "status": "OPEN", "claim_date": d(90), "incurred_loss_eur": "2500.00"},
         {"claim_id": "UK_CLM_001", "policy_id": "UK_POL_001", "customer_id": "UK_001", "country": "GB", "product": _CANONICAL_MOTOR, "status": "OPEN", "claim_date": d(75), "incurred_loss_eur": "4200.00"},
         {"claim_id": "DE_CLM_001", "policy_id": "DE_POL_001", "customer_id": "DE_001", "country": "DE", "product": _CANONICAL_MOTOR, "status": "SETTLED", "claim_date": d(180), "incurred_loss_eur": "7600.00"},
         {"claim_id": "DE_CLM_002", "policy_id": "DE_POL_001", "customer_id": "DE_001", "country": "DE", "product": _CANONICAL_MOTOR, "status": "CANCELLED", "claim_date": d(190), "incurred_loss_eur": "1800.00"},
@@ -97,7 +99,6 @@ def _records(as_of: date) -> dict[str, list[dict[str, object]]]:
     premiums = [
         {"premium_id": "FR_PREM_001", "policy_id": "FR_POL_001", "customer_id": "FR_001", "country": "FR", "product": _CANONICAL_MOTOR, "premium_date": d(20), "premium_eur": "1350.00"},
         {"premium_id": "FR_PREM_002", "policy_id": "FR_POL_003", "customer_id": "FR_002", "country": "FR", "product": _CANONICAL_MOTOR, "premium_date": d(20), "premium_eur": "1490.00"},
-        {"premium_id": "FR_PREM_003", "policy_id": "FR_POL_004", "customer_id": "FR_003", "country": "FR", "product": "insurance:HomeInsurance", "premium_date": d(20), "premium_eur": "620.00"},
         {"premium_id": "UK_PREM_001", "policy_id": "UK_POL_001", "customer_id": "UK_001", "country": "GB", "product": _CANONICAL_MOTOR, "premium_date": d(20), "premium_eur": "1120.00"},
         {"premium_id": "DE_PREM_001", "policy_id": "DE_POL_001", "customer_id": "DE_001", "country": "DE", "product": _CANONICAL_MOTOR, "premium_date": d(20), "premium_eur": "980.00"},
     ]

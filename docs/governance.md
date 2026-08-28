@@ -17,10 +17,13 @@ classification, quality checks, and lineage.
 
 ## Authorization
 
-The demo roles are `ClaimsAnalystFR`, `ClaimsManagerGroup`, `FinanceAnalyst`,
-and `AgentService`. Authorization evaluates role, country, purpose, and
-classification. A French claims analyst is scoped to French claims; Finance
-can use premium metrics without customer PII; an unknown role is denied.
+The local API's role and country fields are simulated caller context, not
+authentication. A production identity-aware transport must supply authenticated
+attributes before invoking this policy. The demo roles are
+`ClaimsAnalystFR`, `ClaimsManagerGroup`, and `FinanceAnalyst`. Authorization
+evaluates role, country, purpose, product classification, and derived PII. A
+French claims analyst is scoped to French claims; Finance can use premium
+metrics without customer PII; an unknown or over-classified role is denied.
 Quality or authorization failures are fail-closed and return a reason code.
 
 ## Data quality
@@ -36,8 +39,9 @@ response and provenance.
 
 Static lineage describes source-to-product-to-metric transformations in the
 product and mapping contracts. Dynamic provenance records a query ID, question
-digest, canonical concepts, metric IDs, product and mapping IDs, physical
-sources, semantic versions, caller and authorization outcome, quality outcome,
+digest, canonical concepts, metric IDs, product and mapping IDs, queried
+sources separately from quality-validated sources, semantic versions, caller
+and authorization outcome, quality outcome,
 row count, timestamps, and integrity digests. The provenance API can retrieve
 the record after execution.
 

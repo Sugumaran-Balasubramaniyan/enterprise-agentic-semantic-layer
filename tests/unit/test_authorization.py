@@ -62,6 +62,19 @@ def test_unknown_role_is_denied_by_default() -> None:
     assert decision.reason_code == "ROLE_DENIED"
 
 
+def test_unrecognized_product_classification_is_denied_by_default() -> None:
+    """Role/product allowlists must not bypass the advertised classification policy."""
+
+    registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
+    plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
+    registry.products["ClaimsAnalytics"].classification = "TopSecret"
+
+    decision = authorize(plan, plan.caller, registry)
+
+    assert decision.allowed is False
+    assert decision.reason_code == "CLASSIFICATION_DENIED"
+
+
 @pytest.mark.parametrize("quality_status", ["DEGRADED", "UNSAFE"])
 def test_non_healthy_product_quality_denies_authorization(quality_status: str) -> None:
     """Product certification cannot authorize a product whose quality is unsafe."""

@@ -43,6 +43,9 @@ insurance:policyProduct a owl:ObjectProperty ;
     rdfs:subPropertyOf insurance:hasProduct ;
     rdfs:domain insurance:Policy ; rdfs:range insurance:InsuranceProduct .
 
+insurance:countryCode a owl:DatatypeProperty ;
+    rdfs:domain insurance:Customer, insurance:Policy ; rdfs:range xsd:string .
+
 insurance:customerId a owl:DatatypeProperty ; rdfs:domain insurance:Customer ; rdfs:range xsd:string .
 insurance:policyId a owl:DatatypeProperty ; rdfs:domain insurance:Policy ; rdfs:range xsd:string .
 insurance:claimId a owl:DatatypeProperty ; rdfs:domain insurance:Claim ; rdfs:range xsd:string .

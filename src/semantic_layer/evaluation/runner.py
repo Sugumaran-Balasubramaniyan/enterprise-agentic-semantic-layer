@@ -442,7 +442,7 @@ def _evaluate_case(
                 actual_answer = agent.answer(
                     case.question,
                     # The agent's planner derives the country from the question. For the
-                    # golden suite the role is the authenticated identity boundary.
+                    # The golden suite uses a simulated caller role as its identity boundary.
                     agent.tools.discover(case.question, _caller_for_case(case, discovery)).caller,
                 )
                 answer = list(actual_answer.rows)
@@ -491,7 +491,7 @@ def _evaluate_case(
 
 
 def _caller_for_case(case: GoldenCase, discovery: QueryDiscovery | None):
-    """Build the authenticated caller context used by a deterministic answer case."""
+    """Build the simulated caller context used by a deterministic answer case."""
 
     if discovery is not None:
         return discovery.caller

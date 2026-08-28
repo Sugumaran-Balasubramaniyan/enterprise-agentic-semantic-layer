@@ -106,11 +106,11 @@ The `SemanticQueryPlan` Pydantic model contains root entity, projected dimension
 
 `generate_demo_data.py` produces deterministic CSV files for FR, UK, and DE with a fixed seed and an explicit as-of date. Curated data is used for the normal demo; raw data includes deliberately invalid/future/duplicate samples to exercise quality checks. At least several French customers satisfy the primary use case.
 
-DuckDB registers curated CSV data as views. Compiler output uses a fixed, trusted query template controlled by mappings and plan validation rather than interpolating free-form model input. Equivalent Databricks, Snowflake, and Fabric SQL examples are generated for documentation but not executed.
+DuckDB registers curated CSV data as views. Compiler output uses a fixed, trusted query template controlled by mappings and plan validation rather than interpolating free-form model input. Incomplete Databricks, Snowflake, and Fabric SQL fragments may be shown for documentation, but they are not equivalent to the governed plan and are not executed.
 
 ## Governance, Quality, Lineage, and Provenance
 
-Roles are ClaimsAnalystFR, ClaimsManagerGroup, FinanceAnalyst, and AgentService. Authorization combines role permissions with country and classification attributes. A ClaimsAnalystFR can retrieve French claim records only; FinanceAnalyst can access premium metrics but not customer PII.
+Roles are ClaimsAnalystFR, ClaimsManagerGroup, and FinanceAnalyst. The local API supplies these as simulated caller fields; production identity-aware transports must authenticate callers before invoking authorization. Authorization combines role permissions with country and classification attributes. A ClaimsAnalystFR can retrieve French claim records only; FinanceAnalyst can access premium metrics but not customer PII.
 
 Quality checks enforce non-null IDs, non-negative incurred amount, non-future claim date, valid statuses/countries, and valid product mappings. Product quality status is surfaced to the agent; unsafe/degraded product status blocks detail queries. Static product lineage and dynamic query lineage form a provenance envelope containing query id, user question, concepts, metrics, products, mappings, physical sources, semantic versions, timestamps, authorization outcome, and quality outcome.
 

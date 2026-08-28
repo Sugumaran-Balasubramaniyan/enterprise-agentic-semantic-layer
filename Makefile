@@ -6,7 +6,7 @@ setup:
 test:
 	$(PYTHON) -m pytest
 lint:
-	ruff check .
+	$(PYTHON) -m ruff check .
 validate-semantic:
 	$(PYTHON) -m semantic_layer.validation
 check-yaml:

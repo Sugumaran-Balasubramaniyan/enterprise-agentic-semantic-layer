@@ -48,6 +48,14 @@ def test_public_catalog_and_request_endpoints_are_thin_governed_adapters(client:
     assert client.post("/validate", json={}).json()["status"] == "PASS"
 
 
+def test_api_documents_caller_role_as_simulation_not_authentication(client: TestClient) -> None:
+    """The local transport must not imply that a user-supplied role is identity proof."""
+
+    description = client.get("/openapi.json").json()["info"]["description"]
+    assert "simulated" in description.lower()
+    assert "authentication" in description.lower()
+
+
 def test_execute_endpoint_does_not_execute_for_an_unknown_role(client: TestClient) -> None:
     """Changing a transport error into an execution response would bypass authorization."""
 

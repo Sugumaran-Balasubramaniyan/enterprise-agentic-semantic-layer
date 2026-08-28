@@ -13,6 +13,32 @@ _ROLE_PRODUCTS = {
     "ClaimsManagerGroup": {"Customer360", "PolicyMaster", "ClaimsAnalytics"},
     "FinanceAnalyst": {"PremiumAnalytics"},
 }
+_CLASSIFICATION_RANK = {"Public": 0, "Internal": 1, "Confidential": 2, "Restricted": 3}
+_ROLE_MAX_CLASSIFICATION = {
+    "ClaimsAnalystFR": "Restricted",
+    "ClaimsManagerGroup": "Restricted",
+    "FinanceAnalyst": "Confidential",
+}
+
+
+def _classification_denial(role: str, product_ids: set[str], registry: SemanticRegistry) -> str | None:
+    """Return a denial reason when selected products exceed the role policy."""
+
+    maximum = _ROLE_MAX_CLASSIFICATION.get(role)
+    if maximum is None:
+        return None
+    maximum_rank = _CLASSIFICATION_RANK[maximum]
+    for product_id in sorted(product_ids):
+        product = registry.products.get(product_id)
+        if product is None:
+            continue
+        rank = _CLASSIFICATION_RANK.get(product.classification)
+        if rank is None or rank > maximum_rank:
+            return (
+                f"product {product_id} classification {product.classification!r} "
+                f"exceeds {role} policy maximum {maximum}"
+            )
+    return None
 class AuthorizationDecision:
     """Opaque authorization capability issued only by :func:`authorize`."""
 
@@ -186,13 +212,22 @@ def authorize_discovery(
         return issue(
             allowed=False,
             reason_code="CALLER_CONTEXT_MISMATCH",
-            message="discovery caller does not match authenticated caller",
+            message="discovery caller does not match supplied caller context",
         )
     if not set(discovery.selected_products).issubset(allowed_products):
         return issue(
             allowed=False,
             reason_code="PRODUCT_DENIED",
             message="role cannot access one or more selected data products",
+        )
+    classification_denial = _classification_denial(
+        caller.role, set(discovery.selected_products), registry
+    )
+    if classification_denial is not None:
+        return issue(
+            allowed=False,
+            reason_code="CLASSIFICATION_DENIED",
+            message=classification_denial,
         )
     for product_id in discovery.selected_products:
         product = registry.products.get(product_id)
@@ -242,7 +277,7 @@ def authorize(
     """Issue an authorization capability for exactly one plan/caller/asset context."""
 
     if type(plan) is not SemanticQueryPlan or type(caller) is not CallerContext:
-        raise TypeError("authorization requires validated plan and authenticated caller contexts")
+        raise TypeError("authorization requires validated plan and caller contexts")
     if type(registry) is not SemanticRegistry:
         raise TypeError("authorization requires the repository-issued semantic registry")
 
@@ -272,13 +307,20 @@ def authorize(
         return issue(
             allowed=False,
             reason_code="CALLER_CONTEXT_MISMATCH",
-            message="plan caller does not match the authenticated caller context",
+            message="plan caller does not match the supplied caller context",
         )
     if not set(plan.selected_products).issubset(allowed_products):
         return issue(
             allowed=False,
             reason_code="PRODUCT_DENIED",
             message="role cannot access one or more selected data products",
+        )
+    classification_denial = _classification_denial(caller.role, set(plan.selected_products), registry)
+    if classification_denial is not None:
+        return issue(
+            allowed=False,
+            reason_code="CLASSIFICATION_DENIED",
+            message=classification_denial,
         )
     for product_id in plan.selected_products:
         product = registry.products.get(product_id)
@@ -294,7 +336,7 @@ def authorize(
         return issue(
             allowed=False,
             reason_code="COUNTRY_SCOPE_DENIED",
-            message="plan country scope does not match the authenticated caller",
+            message="plan country scope does not match the supplied caller context",
         )
     if caller.role == "ClaimsAnalystFR" and countries != {"FR"}:
         return issue(

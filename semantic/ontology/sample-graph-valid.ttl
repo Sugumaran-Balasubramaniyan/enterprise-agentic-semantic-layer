@@ -4,11 +4,15 @@
 
 insurance:SampleGraphValid a owl:Ontology ; owl:versionInfo "1.0.0" .
 insurance:customer-FR-001 a insurance:Customer ;
-    insurance:customerId "FR_001" .
+    insurance:customerId "FR_001" ;
+    insurance:countryCode "FR" ;
+    insurance:ownsPolicy insurance:policy-FR-001 .
 insurance:policy-FR-001 a insurance:Policy ;
     insurance:policyId "FR_POL_001" ;
+    insurance:countryCode "FR" ;
     insurance:policyProduct insurance:MotorInsurance ;
-    insurance:policyStatus "ACTIVE" .
+    insurance:policyStatus "ACTIVE" ;
+    insurance:submitsClaim insurance:claim-FR-001 .
 insurance:MotorInsurance a insurance:MotorInsurance, insurance:InsuranceProduct .
 insurance:claim-FR-001 a insurance:Claim ;
     insurance:claimId "FR_CLM_001" ;
