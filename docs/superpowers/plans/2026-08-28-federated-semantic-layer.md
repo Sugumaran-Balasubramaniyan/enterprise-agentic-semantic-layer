@@ -33,7 +33,7 @@
 | `src/semantic_layer/{registry,resolver,query_planner,compiler,adapters}` | Semantic control and execution path |
 | `src/semantic_layer/{governance,quality,lineage,provenance,agents,api}` | Controls, traceability, orchestration and transport |
 | `tests/` | Unit, semantic, integration and golden contracts |
-| `docs/`, `README.md` | Architecture, governance, production evolution and interview narrative |
+| `docs/`, `README.md` | Architecture, governance, production evolution and operational walkthrough |
 
 ### Task 1: Bootstrap the local project and test harness
 
@@ -351,24 +351,24 @@ git commit -m "test: add golden semantic evaluation suite"
 ### Task 8: Finish production-oriented documentation, diagrams and ADRs
 
 **Files:**
-- Create: `docs/architecture.md`, `docs/agent-architecture.md`, `docs/governance.md`, `docs/implementation-plan.md`, `docs/interview-demo-guide.md`, `docs/decisions/ADR-001-canonical-group-model.md`, `docs/decisions/ADR-002-semantic-assets-in-git.md`, `docs/decisions/ADR-003-ontology-runtime-boundary.md`, `docs/decisions/ADR-004-typed-query-plans.md`, `docs/decisions/ADR-005-platform-compilation-boundary.md`, `docs/decisions/ADR-006-duckdb-local-demo.md`, `docs/decisions/ADR-007-deterministic-core.md`, `docs/decisions/ADR-008-certified-data-products.md`
+- Create: `docs/architecture.md`, `docs/agent-architecture.md`, `docs/governance.md`, `docs/implementation-plan.md`, `docs/decisions/ADR-001-canonical-group-model.md`, `docs/decisions/ADR-002-semantic-assets-in-git.md`, `docs/decisions/ADR-003-ontology-runtime-boundary.md`, `docs/decisions/ADR-004-typed-query-plans.md`, `docs/decisions/ADR-005-platform-compilation-boundary.md`, `docs/decisions/ADR-006-duckdb-local-demo.md`, `docs/decisions/ADR-007-deterministic-core.md`, `docs/decisions/ADR-008-certified-data-products.md`
 - Modify: `README.md`, `docs/data-products.md`, `docs/federated-semantics.md`, `docs/ontology.md`, `docs/semantic-layer.md`
 
 **Interfaces:**
-- Produces a complete README with verified commands and a demo guide with 30-second, 2-minute, 5-minute and 10-minute narratives.
+- Produces a complete README with verified commands and a local system walkthrough.
 
 - [ ] **Step 1: Write failing documentation contract tests**
 
-```python
-def test_readme_contains_required_interview_sections() -> None:
+~~~~python
+def test_readme_contains_required_system_sections() -> None:
     readme = Path("README.md").read_text()
-    for heading in ["5-minute interview demo", "Architecture", "How to run", "Provenance"]:
+    for heading in ["System walkthrough", "Architecture", "How to run", "Provenance"]:
         assert heading in readme
 
 def test_architecture_docs_contain_six_mermaid_diagrams() -> None:
-    diagrams = sum(path.read_text().count("```mermaid") for path in Path("docs").rglob("*.md"))
+    diagrams = sum(path.read_text().count("\\`\\`\\`mermaid") for path in Path("docs").rglob("*.md"))
     assert diagrams >= 6
-```
+~~~~
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -382,7 +382,7 @@ Document what is implemented, simulated, and production extension separately. Ad
 
 - [ ] **Step 4: Run documentation tests and link/diagram fence checks**
 
-Run: `python -m pytest tests/unit/test_documentation_contract.py -q && rg -n '```mermaid|```' README.md docs`
+Run: `python -m pytest tests/unit/test_documentation_contract.py -q && rg -n '\\`\\`\\`mermaid|\\`\\`\\`' README.md docs`
 
 Expected: PASS and all Mermaid fences are balanced.
 
@@ -390,7 +390,7 @@ Expected: PASS and all Mermaid fences are balanced.
 
 ```bash
 git add README.md docs tests/unit/test_documentation_contract.py
-git commit -m "docs: add interview guide architecture and ADRs"
+git commit -m "docs: add system walkthrough architecture and ADRs"
 ```
 
 ### Task 9: Run final verification, security checks and prepare publication handoff
@@ -438,7 +438,7 @@ Expected: identify whether safe public repository creation/push can be offered; 
 
 ## Plan Self-Review
 
-Coverage: Tasks 1–2 cover project foundation and semantic/SHACL assets; Task 3 covers data, products, metrics and federation; Tasks 4–6 cover the full controlled runtime and API; Task 7 covers golden evaluation/CI; Task 8 covers architecture, ADRs and interview narrative; Task 9 covers evidence and publication handoff. No production feature is left without an owner task.
+Coverage: Tasks 1–2 cover project foundation and semantic/SHACL assets; Task 3 covers data, products, metrics and federation; Tasks 4–6 cover the full controlled runtime and API; Task 7 covers golden evaluation/CI; Task 8 covers architecture, ADRs and operational narrative; Task 9 covers evidence and publication handoff. No production feature is left without an owner task.
 
 Consistency: all runtime tasks consume `SemanticRegistry`, `SemanticQueryPlan`, approved mappings and `CallerContext`; no task introduces direct model-to-SQL execution. Tests are placed before their corresponding production behavior.
 

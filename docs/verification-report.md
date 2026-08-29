@@ -235,3 +235,74 @@ Fresh matrix after these changes:
 | `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB demonstration and returned FR_001/FR_002. |
 | `git diff --check` | Exit status 0 with no whitespace errors reported. |
 | scoped credential-pattern scan | Exit status 0; eight benign source-code identifier matches, with no credential values. |
+
+## GitHub publication integrity validation (2026-08-29 UTC)
+
+This documentation follow-up rechecked the public handbook, its navigation,
+and every Mermaid block in `README.md` and `docs/`. The documentation contract
+now verifies balanced Markdown fences, a closing fence for each Mermaid block,
+the absence of literal `\\n` labels and non-self-closing `<br>` labels, local
+relative-link targets and anchors, and obsolete audience-specific wording.
+The current 13 Mermaid blocks use GitHub-compatible syntax; the two
+multi-line flowchart labels use explicit `<br/>` markup.
+
+| Command | Observed result |
+| --- | --- |
+| `.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q` | `17 passed` |
+| Markdown/Mermaid static scan | All tracked Markdown fences were balanced; all README/docs Mermaid blocks closed; no literal `\\n` or `<br>` labels were found. |
+| local-link and stale-reference scan | Documentation-contract link and stale-reference checks passed; no prohibited legacy audience-specific references were found in published Markdown. |
+| `make PYTHON=.venv/bin/python lint` | `All checks passed!` |
+| `make PYTHON=.venv/bin/python validate-semantic` | Valid graph conformed and the invalid graph failed as expected. |
+| `make PYTHON=.venv/bin/python check-yaml` | `YAML: 11 files parsed` |
+| `make PYTHON=.venv/bin/python check-mappings-quality` | `42 passed` |
+| `make PYTHON=.venv/bin/python check-golden` | `13 passed` |
+| `make PYTHON=.venv/bin/python check-compiler` | `4 passed` |
+| `make PYTHON=.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed`; `discovery_only=10/10`. |
+| `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB demonstration and returned `FR_001` and `FR_002`. |
+| `make PYTHON=.venv/bin/python test` | `205 passed, 1 warning`; the warning is the existing third-party TestClient deprecation. |
+| `git diff --check` | Exit status 0 with no whitespace errors. |
+
+No local Mermaid CLI was installed: `npx --no-install @mermaid-js/mermaid-cli
+--version` correctly declined to download a missing package. The static
+contract and direct source scan therefore provide the rendering evidence for
+this environment; GitHub remains the final renderer for Markdown previews.
+
+## Documentation fence validator follow-up (2026-08-29 UTC)
+
+This focused follow-up closes the Task 8 review finding against
+`tests/unit/test_documentation_contract.py` by replacing the prior
+regex-only fence checks with a stateful Markdown fence parser. The
+documentation contract now accepts both backtick and tilde fences of length
+three or greater, requires the closing fence to use the same character with a
+length at least as long as the opener, and recognizes Mermaid blocks even
+when they use four-or-more backticks. Two regression tests cover tilde-fenced
+blocks and four-backtick Mermaid blocks. The stronger validator also exposed
+one unmatched tracked fence sequence in
+`.superpowers/sdd/2026-08-28-federated-semantic-layer/task-8-report.md`,
+which was repaired without changing README or published docs content.
+
+| Command | Observed result |
+| --- | --- |
+| `./.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q -k 'tilde or mismatched_or_short or four_backtick or mermaid_fences_are_balanced or mermaid_fences_close'` | `5 passed, 15 deselected in 0.61s` |
+| `./.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q` | `20 passed in 2.20s` |
+| `./.venv/bin/ruff check .` | `All checks passed!` |
+| `./.venv/bin/pytest -q` | `208 passed, 1 warning in 19.81s`; the warning is the existing third-party Starlette/httpx deprecation. |
+| `git diff --check` | Exit status 0 with no whitespace errors. |
+
+## README verification-count re-review follow-up (2026-08-29 UTC)
+
+This re-review closes the remaining documentation consistency gap after the
+fence-validator change. `docs/verification-report.md` already recorded the
+latest local suite result as `208 passed`, but `README.md` and its
+documentation-contract assertion still referenced the prior `205 passed`
+snapshot. The README verification summary and capability matrix now point to
+the latest `208 passed` evidence while leaving older counts in this report as
+date-labeled historical records only.
+
+| Command | Observed result |
+| --- | --- |
+| `./.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q -k latest_evidence` | `1 passed, 19 deselected in 0.62s` |
+| `./.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q` | `20 passed in 2.22s` |
+| `./.venv/bin/ruff check .` | `All checks passed!` |
+| `./.venv/bin/pytest -q` | `208 passed, 1 warning in 19.66s`; the warning is the existing third-party Starlette/httpx deprecation. |
+| `git diff --check` | Exit status 0 with no whitespace errors. |

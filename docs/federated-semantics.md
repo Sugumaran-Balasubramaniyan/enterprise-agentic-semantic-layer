@@ -24,9 +24,9 @@ and cancelled values normalize to `LAPSED` and `CANCELLED` respectively.
 
 ```mermaid
 flowchart LR
-    FR[France / Databricks\nMTR or MOTOR] -->|certified mapping| C[insurance:MotorInsurance]
-    UK[UK / Snowflake\nCAR or AUTO] -->|certified mapping| C
-    DE[Germany / Fabric\nMotorInsurance] -->|certified mapping| C
+    FR[France / Databricks<br/>MTR or MOTOR] -->|certified mapping| C[insurance:MotorInsurance]
+    UK[UK / Snowflake<br/>CAR or AUTO] -->|certified mapping| C
+    DE[Germany / Fabric<br/>MotorInsurance] -->|certified mapping| C
     C --> M[Governed metrics and query plans]
 ```
 

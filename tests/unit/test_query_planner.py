@@ -35,7 +35,8 @@ def test_primary_question_produces_typed_governed_plan() -> None:
     assert plan.caller.role == "ClaimsAnalystFR"
     assert [(path.source, path.target) for path in plan.relationships] == [
         ("insurance:Customer", "insurance:Policy"),
-        ("insurance:Policy", "insurance:Claim"),
+        ("insurance:Customer", "insurance:Claim"),
+        ("insurance:Claim", "insurance:Policy"),
     ]
 
 

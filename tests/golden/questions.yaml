@@ -8,7 +8,8 @@ questions:
       concepts: [insurance:Claim, insurance:Customer, insurance:IncurredLoss, insurance:MotorInsurance, insurance:QualifyingClaim]
       relationships:
         - insurance:Customer|insurance:ownsPolicy|insurance:Policy
-        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+        - insurance:Customer|insurance:submitsClaim|insurance:Claim
+        - insurance:Claim|insurance:relatesToPolicy|insurance:Policy
       products: [Customer360, PolicyMaster, ClaimsAnalytics]
       metrics: [insurance:ClaimCount, insurance:TotalIncurredLoss]
       authorization: {allowed: true, reason_code: ALLOWED}
@@ -166,7 +167,8 @@ questions:
       concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
       relationships:
         - insurance:Customer|insurance:ownsPolicy|insurance:Policy
-        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+        - insurance:Customer|insurance:submitsClaim|insurance:Claim
+        - insurance:Claim|insurance:relatesToPolicy|insurance:Policy
       products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
       metrics: [insurance:ClaimsRatio]
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
@@ -198,7 +200,8 @@ questions:
       concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
       relationships:
         - insurance:Customer|insurance:ownsPolicy|insurance:Policy
-        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+        - insurance:Customer|insurance:submitsClaim|insurance:Claim
+        - insurance:Claim|insurance:relatesToPolicy|insurance:Policy
       products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
       metrics: [insurance:ClaimsRatio]
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
@@ -210,7 +213,8 @@ questions:
       concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
       relationships:
         - insurance:Customer|insurance:ownsPolicy|insurance:Policy
-        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+        - insurance:Customer|insurance:submitsClaim|insurance:Claim
+        - insurance:Claim|insurance:relatesToPolicy|insurance:Policy
       products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
       metrics: [insurance:ClaimsRatio]
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
@@ -232,7 +236,8 @@ questions:
       concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
       relationships:
         - insurance:Customer|insurance:ownsPolicy|insurance:Policy
-        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+        - insurance:Customer|insurance:submitsClaim|insurance:Claim
+        - insurance:Claim|insurance:relatesToPolicy|insurance:Policy
       products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
       metrics: [insurance:ClaimsRatio]
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
@@ -254,7 +259,8 @@ questions:
       concepts: [insurance:Claim, insurance:Customer, insurance:MotorInsurance]
       relationships:
         - insurance:Customer|insurance:ownsPolicy|insurance:Policy
-        - insurance:Policy|insurance:submitsClaim|insurance:Claim
+        - insurance:Customer|insurance:submitsClaim|insurance:Claim
+        - insurance:Claim|insurance:relatesToPolicy|insurance:Policy
       products: [Customer360, PolicyMaster, ClaimsAnalytics, PremiumAnalytics]
       metrics: [insurance:ClaimsRatio]
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}

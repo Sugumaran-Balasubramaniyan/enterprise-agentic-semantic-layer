@@ -18,6 +18,9 @@ concepts:
       - predicate: "insurance:ownsPolicy"
         target: "insurance:Policy"
         description: "A customer owns one or more policies."
+      - predicate: "insurance:submitsClaim"
+        target: "insurance:Claim"
+        description: "A customer submits one or more claims."
     examples: ["FR_001", "UK_001"]
   - id: "insurance:Policy"
     name: "Policy"
@@ -34,8 +37,10 @@ concepts:
     relationships:
       - predicate: "insurance:hasProduct"
         target: "insurance:InsuranceProduct"
-      - predicate: "insurance:submitsClaim"
-        target: "insurance:Claim"
+      - predicate: "insurance:coversRisk"
+        target: "insurance:Risk"
+      - predicate: "insurance:hasCoverage"
+        target: "insurance:Coverage"
     allowed_values: ["ACTIVE", "LAPSED", "CANCELLED"]
     examples: ["FR_POL_001"]
   - id: "insurance:Claim"
@@ -70,11 +75,7 @@ concepts:
     classification: "Internal"
     sensitivity:
       classification: "Public"
-    relationships:
-      - predicate: "insurance:coversRisk"
-        target: "insurance:Risk"
-      - predicate: "insurance:hasCoverage"
-        target: "insurance:Coverage"
+    relationships: []
     examples: ["insurance:MotorInsurance"]
   - id: "insurance:MotorInsurance"
     name: "Motor Insurance"

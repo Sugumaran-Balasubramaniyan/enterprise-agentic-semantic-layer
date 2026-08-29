@@ -2,8 +2,9 @@
 
 ## Status
 
-Complete. Task 8 documentation, architecture diagrams, interview guide,
-ADRs, and documentation contract tests are included in this worktree.
+Complete. Task 8 documentation, architecture diagrams, a local system
+walkthrough, ADRs, and documentation contract tests are included in this
+worktree.
 
 ## Deliverables
 
@@ -18,15 +19,15 @@ ADRs, and documentation contract tests are included in this worktree.
   provenance, and security controls.
 - Added `docs/implementation-plan.md` with implemented phases and 30/60/90-day
   production evolution plus CI lifecycle diagram.
-- Added `docs/interview-demo-guide.md` with 30-second, 2-minute, 5-minute, and
-  10-minute narratives and runnable demo/API commands.
+- Added an initial local system walkthrough with phased narratives and runnable
+  demo/API commands; it was subsequently consolidated into the README.
 - Added ADR-001 through ADR-008 under `docs/decisions/`, each with context,
   decision, alternatives, and consequences.
 - Extended existing data-product, federation, ontology, and semantic-layer
   docs with governance and boundary links.
 - Added `tests/unit/test_documentation_contract.py` covering required sections,
   six Mermaid diagrams, all documentation/ADR files, balanced published code
-  fences, and interview timeboxes/cloud honesty boundary.
+  fences, and system-walkthrough timing/cloud honesty boundary.
 
 ## Verification evidence
 
@@ -104,7 +105,7 @@ make PYTHON=.venv/bin/python demo
 ```
 
 The documentation contract was strengthened to require those setup/demo
-commands in both README and interview guide, reject bare `make demo` command
+commands in both README and the system walkthrough, reject bare `make demo` command
 lines, and verify `## Context`, `## Decision`, `## Alternatives`, and
 `## Consequences` in every ADR-001 through ADR-008.
 
@@ -114,6 +115,7 @@ Fresh remediation verification:
 python -m pytest tests/unit/test_documentation_contract.py -q
 .......                                                                  [100%]
 7 passed in 0.03s
+```
 
 The post-fix full matrix used the documented repository-local interpreter:
 
@@ -139,4 +141,3 @@ RESULT: FR_001/FR/3/24000.0 and FR_002/FR/3/25000.0
 The additional ADR/runnable-command assertions account for the increase from
 136 to 138 total tests. The sole warning remains the pre-existing
 Starlette/httpx deprecation notice.
-```

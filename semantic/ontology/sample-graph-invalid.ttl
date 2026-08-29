@@ -5,11 +5,11 @@
 insurance:SampleGraphInvalid a owl:Ontology ; owl:versionInfo "1.0.0" .
 insurance:policy-FR-BAD a insurance:Policy ;
     insurance:policyId "FR_POL_BAD" ;
-    insurance:policyProduct insurance:MotorInsurance ;
+    insurance:hasProduct insurance:MotorInsurance ;
     insurance:policyStatus "ACTIVE" .
 insurance:MotorInsurance a insurance:MotorInsurance, insurance:InsuranceProduct .
 insurance:claim-FR-BAD a insurance:Claim ;
     insurance:claimId "FR_CLM_BAD" ;
     insurance:claimStatus "OPEN" ;
-    insurance:claimPolicy insurance:policy-FR-BAD ;
+    insurance:relatesToPolicy insurance:policy-FR-BAD ;
     insurance:incurredLoss "-10.00"^^xsd:decimal .

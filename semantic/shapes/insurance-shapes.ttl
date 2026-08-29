@@ -11,11 +11,11 @@ insurance:ClaimShape a sh:NodeShape ;
     sh:property [ sh:path insurance:claimId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path insurance:claimDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
     sh:property [ sh:path insurance:claimStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "OPEN" "PENDING" "SETTLED" "CANCELLED" "DUPLICATE" ) ] ;
-    sh:property [ sh:path insurance:claimPolicy ; sh:minCount 1 ; sh:maxCount 1 ; sh:class insurance:Policy ] ;
+    sh:property [ sh:path insurance:relatesToPolicy ; sh:minCount 1 ; sh:maxCount 1 ; sh:class insurance:Policy ] ;
     sh:property [ sh:path insurance:incurredLoss ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] .
 
 insurance:PolicyShape a sh:NodeShape ;
     sh:targetClass insurance:Policy ;
     sh:property [ sh:path insurance:policyId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
-    sh:property [ sh:path insurance:policyProduct ; sh:minCount 1 ; sh:maxCount 1 ; sh:class insurance:InsuranceProduct ] ;
+    sh:property [ sh:path insurance:hasProduct ; sh:minCount 1 ; sh:maxCount 1 ; sh:class insurance:InsuranceProduct ] ;
     sh:property [ sh:path insurance:policyStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "ACTIVE" "LAPSED" "CANCELLED" ) ] .

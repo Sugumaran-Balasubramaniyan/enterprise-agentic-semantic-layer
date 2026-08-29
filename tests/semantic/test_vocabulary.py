@@ -79,3 +79,23 @@ def test_claim_relationships_use_canonical_object_targets() -> None:
     relationships = {relationship.predicate: relationship.target for relationship in claim.relationships}
     assert relationships["insurance:hasClaimStatus"] == "insurance:ClaimStatus"
     assert relationships["insurance:hasIncurredLoss"] == "insurance:IncurredLoss"
+
+
+def test_vocabulary_declares_canonical_customer_claim_and_policy_coverage_edges() -> None:
+    """The vocabulary must express the Group relationship contract used by OWL and plans."""
+
+    concepts = {concept.id: concept for concept in load_vocabulary(VOCABULARY)}
+    customer_edges = {
+        relationship.predicate: relationship.target
+        for relationship in concepts["insurance:Customer"].relationships
+    }
+    policy_edges = {
+        relationship.predicate: relationship.target
+        for relationship in concepts["insurance:Policy"].relationships
+    }
+
+    assert customer_edges["insurance:ownsPolicy"] == "insurance:Policy"
+    assert customer_edges["insurance:submitsClaim"] == "insurance:Claim"
+    assert policy_edges["insurance:hasProduct"] == "insurance:InsuranceProduct"
+    assert policy_edges["insurance:coversRisk"] == "insurance:Risk"
+    assert policy_edges["insurance:hasCoverage"] == "insurance:Coverage"

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Build an interview-ready, locally runnable reference implementation for **GlobalSure Insurance Group**, a fictional federated insurer operating in France, the United Kingdom, and Germany. The repository demonstrates a central principle: the semantic layer is the governed, machine-readable contract between business concepts, certified data products, and AI agents. It does not use AXA data or require paid cloud accounts.
+Build a locally runnable reference implementation for **GlobalSure Insurance Group**, a fictional federated insurer operating in France, the United Kingdom, and Germany. The repository demonstrates a central principle: the semantic layer is the governed, machine-readable contract between business concepts, certified data products, and AI agents. It does not use AXA data or require paid cloud accounts.
 
 ## Scope and Success Definition
 
@@ -137,4 +137,4 @@ Semantic versioning is explicit. Patch changes correct metadata; minor changes a
 
 ## Acceptance Checklist
 
-The completed repository must satisfy the 30 success criteria in the request, with special evidence for the main local end-to-end run, SHACL validation, FastAPI endpoints, golden evaluation suite, documented federation, CI workflow, and an interview-ready README/demo guide. The final verification also includes a secret scan and checked documentation links/diagram fences.
+The completed repository must satisfy the 30 success criteria in the request, with special evidence for the main local end-to-end run, SHACL validation, FastAPI endpoints, golden evaluation suite, documented federation, CI workflow, and an operational README/system walkthrough. The final verification also includes a secret scan and checked documentation links/diagram fences.

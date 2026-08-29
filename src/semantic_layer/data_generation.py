@@ -1,7 +1,7 @@
 """Deterministic demo data and local product normalization.
 
-The generated records are intentionally small enough to inspect in an
-interview while still exercising the semantic rules: multiple policies,
+The generated records are intentionally small enough to inspect during a
+system walkthrough while still exercising the semantic rules: multiple policies,
 qualifying and excluded claims, three jurisdictions, and raw quality failures.
 """
 

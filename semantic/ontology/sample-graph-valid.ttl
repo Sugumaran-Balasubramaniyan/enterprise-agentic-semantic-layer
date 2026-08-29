@@ -6,19 +6,25 @@ insurance:SampleGraphValid a owl:Ontology ; owl:versionInfo "1.0.0" .
 insurance:customer-FR-001 a insurance:Customer ;
     insurance:customerId "FR_001" ;
     insurance:countryCode "FR" ;
-    insurance:ownsPolicy insurance:policy-FR-001 .
+    insurance:ownsPolicy insurance:policy-FR-001 ;
+    insurance:submitsClaim insurance:claim-FR-001 .
 insurance:policy-FR-001 a insurance:Policy ;
     insurance:policyId "FR_POL_001" ;
     insurance:countryCode "FR" ;
-    insurance:policyProduct insurance:MotorInsurance ;
+    insurance:hasProduct insurance:MotorInsurance ;
     insurance:policyStatus "ACTIVE" ;
-    insurance:submitsClaim insurance:claim-FR-001 .
+    insurance:coversRisk insurance:risk-FR-001 ;
+    insurance:hasCoverage insurance:coverage-FR-001 ;
+    insurance:generatesPremium insurance:premium-FR-001 .
 insurance:MotorInsurance a insurance:MotorInsurance, insurance:InsuranceProduct .
+insurance:risk-FR-001 a insurance:Risk .
+insurance:coverage-FR-001 a insurance:Coverage .
+insurance:premium-FR-001 a insurance:Premium .
 insurance:claim-FR-001 a insurance:Claim ;
     insurance:claimId "FR_CLM_001" ;
     insurance:claimDate "2026-06-01"^^xsd:date ;
     insurance:claimStatus "OPEN" ;
-    insurance:claimPolicy insurance:policy-FR-001 ;
+    insurance:relatesToPolicy insurance:policy-FR-001 ;
     insurance:incurredLoss "25000.00"^^xsd:decimal ;
     insurance:hasClaimStatus insurance:status-open ;
     insurance:hasIncurredLoss insurance:loss-FR-001 .
