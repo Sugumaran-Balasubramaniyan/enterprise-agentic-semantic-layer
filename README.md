@@ -31,6 +31,7 @@ account, production credential, or LLM key is required.
 - [Federation: one meaning, different implementations](#federation-one-meaning-different-implementations)
 - [Governance and data quality](#governance-and-data-quality)
 - [API endpoints](#api-endpoints)
+- [Example index](examples/README.md)
 - [Verification evidence](#verification-evidence)
 - [Testing and evaluation](#testing-and-evaluation)
 - [Repository map](#repository-map)
@@ -112,7 +113,6 @@ python3 --version                 # must report 3.12 or newer
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -e '.[dev]'
-cp .env.example .env              # optional; inspect before changing values
 make PYTHON=.venv/bin/python validate-semantic
 make PYTHON=.venv/bin/python test
 make PYTHON=.venv/bin/python demo
@@ -138,7 +138,6 @@ credentials in the example configuration and no default network model call.
 
 | Variable | Default | Scope | Purpose and operational guidance |
 | --- | --- | --- | --- |
-| `SEMANTIC_LAYER_ENV` | `development` | Application | Labels the runtime environment. Use a deployment-specific value in production; it does not authenticate a caller. |
 | `SEMANTIC_LAYER_SIGNING_KEY` | unset | Provenance authority | Optional 64-character hexadecimal or 32-byte key for durable HMAC evidence. Configure exactly one signing variable. Store it in a secret manager, never in Git. |
 | `SEMANTIC_LAYER_SIGNING_KEY_FILE` | unset | Provenance authority | Path to a file containing the same key format. Useful for local restart-safe verification; protect file permissions. |
 | `SEMANTIC_LAYER_ROOT` | test-only | Integrity tests | Absolute repository root used by subprocess integrity checks. Do not use as an authorization boundary. |
@@ -148,10 +147,25 @@ credentials in the example configuration and no default network model call.
 `SEMANTIC_LAYER_SIGNING_KEY` and `SEMANTIC_LAYER_SIGNING_KEY_FILE` are
 mutually exclusive. If neither is set, the process creates an ephemeral key;
 signatures can be verified only during that process lifetime. This is suitable
-for a disposable local run, not for durable evidence. The `.env` file is
-ignored by Git; `.env.example` is the only configuration file intended to be
-committed. Production identity, authorization claims, KMS keys, database
-endpoints, and cloud credentials must be injected by the deployment platform.
+for a disposable local run, not for durable evidence.
+
+The application does not auto-load `.env` or `.env.example`, and it has no
+dotenv dependency. [`.env.example`](.env.example) is a shell reference template,
+not runtime configuration. A disposable local run requires no export. To use an
+existing protected signing-key file for restart-safe local evidence, export the
+variable in the same shell before starting the process:
+
+```bash
+export SEMANTIC_LAYER_SIGNING_KEY_FILE=/absolute/path/to/protected/signing-key
+make PYTHON=.venv/bin/python run-api
+unset SEMANTIC_LAYER_SIGNING_KEY_FILE
+```
+
+The key file must already contain 32 raw bytes or 64 hexadecimal characters.
+The `.env` filename is ignored by Git only as a safety net; creating it does not
+configure the application unless an operator explicitly sources it in the
+shell. Production identity, authorization claims, KMS keys, database endpoints,
+and cloud credentials must be injected by the deployment platform.
 
 ### Registry and cache behavior
 
@@ -178,8 +192,8 @@ This has important lifecycle implications:
 
 The checked-in data is synthetic and intentionally split into two layers. The
 curated fixtures are the trusted local serving contract; raw fixtures are
-quality-test inputs only. The following is a conceptual production lifecycle,
-showing the kind of landing-to-certified flow that a real platform would own:
+quality-test inputs only. The following conceptual production lifecycle
+represents the landing-to-certified flow that a real platform would own:
 
 ```text
 data/raw/*.csv       source-like landing fixtures; include known defects
@@ -290,7 +304,7 @@ In the `RESULT` section, the deterministic answer is:
 ]
 ```
 
-To show the HTTP boundary, run `make PYTHON=.venv/bin/python run-api` in one terminal,
+To exercise the HTTP boundary, run `make PYTHON=.venv/bin/python run-api` in one terminal,
 then:
 
 ```bash
@@ -305,6 +319,13 @@ the typed plan, generated SQL, `PASS` quality, the two rows, and a runtime
 `provenance.query_id`. Retrieve that evidence with
 `curl -s http://127.0.0.1:8000/provenance/{query_id}`; the ID and digests are
 deliberately runtime values rather than copied fixtures.
+
+The [Example index](examples/README.md) contains concrete route, request, and
+response pairs for both a successful resolution and a fail-closed authorization
+decision. It also links the
+[Checked-in primary plan](examples/generated_query_plans/primary_claims_plan.json)
+and [Generated SQL artifacts](examples/generated_sql/README.md), with execution
+status stated beside each artifact.
 
 ## Architecture
 
@@ -341,6 +362,16 @@ service.
 - **Production extension:** connect one adapter at a time behind the compiler
   interface, delegate identity and row-level security to the platform, and
   retain the same semantic contracts and evidence-producing tests.
+
+MCP transport is not implemented. A production MCP adapter would expose only
+the bounded typed tool methods listed in
+[agent architecture](docs/agent-architecture.md), derive caller identity outside
+request content, and preserve the same policy, plan, compiler, and provenance
+gates; it must not expose arbitrary SQL. LLM integration is not implemented. An
+optional LLM seam is a documented design boundary only: a future model may
+propose an interpretation or explanation, while deterministic resolution and
+validation remain authoritative and no model output can create SQL or override
+authorization.
 
 See [implementation plan](docs/implementation-plan.md) and the
 [architecture decision records](docs/decisions/) for the production path.
@@ -413,7 +444,7 @@ sequenceDiagram
 ## The semantic contract
 
 The canonical vocabulary includes `Customer`, `Policy`, `Claim`,
-`InsuranceProduct`, `MotorInsurance`, `Risk`, `Coverage`, `Premium`,
+`InsuranceProduct`, `MotorInsurance`, `HomeInsurance`, `Risk`, `Coverage`, `Premium`,
 `ClaimStatus`, `Country`, `ActivePolicy`, `QualifyingClaim`, and
 `IncurredLoss`. The compact ontology models:
 
@@ -426,6 +457,7 @@ Policy coversRisk Risk
 Policy hasCoverage Coverage
 Policy generatesPremium Premium
 MotorInsurance subclassOf InsuranceProduct
+HomeInsurance subclassOf InsuranceProduct
 ```
 
 Governed metrics are defined in `semantic/metrics/metrics.yaml`:
@@ -436,7 +468,7 @@ Governed metrics are defined in `semantic/metrics/metrics.yaml`:
 | `TotalIncurredLoss` | Sum of qualifying incurred loss |
 | `AverageClaimAmount` | Average qualifying claim amount |
 | `ActivePolicyCount` | Policies satisfying the ActivePolicy rule |
-| `ClaimsRatio` | Separately aggregated loss divided by earned premium |
+| `ClaimsRatio` | Discovery-only contract for separately aggregated loss divided by earned premium; no local compiler/execution path |
 
 `QualifyingClaim` excludes `CANCELLED` and `DUPLICATE`. This is a versioned
 semantic rule, not an instruction for an LLM to invent.
@@ -456,13 +488,28 @@ mappings, extensions, and regulatory rules.
 The same Group plan can compile against different physical columns and code
 systems without making the agent rediscover joins.
 
+The active mappings also normalize `HOME` or `HomeInsurance` to the governed
+`insurance:HomeInsurance` concept. Registry construction rejects any product
+normalization target that is absent from the canonical vocabulary, and runtime
+normalization continues to fail closed for an unknown local value.
+
 ## Governance and data quality
 
 The local policy engine demonstrates RBAC and ABAC patterns for
-`ClaimsAnalystFR`, `ClaimsManagerGroup`, `FinanceAnalyst`, and the synthetic
-`AgentService` context. Country scope, purpose, product classification, and
-PII access are checked before final planning and execution. The request-body
-role is a simulator, not production identity authentication.
+`ClaimsAnalystFR`, `ClaimsManagerGroup`, and `FinanceAnalyst`. Country scope,
+purpose, product classification, and PII access are checked before final
+planning and execution. The request-body role is a simulator, not production
+identity authentication.
+
+ClaimsRatio is discovery-only in this local reference. It resolves to the
+`ClaimsAnalytics` and `PremiumAnalytics` sources plus the customer and policy
+products needed by the reviewed discovery plan, but no simulated role is
+authorized for that complete product set; discovery authorization returns
+`PRODUCT_DENIED`. The local DuckDB compiler does not compile or execute this
+metric. Production enablement requires a separately reviewed aggregate-only
+workload role, non-PII projection, compiler implementation, platform-native
+controls, and execution/evidence tests. The metric definition alone is not an
+access grant or an execution claim.
 
 Quality checks reject missing or duplicate identifiers, blank join keys,
 invalid countries/products/statuses, future dates, negative or non-finite loss,
@@ -553,7 +600,7 @@ make evaluate
 make PYTHON=.venv/bin/python demo
 ```
 
-The verified local run reports 205 passing tests, 31/31 golden cases, and
+The verified local run reports 208 passing tests, 31/31 golden cases, and
 10/10 discovery-only cases. The single warning is a third-party FastAPI/
 Starlette `TestClient` deprecation notice, not a project failure.
 
@@ -1172,15 +1219,14 @@ This is a local reference implementation, not a claim of live cloud integration.
 
 ## Operational walkthrough recap
 
-The local execution path demonstrates the following controls:
-
-1. Start with the business question, not ontology technology.
-2. Show the resolver grounding “car insurance” and “loss amount”.
-3. Show the typed plan and certified products.
-4. Show FR/UK/DE mapping normalization.
-5. Show authorization, quality, SQL, result, and provenance.
-6. Explain why direct LLM-to-SQL, RAG alone, or a graph alone is insufficient.
-7. Close with semantic versioning, CI, and federated ownership.
+The local execution path begins with business intent and records each governed
+transition as reviewable evidence. Resolver output grounds “car insurance” and
+“loss amount”; the typed plan identifies certified products; the mappings
+normalize FR, UK, and DE values; and the successful response binds
+authorization, quality, SQL, results, and provenance. The architecture documents
+why retrieval or graph context can supplement these contracts but cannot replace
+deterministic planning and controls. Semantic versioning, CI gates, and federated
+ownership govern changes to the path.
 
 For design rationale, see [architecture](docs/architecture.md),
 [semantic layer](docs/semantic-layer.md), [governance](docs/governance.md),
@@ -1191,12 +1237,16 @@ For design rationale, see [architecture](docs/architecture.md),
 ## Implemented versus simulated
 
 **Implemented locally:** semantic assets, SHACL, deterministic resolver and
-planner, registry, metrics/rules, authorization, quality, DuckDB execution,
-FastAPI, agent workflow, provenance, synthetic data, evaluation, and CI.
+planner, registry, metric/rule definitions, authorization, quality, primary
+claims DuckDB execution, FastAPI, agent workflow, provenance, synthetic data,
+evaluation, and CI. `ClaimsRatio` remains discovery-only as described above.
 
 **Simulated or documented:** Databricks, Snowflake, and Fabric connections and
 execution; production identity authentication; external KMS/HSM signing;
 enterprise-scale performance; and benchmark claims.
+
+**Not implemented:** MCP transport and LLM integration. Their bounded extension
+contracts are documented above and in the [Example index](examples/README.md).
 
 No confidential data, credentials, paid cloud account, or hosted LLM is required.
 

@@ -5,11 +5,11 @@ GlobalSure keeps the canonical business vocabulary in versioned YAML and the rel
 The three semantic layers have distinct responsibilities:
 
 - `semantic/vocabulary/insurance.yaml` is the governed glossary and metadata contract.
-- `semantic/taxonomy/insurance-products.ttl` organizes product labels with SKOS. Local values such as `MTR`, `CAR`, and `MotorInsurance` can map to the canonical `MotorInsurance` concept.
+- `semantic/taxonomy/insurance-products.ttl` organizes product labels with SKOS. Local motor values such as `MTR`, `CAR`, and `MotorInsurance` map to `MotorInsurance`; `HOME` and `HomeInsurance` map to the governed `HomeInsurance` concept.
 - `semantic/ontology/insurance.ttl` defines OWL classes and property domain/range constraints.
 - `semantic/shapes/insurance-shapes.ttl` validates insurance instances. Claims require an ID, date, status, policy, and non-negative incurred loss; policies require an ID, product, and status.
 
-Use `make PYTHON=.venv/bin/python validate-semantic` to load all 13 canonical
+Use `make PYTHON=.venv/bin/python validate-semantic` to load all 14 canonical
 concepts and validate both sample graphs. The valid graph conforms; the
 deliberately incomplete graph fails with an expected SHACL report and does not
 make the command fail.

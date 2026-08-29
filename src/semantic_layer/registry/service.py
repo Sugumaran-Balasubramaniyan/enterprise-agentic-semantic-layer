@@ -112,6 +112,17 @@ class SemanticRegistry:
         metrics: dict[str, Metric],
         rules: dict[str, GovernedRule],
     ) -> None:
+        for concept in concepts.values():
+            unknown_relationship_targets = {
+                relationship.target
+                for relationship in concept.relationships
+                if relationship.target not in concepts
+            }
+            if unknown_relationship_targets:
+                raise ValueError(
+                    f"concept {concept.id} references unknown relationship targets: "
+                    f"{sorted(unknown_relationship_targets)}"
+                )
         for product in products.values():
             unknown = set(product.concepts) - set(concepts)
             if unknown:
@@ -123,6 +134,24 @@ class SemanticRegistry:
             unknown_concepts = {field.concept for field in mapping.fields.values()} - set(concepts)
             if unknown_concepts:
                 raise ValueError(f"mapping {mapping.id} references unknown concepts: {sorted(unknown_concepts)}")
+            unknown_subsets = {
+                field.canonical_subset
+                for field in mapping.fields.values()
+                if field.canonical_subset is not None and field.canonical_subset not in concepts
+            }
+            if unknown_subsets:
+                raise ValueError(
+                    f"mapping {mapping.id} references unknown canonical subsets: "
+                    f"{sorted(unknown_subsets)}"
+                )
+            unknown_normalization_targets = (
+                set(mapping.normalization.get("products", {}).values()) - set(concepts)
+            )
+            if unknown_normalization_targets:
+                raise ValueError(
+                    f"mapping {mapping.id} product normalization references unknown concepts: "
+                    f"{sorted(unknown_normalization_targets)}"
+                )
         for metric in metrics.values():
             unknown_products = set(metric.source_products) - set(products)
             if unknown_products:
@@ -131,6 +160,17 @@ class SemanticRegistry:
                 raise ValueError(f"metric {metric.id} references unknown concept: {metric.concept}")
             if metric.filter_rule and metric.filter_rule not in rules:
                 raise ValueError(f"metric {metric.id} references unknown rule: {metric.filter_rule}")
+            unknown_dependencies = set(metric.dependencies) - set(metrics)
+            if unknown_dependencies:
+                raise ValueError(
+                    f"metric {metric.id} references unknown dependencies: "
+                    f"{sorted(unknown_dependencies)}"
+                )
+        for rule in rules.values():
+            if rule.applies_to not in concepts:
+                raise ValueError(
+                    f"rule {rule.id} references unknown applies_to concept: {rule.applies_to}"
+                )
 
     def resolve(self, text: str):
         """Resolve business language through the deterministic registry resolver."""

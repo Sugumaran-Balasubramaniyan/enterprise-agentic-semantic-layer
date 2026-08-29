@@ -15,7 +15,8 @@ from pathlib import Path
 import yaml
 
 _CANONICAL_MOTOR = "insurance:MotorInsurance"
-_GOVERNED_PRODUCT_CONCEPTS = {_CANONICAL_MOTOR}
+_CANONICAL_HOME = "insurance:HomeInsurance"
+_GOVERNED_PRODUCT_CONCEPTS = {_CANONICAL_MOTOR, _CANONICAL_HOME}
 _PLATFORM_DIRECTORIES = {
     "databricks": "databricks/france.yaml",
     "snowflake": "snowflake/united_kingdom.yaml",

@@ -11,7 +11,7 @@ insurance:InsuranceProduct a skos:Concept ;
     skos:prefLabel "Insurance Product"@en ;
     skos:definition "A governed category of insurance coverage offered by GlobalSure."@en ;
     skos:topConceptOf insurance:InsuranceProductScheme ;
-    skos:narrower insurance:MotorInsurance .
+    skos:narrower insurance:MotorInsurance, insurance:HomeInsurance .
 
 insurance:MotorInsurance a skos:Concept ;
     skos:prefLabel "Motor Insurance"@en ;
@@ -19,3 +19,10 @@ insurance:MotorInsurance a skos:Concept ;
     skos:broader insurance:InsuranceProduct ;
     skos:inScheme insurance:InsuranceProductScheme ;
     skos:definition "Insurance that covers risks associated with motor vehicles and their use."@en .
+
+insurance:HomeInsurance a skos:Concept ;
+    skos:prefLabel "Home Insurance"@en ;
+    skos:altLabel "House Insurance"@en, "Household Insurance"@en, "Home cover"@en ;
+    skos:broader insurance:InsuranceProduct ;
+    skos:inScheme insurance:InsuranceProductScheme ;
+    skos:definition "Insurance that covers risks associated with a residential property and its contents."@en .

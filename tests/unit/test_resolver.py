@@ -44,14 +44,15 @@ def test_resolver_quarantines_an_unknown_mapping_target() -> None:
     assert "insurance:MotorInsurance" not in resolution.concept_ids
 
 
-def test_resolver_quarantines_unregistered_local_extension_targets() -> None:
-    """A forward-compatible local extension must not become a public canonical result."""
+def test_resolver_grounds_registered_home_insurance_mapping_targets() -> None:
+    """Dropping governed HomeInsurance must leave an active mapping target unresolved."""
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
 
     resolution = registry.resolve("Find HOME customers")
 
-    assert "insurance:HomeInsurance" not in resolution.concept_ids
+    assert "insurance:HomeInsurance" in resolution.concept_ids
+    assert resolution.matched_terms["insurance:HomeInsurance"] == "home"
 
 
 @pytest.mark.parametrize("local_value", ["MTR", "AUTO"])

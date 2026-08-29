@@ -92,6 +92,21 @@ concepts:
       - predicate: "rdfs:subClassOf"
         target: "insurance:InsuranceProduct"
     examples: ["MOTOR", "MTR", "AUTO", "CAR"]
+  - id: "insurance:HomeInsurance"
+    name: "Home Insurance"
+    version: "1.0.0"
+    definition: "Insurance that covers risks associated with a residential property and its contents."
+    description: "Canonical group concept for local home and household product codes."
+    synonyms: ["House Insurance", "Household Insurance", "Home cover"]
+    domain: "Insurance"
+    owner: "GlobalSure Insurance Group"
+    classification: "Internal"
+    sensitivity:
+      classification: "Public"
+    relationships:
+      - predicate: "rdfs:subClassOf"
+        target: "insurance:InsuranceProduct"
+    examples: ["HOME", "HomeInsurance"]
   - id: "insurance:Risk"
     name: "Risk"
     version: "1.0.0"

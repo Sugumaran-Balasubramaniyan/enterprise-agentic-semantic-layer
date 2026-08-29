@@ -19,11 +19,16 @@ Use the `ClaimsAnalystFR` role. The deterministic result contains `FR_001` and
 `FR_002`; cancelled and duplicate claims are excluded by the governed
 `QualifyingClaim` rule.
 
-## Other supported planning patterns
+## Other governed discovery patterns
 
 - `How many French motor insurance customers have active policies this year?`
 - `Show the claims ratio for French motor insurance customers in the current year.`
 
 Only the primary claims plan is compiled and executed by the local DuckDB
-adapter. Cloud mappings remain declared extension artifacts and are not
-executed by this repository.
+adapter. Active-policy questions are discovery-only. `ClaimsRatio` is also
+discovery-only and intentionally returns `PRODUCT_DENIED` during authorization:
+no local simulated role can access its complete `ClaimsAnalytics` and
+`PremiumAnalytics` product set. A production implementation needs a reviewed
+aggregate-only workload role, a compiler, platform-native controls, and
+execution/evidence tests. Cloud mappings remain declared extension artifacts
+and are not executed by this repository.

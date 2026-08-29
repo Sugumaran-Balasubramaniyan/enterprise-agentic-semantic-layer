@@ -13,6 +13,7 @@ insurance:Policy a owl:Class .
 insurance:Claim a owl:Class .
 insurance:InsuranceProduct a owl:Class .
 insurance:MotorInsurance a owl:Class ; rdfs:subClassOf insurance:InsuranceProduct .
+insurance:HomeInsurance a owl:Class ; rdfs:subClassOf insurance:InsuranceProduct .
 insurance:Risk a owl:Class .
 insurance:Coverage a owl:Class .
 insurance:Premium a owl:Class .

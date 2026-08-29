@@ -103,6 +103,7 @@ def test_ontology_declares_versions_domains_ranges_and_subclasses() -> None:
         assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").domain, insurance[domain]) in graph
         assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").range, insurance[range_]) in graph
     assert (insurance.MotorInsurance, RDFS.subClassOf, insurance.InsuranceProduct) in graph
+    assert (insurance.HomeInsurance, RDFS.subClassOf, insurance.InsuranceProduct) in graph
 
 
 def test_country_code_domain_is_a_superclass_and_combined_instance_graph_conforms() -> None:
@@ -134,8 +135,11 @@ def test_taxonomy_declares_version_and_skos_hierarchy_and_alternatives() -> None
     owl = Namespace("http://www.w3.org/2002/07/owl#")
     assert (insurance.InsuranceProductScheme, owl.versionInfo, None) in graph
     assert (insurance.MotorInsurance, skos.broader, insurance.InsuranceProduct) in graph
+    assert (insurance.HomeInsurance, skos.broader, insurance.InsuranceProduct) in graph
     assert (insurance.InsuranceProduct, skos.narrower, insurance.MotorInsurance) in graph
+    assert (insurance.InsuranceProduct, skos.narrower, insurance.HomeInsurance) in graph
     assert (insurance.MotorInsurance, skos.altLabel, None) in graph
+    assert (insurance.HomeInsurance, skos.altLabel, None) in graph
 
 
 def test_shapes_and_sample_graphs_declare_semantic_versions() -> None:
