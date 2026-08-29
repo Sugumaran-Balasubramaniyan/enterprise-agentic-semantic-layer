@@ -1,16 +1,91 @@
 import re
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 from semantic_layer.api.app import create_app
 
 ROOT = Path(__file__).parents[2]
 MARKDOWN_LINK_RE = re.compile(r"\[[^]]+\]\(([^)]+)\)")
-MERMAID_BLOCK_RE = re.compile(
-    r"^ {0,3}```mermaid[ \t]*\n(.*?)^ {0,3}```[ \t]*$", re.MULTILINE | re.DOTALL
+MARKDOWN_FENCE_RE = re.compile(
+    r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<suffix>[^\r\n]*)$"
 )
-MARKDOWN_FENCE_RE = re.compile(r"^ {0,3}`{3,}[^`]*$", re.MULTILINE)
-MERMAID_START_RE = re.compile(r"^ {0,3}```mermaid[ \t]*$", re.MULTILINE)
+
+
+@dataclass(frozen=True)
+class MarkdownFenceBlock:
+    fence_char: str
+    fence_length: int
+    info_string: str
+    content: str
+
+
+def _parse_markdown_fence(line: str) -> tuple[str, int, str] | None:
+    match = MARKDOWN_FENCE_RE.match(line)
+    if match is None:
+        return None
+    fence = match.group("fence")
+    return fence[0], len(fence), match.group("suffix").strip()
+
+
+def _fenced_markdown_blocks(text: str) -> tuple[list[MarkdownFenceBlock], bool]:
+    blocks: list[MarkdownFenceBlock] = []
+    opening: tuple[str, int, str] | None = None
+    block_lines: list[str] = []
+
+    for line in text.splitlines():
+        parsed = _parse_markdown_fence(line)
+        if opening is None:
+            if parsed is not None:
+                opening = parsed
+                block_lines = []
+            continue
+
+        if parsed is not None:
+            fence_char, fence_length, suffix = parsed
+            if (
+                suffix == ""
+                and fence_char == opening[0]
+                and fence_length >= opening[1]
+            ):
+                blocks.append(
+                    MarkdownFenceBlock(
+                        fence_char=opening[0],
+                        fence_length=opening[1],
+                        info_string=opening[2],
+                        content="\n".join(block_lines),
+                    )
+                )
+                opening = None
+                block_lines = []
+                continue
+
+        block_lines.append(line)
+
+    return blocks, opening is None
+
+
+def _markdown_fences_are_balanced(text: str) -> bool:
+    _, is_balanced = _fenced_markdown_blocks(text)
+    return is_balanced
+
+
+def _is_mermaid_info_string(info_string: str) -> bool:
+    return info_string.split(maxsplit=1)[0].lower() == "mermaid" if info_string else False
+
+
+def _mermaid_blocks(text: str) -> list[str]:
+    blocks, _ = _fenced_markdown_blocks(text)
+    return [block.content for block in blocks if _is_mermaid_info_string(block.info_string)]
+
+
+def _count_mermaid_openers(text: str) -> int:
+    return sum(
+        1
+        for line in text.splitlines()
+        if (parsed := _parse_markdown_fence(line)) is not None
+        and _is_mermaid_info_string(parsed[2])
+    )
 
 
 def _tracked_markdown_paths() -> list[Path]:
@@ -50,7 +125,7 @@ def test_readme_contains_required_system_sections() -> None:
 
 def test_documentation_contains_six_mermaid_diagrams() -> None:
     diagrams = sum(
-        path.read_text().count("```mermaid")
+        len(_mermaid_blocks(path.read_text()))
         for path in (ROOT / "docs").rglob("*.md")
     )
     assert diagrams >= 6
@@ -74,7 +149,7 @@ def test_required_documentation_and_adrs_exist() -> None:
 def test_mermaid_fences_are_balanced() -> None:
     for path in _tracked_markdown_paths():
         text = path.read_text()
-        assert len(MARKDOWN_FENCE_RE.findall(text)) % 2 == 0, path
+        assert _markdown_fences_are_balanced(text), path
 
 
 def test_mermaid_fences_close_and_use_github_safe_labels() -> None:
@@ -82,8 +157,8 @@ def test_mermaid_fences_close_and_use_github_safe_labels() -> None:
 
     for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
         text = path.read_text()
-        blocks = MERMAID_BLOCK_RE.findall(text)
-        assert len(MERMAID_START_RE.findall(text)) == len(blocks), path
+        blocks = _mermaid_blocks(text)
+        assert _count_mermaid_openers(text) == len(blocks), path
         for block in blocks:
             assert "\\n" not in block, path
             assert "<br>" not in block, path
@@ -150,11 +225,28 @@ def test_mermaid_blocks_use_github_safe_line_breaks() -> None:
     offenders: list[str] = []
     for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
         text = path.read_text()
-        for block in MERMAID_BLOCK_RE.findall(text):
+        for block in _mermaid_blocks(text):
             if "\\n" in block:
                 offenders.append(str(path.relative_to(ROOT)))
                 break
     assert not offenders, "\n".join(offenders)
+
+
+def test_markdown_fence_validator_accepts_tilde_fences() -> None:
+    text = "~~~yaml\nkey: value\n~~~\n"
+
+    assert _markdown_fences_are_balanced(text)
+
+
+def test_markdown_fence_validator_rejects_mismatched_or_short_closing_fences() -> None:
+    assert not _markdown_fences_are_balanced("~~~yaml\nkey: value\n```\n")
+    assert not _markdown_fences_are_balanced("````yaml\nkey: value\n```\n")
+
+
+def test_mermaid_validator_accepts_four_backtick_fences() -> None:
+    text = "````mermaid\nflowchart TD\n    A[Start] --> B[Finish]\n````\n"
+
+    assert _mermaid_blocks(text) == ["flowchart TD\n    A[Start] --> B[Finish]"]
 
 
 def test_example_questions_does_not_require_bare_python() -> None:

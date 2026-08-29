@@ -115,6 +115,7 @@ Fresh remediation verification:
 python -m pytest tests/unit/test_documentation_contract.py -q
 .......                                                                  [100%]
 7 passed in 0.03s
+```
 
 The post-fix full matrix used the documented repository-local interpreter:
 
@@ -140,4 +141,3 @@ RESULT: FR_001/FR/3/24000.0 and FR_002/FR/3/25000.0
 The additional ADR/runnable-command assertions account for the increase from
 136 to 138 total tests. The sole warning remains the pre-existing
 Starlette/httpx deprecation notice.
-```
