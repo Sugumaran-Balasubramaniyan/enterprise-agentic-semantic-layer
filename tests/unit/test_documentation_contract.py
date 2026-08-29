@@ -288,7 +288,8 @@ def test_readme_verification_section_identifies_latest_evidence() -> None:
     readme = (ROOT / "README.md").read_text()
     assert "2026-08-29 UTC" in readme
     assert "docs/verification-report.md" in readme
-    assert "205 passed" in readme
+    assert "208 passed" in readme
+    assert "205 passed" not in readme
     assert "195 passed" not in readme
 
 

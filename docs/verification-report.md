@@ -288,3 +288,21 @@ which was repaired without changing README or published docs content.
 | `./.venv/bin/ruff check .` | `All checks passed!` |
 | `./.venv/bin/pytest -q` | `208 passed, 1 warning in 19.81s`; the warning is the existing third-party Starlette/httpx deprecation. |
 | `git diff --check` | Exit status 0 with no whitespace errors. |
+
+## README verification-count re-review follow-up (2026-08-29 UTC)
+
+This re-review closes the remaining documentation consistency gap after the
+fence-validator change. `docs/verification-report.md` already recorded the
+latest local suite result as `208 passed`, but `README.md` and its
+documentation-contract assertion still referenced the prior `205 passed`
+snapshot. The README verification summary and capability matrix now point to
+the latest `208 passed` evidence while leaving older counts in this report as
+date-labeled historical records only.
+
+| Command | Observed result |
+| --- | --- |
+| `./.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q -k latest_evidence` | `1 passed, 19 deselected in 0.62s` |
+| `./.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q` | `20 passed in 2.22s` |
+| `./.venv/bin/ruff check .` | `All checks passed!` |
+| `./.venv/bin/pytest -q` | `208 passed, 1 warning in 19.66s`; the warning is the existing third-party Starlette/httpx deprecation. |
+| `git diff --check` | Exit status 0 with no whitespace errors. |

@@ -515,7 +515,7 @@ It documents the exact local commands, outputs, limitations, and
 security-scan interpretation; it is the source of truth for what was actually
 verified rather than a claim of cloud-platform execution.
 
-The latest full local matrix reported `205 passed` with the existing third-party
+The latest full local matrix reported `208 passed` with the existing third-party
 FastAPI/Starlette `TestClient` deprecation warning. It also reported:
 
 - lint: Ruff passed;
@@ -784,7 +784,7 @@ extension points.
 | Authorization and quality gates | [Governance guidance](docs/governance.md), contracts, and mappings | An FR analyst can execute FR scope; unsupported/unauthorized input is denied | [Authorization tests](tests/unit/test_authorization.py), [quality tests](tests/unit/test_quality.py), and [execution-control tests](tests/unit/test_execution_controls_security.py) | Request-body role is demo-only; production derives claims from trusted identity. |
 | Lineage and tamper-evident provenance | `src/semantic_layer/lineage/` and `src/semantic_layer/provenance/` | `/execute` returns a `query_id`; `GET /provenance/{query_id}` retrieves evidence | [Provenance/integrity tests](tests/unit/test_capability_integrity.py) and [execution integration test](tests/integration/test_duckdb_execution.py) | Local SQLite/HMAC is not a multi-writer enterprise audit store. |
 | Agent end-to-end behavior | `src/semantic_layer/agents/` | Primary French motor-claims question through `make PYTHON=.venv/bin/python demo` | [Agent integration tests](tests/integration/test_agent_e2e.py) and [golden corpus](tests/golden/questions.yaml) | Deterministic workflow; optional LLM enhancement is not required or supplied. |
-| Continuous semantic assurance | [CI workflow](.github/workflows/ci.yml) and [verification evidence](docs/verification-report.md) | `make lint`, `make validate-semantic`, `make check-golden`, `make test` | CI job plus 205-test local evidence recorded in the report | CI does not yet execute cloud, performance, supply-chain, or deployment checks. |
+| Continuous semantic assurance | [CI workflow](.github/workflows/ci.yml) and [verification evidence](docs/verification-report.md) | `make lint`, `make validate-semantic`, `make check-golden`, `make test` | CI job plus 208-test local evidence recorded in the report | CI does not yet execute cloud, performance, supply-chain, or deployment checks. |
 
 ## Pilot implementation plan
 
