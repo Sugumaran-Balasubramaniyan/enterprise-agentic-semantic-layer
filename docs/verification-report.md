@@ -235,3 +235,34 @@ Fresh matrix after these changes:
 | `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB demonstration and returned FR_001/FR_002. |
 | `git diff --check` | Exit status 0 with no whitespace errors reported. |
 | scoped credential-pattern scan | Exit status 0; eight benign source-code identifier matches, with no credential values. |
+
+## GitHub publication integrity validation (2026-08-29 UTC)
+
+This documentation follow-up rechecked the public handbook, its navigation,
+and every Mermaid block in `README.md` and `docs/`. The documentation contract
+now verifies balanced Markdown fences, a closing fence for each Mermaid block,
+the absence of literal `\\n` labels and non-self-closing `<br>` labels, local
+relative-link targets and anchors, and obsolete audience-specific wording.
+The current 13 Mermaid blocks use GitHub-compatible syntax; the two
+multi-line flowchart labels use explicit `<br/>` markup.
+
+| Command | Observed result |
+| --- | --- |
+| `.venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q` | `17 passed` |
+| Markdown/Mermaid static scan | All tracked Markdown fences were balanced; all README/docs Mermaid blocks closed; no literal `\\n` or `<br>` labels were found. |
+| local-link and stale-reference scan | Documentation-contract link and stale-reference checks passed; no prohibited legacy audience-specific references were found in published Markdown. |
+| `make PYTHON=.venv/bin/python lint` | `All checks passed!` |
+| `make PYTHON=.venv/bin/python validate-semantic` | Valid graph conformed and the invalid graph failed as expected. |
+| `make PYTHON=.venv/bin/python check-yaml` | `YAML: 11 files parsed` |
+| `make PYTHON=.venv/bin/python check-mappings-quality` | `42 passed` |
+| `make PYTHON=.venv/bin/python check-golden` | `13 passed` |
+| `make PYTHON=.venv/bin/python check-compiler` | `4 passed` |
+| `make PYTHON=.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed`; `discovery_only=10/10`. |
+| `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB demonstration and returned `FR_001` and `FR_002`. |
+| `make PYTHON=.venv/bin/python test` | `205 passed, 1 warning`; the warning is the existing third-party TestClient deprecation. |
+| `git diff --check` | Exit status 0 with no whitespace errors. |
+
+No local Mermaid CLI was installed: `npx --no-install @mermaid-js/mermaid-cli
+--version` correctly declined to download a missing package. The static
+contract and direct source scan therefore provide the rendering evidence for
+this environment; GitHub remains the final renderer for Markdown previews.

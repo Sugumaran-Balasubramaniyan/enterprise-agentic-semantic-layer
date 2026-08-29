@@ -6,7 +6,11 @@ from semantic_layer.api.app import create_app
 
 ROOT = Path(__file__).parents[2]
 MARKDOWN_LINK_RE = re.compile(r"\[[^]]+\]\(([^)]+)\)")
-MERMAID_BLOCK_RE = re.compile(r"```mermaid\n(.*?)```", re.DOTALL)
+MERMAID_BLOCK_RE = re.compile(
+    r"^ {0,3}```mermaid[ \t]*\n(.*?)^ {0,3}```[ \t]*$", re.MULTILINE | re.DOTALL
+)
+MARKDOWN_FENCE_RE = re.compile(r"^ {0,3}`{3,}[^`]*$", re.MULTILINE)
+MERMAID_START_RE = re.compile(r"^ {0,3}```mermaid[ \t]*$", re.MULTILINE)
 
 
 def _tracked_markdown_paths() -> list[Path]:
@@ -68,10 +72,21 @@ def test_required_documentation_and_adrs_exist() -> None:
 
 
 def test_mermaid_fences_are_balanced() -> None:
-    paths = _tracked_markdown_paths()
-    for path in paths:
+    for path in _tracked_markdown_paths():
         text = path.read_text()
-        assert text.count("```") % 2 == 0, path
+        assert len(MARKDOWN_FENCE_RE.findall(text)) % 2 == 0, path
+
+
+def test_mermaid_fences_close_and_use_github_safe_labels() -> None:
+    """Keep every README/docs diagram renderable by GitHub's Mermaid renderer."""
+
+    for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
+        text = path.read_text()
+        blocks = MERMAID_BLOCK_RE.findall(text)
+        assert len(MERMAID_START_RE.findall(text)) == len(blocks), path
+        for block in blocks:
+            assert "\\n" not in block, path
+            assert "<br>" not in block, path
 
 
 def test_system_walkthrough_commands_create_and_use_a_local_venv() -> None:
@@ -179,9 +194,10 @@ def test_readme_api_table_matches_registered_fastapi_routes() -> None:
 
 def test_readme_verification_section_identifies_latest_evidence() -> None:
     readme = (ROOT / "README.md").read_text()
-    assert "2026-08-28 UTC" in readme
+    assert "2026-08-29 UTC" in readme
     assert "docs/verification-report.md" in readme
-    assert "195 passed" in readme
+    assert "205 passed" in readme
+    assert "195 passed" not in readme
 
 
 def test_readme_documents_local_prerequisites_and_reproducibility_contract() -> None:
