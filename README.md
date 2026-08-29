@@ -269,10 +269,10 @@ means both that the logical plan compiled and that the selected local product
 passed the configured quality gate. It does not certify an external source or
 prove a cloud platform integration.
 
-## 5-minute interview demo
+## System walkthrough
 
-Use the full narrative in [the interview demo guide](docs/interview-demo-guide.md).
-The short version is:
+Run this local end-to-end walkthrough to validate the semantic assets,
+deterministic execution path, and API boundary:
 
 ```bash
 python3 -m venv .venv
@@ -575,7 +575,7 @@ src/semantic_layer/
   agents/                  Workflow and governed tools
   api/                     FastAPI transport
 tests/                     Unit, semantic, integration, golden and security tests
-docs/                      Architecture, ADRs, governance, interview guide, verification
+docs/                      Architecture, ADRs, governance, verification
 examples/                  Plans, questions and SQL artifacts
 ```
 
@@ -1170,10 +1170,9 @@ This is a local reference implementation, not a claim of live cloud integration.
 6. Onboard additional domains through certified products and golden tests,
    preserving local autonomy while maintaining Group interoperability.
 
-## Interview walkthrough
+## Operational walkthrough recap
 
-Use [docs/interview-demo-guide.md](docs/interview-demo-guide.md) for the full
-script. The concise narrative is:
+The local execution path demonstrates the following controls:
 
 1. Start with the business question, not ontology technology.
 2. Show the resolver grounding “car insurance” and “loss amount”.

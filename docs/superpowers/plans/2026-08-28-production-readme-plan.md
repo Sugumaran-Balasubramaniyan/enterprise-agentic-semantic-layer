@@ -105,22 +105,22 @@
 - [ ] **Step 4: Commit any final correction and push.**
 - [ ] **Step 5: Report repository URL, commits, exact commands, evidence, and limitations.**
 
-### Task 6: Remove interview-preparation artifacts and language
+### Task 6: Remove legacy guided-demo artifacts and language
 
 **Files:**
-- Delete: `docs/interview-demo-guide.md`
+- Delete: legacy scripted walkthrough document
 - Modify: `README.md`, `docs/decisions/ADR-006-duckdb-local-demo.md`, existing historical spec/plan references where they are part of the published repository surface
 - Test: `tests/unit/test_documentation_contract.py`
 
 **Interfaces:**
 - Consumes: The neutral system walkthrough, architecture docs, ADRs, and repository navigation created by Tasks 1–5.
-- Produces: A recruiter- and engineering-reader-facing repository with no interview-preparation wording, interview scripts, or interview-specific guide links.
+- Produces: An engineering-reader-facing repository with no legacy guided-demo wording, scripts, or stale walkthrough links.
 
-- [ ] **Step 1: Add a regression test** that rejects interview-prep terms in published README/docs and rejects links to a deleted interview guide.
+- [ ] **Step 1: Add a regression test** that rejects legacy guided-demo terms in tracked Markdown and stale walkthrough links.
 - [ ] **Step 2: Run the focused test** and confirm it fails against the current repository.
-- [ ] **Step 3: Remove or rewrite interview-specific content** while preserving technical demonstrations as neutral operational walkthroughs.
+- [ ] **Step 3: Remove or rewrite legacy guided-demo content** while preserving technical demonstrations as neutral operational walkthroughs.
 - [ ] **Step 4: Run repository-wide text scan, link checks, and documentation tests.**
-- [ ] **Step 5: Commit and push** with `docs: remove interview preparation material`.
+- [ ] **Step 5: Commit and push** with a repository-publication cleanup commit message.
 
 ### Task 7: Add future-development examples and capability traceability
 
@@ -143,14 +143,14 @@
 
 **Files:**
 - Modify: `README.md`, `docs/*.md`, `tests/unit/test_documentation_contract.py`
-- Delete: `docs/interview-demo-guide.md` if still present after Task 6
+- Delete: any legacy scripted walkthrough document if still present after Task 6
 - Inspect: all Markdown Mermaid fences and relative links
 
 **Interfaces:**
 - Consumes: The complete handbook and all linked technical documentation.
-- Produces: GitHub-compatible Mermaid syntax, valid Markdown fences, resolved relative links, no stale interview-prep references, and regression checks for publication integrity.
+- Produces: GitHub-compatible Mermaid syntax, valid Markdown fences, resolved relative links, no stale guided-demo references, and regression checks for publication integrity.
 
-- [ ] **Step 1: Add failing checks** for Mermaid fence balance, GitHub-compatible line-break syntax, relative-link targets, and prohibited interview-prep references.
+- [ ] **Step 1: Add failing checks** for Mermaid fence balance, GitHub-compatible line-break syntax, relative-link targets, and prohibited guided-demo references.
 - [ ] **Step 2: Run the checks** to capture current rendering/navigation failures.
 - [ ] **Step 3: Fix diagrams and links** without changing architectural meaning; use explicit `<br/>` labels where GitHub Mermaid requires them.
 - [ ] **Step 4: Run all documentation, semantic, golden, API, and demo verification commands.**

@@ -52,5 +52,5 @@ Push target: `origin/feat/semantic-layer-implementation`.
 - The request-body `role` remains explicitly documented as simulated context,
   not authentication; production identity must be supplied by the transport.
 - Cloud adapters and cloud SQL remain documented as unexecuted extensions.
-- The README’s earlier interview-oriented content is outside this focused API
+- The README’s earlier presentation-oriented content is outside this focused API
   and evidence task and is being handled by the parent production-README work.

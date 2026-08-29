@@ -55,7 +55,7 @@ Follow-up verification:
   randomized expansion.
 - Dependency versions are minimum bounds rather than a lockfile. A production
   deployment should generate and review a platform-specific lockfile.
-- The documentation still contains historical interview-demo material elsewhere
+- The documentation still contains historical scripted walkthrough material elsewhere
   in the README; a later documentation pass should remove or relocate that
   material as requested by the project owner.
 

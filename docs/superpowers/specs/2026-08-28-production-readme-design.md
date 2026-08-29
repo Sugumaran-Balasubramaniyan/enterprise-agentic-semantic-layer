@@ -9,10 +9,10 @@ controls required to evolve the reference implementation into production.
 
 ## Goal
 
-Replace the current interview-oriented README with a detailed, accurate,
+Replace the superseded introductory README with a detailed, accurate,
 production-oriented repository handbook while preserving the concise local
 demo path and avoiding claims unsupported by the checked-in implementation.
-The repository must not contain interview-preparation content; demonstrations
+The repository must not contain legacy guided-demo content; demonstrations
 must be framed as normal operational examples and technical documentation.
 
 ## Design
@@ -78,7 +78,7 @@ The final README must include:
 - traceability matrix from requested capability to implementation, tests, and
   production analogue;
 - a concise end-to-end demonstration path framed as a normal system walkthrough,
-  with no interview-preparation language or interview-specific guide;
+  with no legacy guided-demo language or scripted guide;
 - GitHub publication integrity: balanced Markdown fences, GitHub-compatible
   Mermaid syntax, resolved links, and regression checks for stale references;
 - license, synthetic-data policy, limitations, and support/escalation notes.

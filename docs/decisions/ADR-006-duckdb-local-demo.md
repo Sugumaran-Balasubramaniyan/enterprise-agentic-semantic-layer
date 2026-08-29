@@ -2,7 +2,7 @@
 
 ## Context
 
-An interview-ready reference must run without paid accounts, network access,
+A locally runnable reference must run without paid accounts, network access,
 or production data while exercising real compilation and execution.
 
 ## Decision

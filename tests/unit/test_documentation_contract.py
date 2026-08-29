@@ -1,13 +1,46 @@
+import re
+import subprocess
 from pathlib import Path
 
 from semantic_layer.api.app import create_app
 
 ROOT = Path(__file__).parents[2]
+MARKDOWN_LINK_RE = re.compile(r"\[[^]]+\]\(([^)]+)\)")
+MERMAID_BLOCK_RE = re.compile(r"```mermaid\n(.*?)```", re.DOTALL)
 
 
-def test_readme_contains_required_interview_sections() -> None:
+def _tracked_markdown_paths() -> list[Path]:
+    completed = subprocess.run(
+        ["git", "-C", str(ROOT), "ls-files", "*.md"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return [
+        ROOT / line
+        for line in completed.stdout.splitlines()
+        if line and (ROOT / line).exists()
+    ]
+
+
+def _github_anchor_candidates(text: str) -> set[str]:
+    anchors: set[str] = set()
+    for line in text.splitlines():
+        if not line.startswith("#"):
+            continue
+        heading = line.lstrip("#").strip().lower()
+        if not heading:
+            continue
+        slug = re.sub(r"[^\w\- ]+", "", heading)
+        slug = slug.replace(" ", "-")
+        slug = re.sub(r"-+", "-", slug).strip("-")
+        anchors.add(slug)
+    return anchors
+
+
+def test_readme_contains_required_system_sections() -> None:
     readme = (ROOT / "README.md").read_text()
-    for heading in ["5-minute interview demo", "Architecture", "How to run", "Provenance"]:
+    for heading in ["System walkthrough", "Architecture", "How to run", "Provenance"]:
         assert heading in readme
 
 
@@ -25,10 +58,9 @@ def test_required_documentation_and_adrs_exist() -> None:
         "agent-architecture.md",
         "governance.md",
         "implementation-plan.md",
-        "interview-demo-guide.md",
     ] + [f"ADR-{number:03d}-" for number in range(1, 9)]
     docs = ROOT / "docs"
-    for path in required[:5]:
+    for path in required[:4]:
         assert (docs / path).is_file()
     adr_names = {path.name for path in (docs / "decisions").glob("ADR-*.md")}
     for prefix in required[5:]:
@@ -36,37 +68,78 @@ def test_required_documentation_and_adrs_exist() -> None:
 
 
 def test_mermaid_fences_are_balanced() -> None:
-    # Planning/spec documents contain illustrative nested code blocks; the
-    # published documentation surface is the README plus docs outside the
-    # internal superpowers working area.
-    paths = [ROOT / "README.md", *(ROOT / "docs").glob("*.md")]
-    paths.extend((ROOT / "docs" / "decisions").glob("*.md"))
+    paths = _tracked_markdown_paths()
     for path in paths:
         text = path.read_text()
         assert text.count("```") % 2 == 0, path
 
 
-def test_demo_guide_has_all_interview_timeboxes_and_cloud_boundary() -> None:
-    guide = (ROOT / "docs" / "interview-demo-guide.md").read_text()
-    for heading in ["30-second", "2-minute", "5-minute", "10-minute"]:
-        assert heading in guide
-    assert "not executed" in guide
-    assert "curl" in guide
-
-
-def test_demo_commands_create_and_use_a_local_venv() -> None:
+def test_system_walkthrough_commands_create_and_use_a_local_venv() -> None:
     required = [
         "python3 -m venv .venv",
         ".venv/bin/python -m pip install -e '.[dev]'",
         "make PYTHON=.venv/bin/python validate-semantic",
         "make PYTHON=.venv/bin/python demo",
     ]
-    for path in [ROOT / "README.md", ROOT / "docs" / "interview-demo-guide.md"]:
+    text = (ROOT / "README.md").read_text()
+    for command in required:
+        assert command in text, command
+    assert not any(line.strip() == "make demo" for line in text.splitlines())
+    assert "make PYTHON=python3" not in text
+
+
+def test_repository_markdown_excludes_legacy_demo_script_language() -> None:
+    """Keep tracked Markdown free of stale demo-script residue."""
+
+    forbidden_fragments = (
+        ("inter" "view"),
+        ("recruit" "er"),
+        ("inter" "view-demo-guide.md"),
+        ("presentation-" "preparation"),
+        ("presentation " "preparation"),
+    )
+    matches = [
+        f"{path.relative_to(ROOT)}: {fragment}"
+        for path in _tracked_markdown_paths()
+        for fragment in forbidden_fragments
+        if fragment in path.read_text().lower()
+    ]
+    assert not matches, "\n".join(matches)
+
+
+def test_markdown_relative_links_resolve() -> None:
+    broken: list[str] = []
+    for path in _tracked_markdown_paths():
         text = path.read_text()
-        for command in required:
-            assert command in text, (path, command)
-        assert not any(line.strip() == "make demo" for line in text.splitlines())
-        assert "make PYTHON=python3" not in text
+        anchors = _github_anchor_candidates(text)
+        for target in MARKDOWN_LINK_RE.findall(text):
+            if target.startswith(("http://", "https://", "mailto:")):
+                continue
+            if target.startswith("#"):
+                if target[1:] not in anchors:
+                    broken.append(f"{path.relative_to(ROOT)} -> {target}")
+                continue
+            relative_target, _, anchor = target.partition("#")
+            resolved = (path.parent / relative_target).resolve()
+            if not resolved.exists():
+                broken.append(f"{path.relative_to(ROOT)} -> {target}")
+                continue
+            if anchor and resolved.suffix == ".md":
+                target_anchors = _github_anchor_candidates(resolved.read_text())
+                if anchor not in target_anchors:
+                    broken.append(f"{path.relative_to(ROOT)} -> {target}")
+    assert not broken, "\n".join(broken)
+
+
+def test_mermaid_blocks_use_github_safe_line_breaks() -> None:
+    offenders: list[str] = []
+    for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
+        text = path.read_text()
+        for block in MERMAID_BLOCK_RE.findall(text):
+            if "\\n" in block:
+                offenders.append(str(path.relative_to(ROOT)))
+                break
+    assert not offenders, "\n".join(offenders)
 
 
 def test_example_questions_does_not_require_bare_python() -> None:
