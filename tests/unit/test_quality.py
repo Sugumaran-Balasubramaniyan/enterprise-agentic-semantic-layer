@@ -63,7 +63,7 @@ def test_quality_rejects_rows_using_an_unregistered_product_extension(tmp_path: 
         (tmp_path / name).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
     (tmp_path / "claims.csv").write_text(
         "claim_id,policy_id,customer_id,country,product,status,claim_date,incurred_loss_eur\n"
-        "C_HOME,P_HOME,FR_001,FR,insurance:HomeInsurance,OPEN,2026-08-01,1.00\n",
+        "C_TRAVEL,P_TRAVEL,FR_001,FR,insurance:TravelInsurance,OPEN,2026-08-01,1.00\n",
         encoding="utf-8",
     )
 

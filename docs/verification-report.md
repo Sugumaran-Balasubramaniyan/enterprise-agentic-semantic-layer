@@ -147,9 +147,9 @@ The final-review follow-up is implemented in one focused change:
   QualifyingClaim, IncurredLoss, ClaimCount, and TotalIncurredLoss. It also
   separates the physical sources actually queried from all sources validated
   by the quality gate.
-- HOME remains an intentionally unregistered extension: normalization and
-  quality validation reject it as governed, and the generated curated fixture
-  contains only registered products so its quality gate remains PASS.
+- At that checkpoint, HOME was treated as an unregistered extension. The later
+  final review fix wave supersedes that boundary with a governed HomeInsurance
+  concept and fail-closed registry reference validation.
 - Cloud SQL files and the cloud rendering helper are explicitly marked as
   unexecuted, incomplete, and not equivalent to the governed plan. The valid
   RDF fixture now includes Customer-to-Policy and Policy-to-Claim links plus
@@ -277,9 +277,9 @@ three or greater, requires the closing fence to use the same character with a
 length at least as long as the opener, and recognizes Mermaid blocks even
 when they use four-or-more backticks. Two regression tests cover tilde-fenced
 blocks and four-backtick Mermaid blocks. The stronger validator also exposed
-one unmatched tracked fence sequence in
-`.superpowers/sdd/2026-08-28-federated-semantic-layer/task-8-report.md`,
-which was repaired without changing README or published docs content.
+one unmatched tracked process report. That report and the other tracked
+agent-process reports were subsequently removed from the public repository;
+the repair did not change README or published docs content.
 
 | Command | Observed result |
 | --- | --- |
@@ -306,3 +306,40 @@ date-labeled historical records only.
 | `./.venv/bin/ruff check .` | `All checks passed!` |
 | `./.venv/bin/pytest -q` | `208 passed, 1 warning in 19.66s`; the warning is the existing third-party Starlette/httpx deprecation. |
 | `git diff --check` | Exit status 0 with no whitespace errors. |
+
+## Final README fix wave verification (2026-08-29 UTC)
+
+This final pass confirms the uncommitted README and documentation fix wave
+against the closing branch findings without broadening the repository's claims:
+
+- `.env.example` and README now state the true runtime boundary: the
+  application does not auto-load `.env`, a disposable local run needs no
+  environment variables, and durable signing evidence requires an explicit
+  export in the launching shell.
+- The public handbook and examples keep `ClaimsRatio` honest as a
+  discovery-only contract, describe MCP/LLM boundaries as unimplemented seams,
+  and point readers to the executable example index.
+- The governed semantic assets now register `insurance:HomeInsurance`, and
+  registry construction rejects a dangling normalization target instead of
+  trusting an unregistered product value.
+- Publication-surface language remains free of audience-specific scripted-demo
+  wording, and the previously tracked `.superpowers` report files remain
+  removed from Git.
+
+Fresh verification for this final pass:
+
+| Command | Observed result |
+| --- | --- |
+| `./.venv/bin/ruff check .` | `All checks passed!` |
+| `./.venv/bin/python -m pytest tests/unit/test_documentation_contract.py tests/unit/test_quality.py tests/unit/test_registry.py tests/unit/test_resolver.py tests/semantic/test_mappings.py tests/semantic/test_shacl.py tests/semantic/test_vocabulary.py -q` | `91 passed in 5.08s` |
+| `./.venv/bin/python -m pytest tests/golden -q` | `13 passed in 7.46s` |
+| `make PYTHON=.venv/bin/python test` | `208 passed, 1 warning in 20.26s`; the warning is the existing third-party FastAPI/Starlette TestClient deprecation. |
+| `make PYTHON=.venv/bin/python validate-semantic` | `Vocabulary: 14 concepts loaded`; the valid graph conformed and the invalid graph failed as expected. |
+| `make PYTHON=.venv/bin/python check-yaml` | `YAML: 11 files parsed` |
+| `make PYTHON=.venv/bin/python check-mappings-quality` | `42 passed in 1.93s` |
+| `make PYTHON=.venv/bin/python check-compiler` | `4 passed in 0.57s` |
+| `make PYTHON=.venv/bin/python check-golden` | `13 passed in 7.16s` |
+| `make PYTHON=.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed` with `discovery_only=10/10`. |
+| `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB demonstration and returned `FR_001` and `FR_002`. |
+| `git diff --check` | Exit status 0 with no whitespace errors. |
+| scoped credential-pattern scan | No credential-like assignments were found outside expected code identifiers; no secret values were detected. |

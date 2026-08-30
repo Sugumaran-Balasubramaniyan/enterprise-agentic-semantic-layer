@@ -90,7 +90,16 @@ def _count_mermaid_openers(text: str) -> int:
 
 def _tracked_markdown_paths() -> list[Path]:
     completed = subprocess.run(
-        ["git", "-C", str(ROOT), "ls-files", "*.md"],
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "*.md",
+        ],
         check=True,
         capture_output=True,
         text=True,
@@ -99,6 +108,32 @@ def _tracked_markdown_paths() -> list[Path]:
         ROOT / line
         for line in completed.stdout.splitlines()
         if line and (ROOT / line).exists()
+    ]
+
+
+def _tracked_publication_paths() -> list[Path]:
+    completed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "README.md",
+            "docs",
+            "examples",
+            ".github",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return [
+        ROOT / line
+        for line in completed.stdout.splitlines()
+        if line and (ROOT / line).is_file()
     ]
 
 
@@ -179,7 +214,7 @@ def test_system_walkthrough_commands_create_and_use_a_local_venv() -> None:
 
 
 def test_repository_markdown_excludes_legacy_demo_script_language() -> None:
-    """Keep tracked Markdown free of stale demo-script residue."""
+    """Keep the publication surface free of stale audience and process residue."""
 
     forbidden_fragments = (
         ("inter" "view"),
@@ -190,11 +225,20 @@ def test_repository_markdown_excludes_legacy_demo_script_language() -> None:
     )
     matches = [
         f"{path.relative_to(ROOT)}: {fragment}"
-        for path in _tracked_markdown_paths()
+        for path in _tracked_publication_paths()
         for fragment in forbidden_fragments
         if fragment in path.read_text().lower()
     ]
     assert not matches, "\n".join(matches)
+
+    tracked_reports = subprocess.run(
+        ["git", "-C", str(ROOT), "ls-files", ".superpowers/sdd/*report.md"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    tracked_reports = [path for path in tracked_reports if (ROOT / path).exists()]
+    assert not tracked_reports, "\n".join(tracked_reports)
 
 
 def test_markdown_relative_links_resolve() -> None:
@@ -288,18 +332,20 @@ def test_readme_verification_section_identifies_latest_evidence() -> None:
     readme = (ROOT / "README.md").read_text()
     assert "2026-08-29 UTC" in readme
     assert "docs/verification-report.md" in readme
-    assert "208 passed" in readme
-    assert "205 passed" not in readme
-    assert "195 passed" not in readme
+    publication_counts = re.findall(
+        r"\b(\d+)\s+(?:passed|passing\s+tests?)\b", readme, flags=re.IGNORECASE
+    )
+    assert publication_counts
+    assert set(publication_counts) == {"208"}, publication_counts
 
 
 def test_readme_documents_local_prerequisites_and_reproducibility_contract() -> None:
     readme = (ROOT / "README.md").read_text()
+    env_example = (ROOT / ".env.example").read_text()
     required_fragments = [
         "Python 3.12",
         "No cloud credentials",
         "No LLM API key",
-        "SEMANTIC_LAYER_ENV",
         "SEMANTIC_LAYER_SIGNING_KEY",
         "raw/",
         "curated/",
@@ -314,6 +360,12 @@ def test_readme_documents_local_prerequisites_and_reproducibility_contract() -> 
     ]
     for fragment in required_fragments:
         assert fragment in readme, fragment
+    assert "SEMANTIC_LAYER_ENV" not in readme
+    assert "SEMANTIC_LAYER_ENV" not in env_example
+    assert "does not auto-load" in readme
+    assert "reference template" in readme
+    assert "export SEMANTIC_LAYER_SIGNING_KEY_FILE=" in readme
+    assert "cp .env.example .env" not in readme
 
 
 def test_readme_documents_data_contract_and_clean_install() -> None:
@@ -380,6 +432,13 @@ def test_readme_is_a_complete_repository_handbook_for_extension_and_release() ->
         "[Federated mappings](mappings/)",
         "[Golden evaluation corpus](tests/golden/questions.yaml)",
         "[CI workflow](.github/workflows/ci.yml)",
+        "[Example index](examples/README.md)",
+        "[Checked-in primary plan](examples/generated_query_plans/primary_claims_plan.json)",
+        "[Generated SQL artifacts](examples/generated_sql/README.md)",
+        "MCP transport is not implemented",
+        "LLM integration is not implemented",
+        "ClaimsRatio is discovery-only",
+        "PRODUCT_DENIED",
         "breaking change",
         "deprecation window",
         "baseline and target-state assessment",
@@ -391,3 +450,25 @@ def test_readme_is_a_complete_repository_handbook_for_extension_and_release() ->
     ]
     for fragment in required_fragments:
         assert fragment in readme, fragment
+
+    example_index = (ROOT / "examples" / "README.md").read_text()
+    for fragment in [
+        "## Route, request, and response examples",
+        "### Successful response",
+        "### Fail-closed response",
+        "POST /resolve",
+        "POST /execute",
+        '"concept_ids"',
+        '"detail"',
+        "generated_query_plans/primary_claims_plan.json",
+        "generated_sql/README.md",
+        "MCP transport is not implemented",
+        "LLM integration is not implemented",
+    ]:
+        assert fragment in example_index, fragment
+
+    scripted_lines = re.findall(
+        r"^\s*\d+\.\s+(?:show|explain|close)\b", readme, flags=re.IGNORECASE | re.MULTILINE
+    )
+    assert not scripted_lines, scripted_lines
+    assert "synthetic `AgentService` context" not in readme

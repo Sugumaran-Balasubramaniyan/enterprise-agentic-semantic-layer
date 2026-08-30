@@ -36,6 +36,13 @@ claim and premium rows, which would multiply measures for customers with more
 than one claim or premium period. A zero premium denominator produces a null
 ratio rather than an unbounded value.
 
+This repository validates that definition during discovery only. No local
+simulated role is authorized for the complete product set, so authorization
+returns `PRODUCT_DENIED`, and the DuckDB compiler does not implement the ratio.
+Production enablement requires an aggregate-only workload policy and executable
+compiler, platform-control, and evidence tests; the checked-in definition is not
+an execution claim.
+
 Generate the same dataset for any explicit as-of date with the project
 environment active:
 

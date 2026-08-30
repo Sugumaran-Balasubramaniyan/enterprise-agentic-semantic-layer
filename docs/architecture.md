@@ -85,7 +85,9 @@ flowchart TB
 
 The mapping boundary is explicit and platform-independent. For example,
 `MTR`, `CAR`, and `MotorInsurance` normalize to
-`insurance:MotorInsurance`; an unknown value fails closed. Cloud identifiers
+`insurance:MotorInsurance`, while `HOME` and `HomeInsurance` normalize to the
+governed `insurance:HomeInsurance` concept. A normalization target absent from
+the vocabulary or an unknown local value fails closed. Cloud identifiers
 and SQL examples are documentation/interface artifacts only. The repository
 does not claim a live Databricks, Snowflake, or Fabric execution.
 

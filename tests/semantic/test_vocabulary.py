@@ -25,6 +25,7 @@ def test_vocabulary_contains_all_canonical_concepts() -> None:
         "insurance:Claim",
         "insurance:InsuranceProduct",
         "insurance:MotorInsurance",
+        "insurance:HomeInsurance",
         "insurance:Risk",
         "insurance:Coverage",
         "insurance:Premium",

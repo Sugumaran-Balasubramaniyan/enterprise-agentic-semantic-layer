@@ -49,9 +49,10 @@ def test_unknown_local_product_is_rejected() -> None:
         raise AssertionError("unknown local product must fail closed")
 
 
-def test_unregistered_home_extension_is_not_a_governed_product() -> None:
-    with pytest.raises(ValueError, match="HomeInsurance|unregistered"):
-        canonical_product("databricks", "HOME")
+def test_local_home_codes_normalize_to_governed_home_insurance() -> None:
+    assert canonical_product("databricks", "HOME") == "insurance:HomeInsurance"
+    assert canonical_product("snowflake", "HOME") == "insurance:HomeInsurance"
+    assert canonical_product("fabric", "HomeInsurance") == "insurance:HomeInsurance"
 
 
 @pytest.mark.parametrize("mapping_path", MAPPING_FILES)
