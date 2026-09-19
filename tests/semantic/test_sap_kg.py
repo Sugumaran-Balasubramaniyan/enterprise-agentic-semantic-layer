@@ -54,6 +54,21 @@ def test_shacl_catches_invalid_note() -> None:
     assert "Priority must be Very High, High, Medium, or Low." in report or "affectsComponent" in report
 
 
+def test_shacl_rejects_product_version_without_included_component(
+    sap_kg: SAPKnowledgeGraph,
+) -> None:
+    """Require every product version to include at least one component version."""
+    for product_version, _, component_version in list(
+        sap_kg.graph.triples((None, PPMS.includesComponent, None))
+    ):
+        sap_kg.graph.remove((product_version, PPMS.includesComponent, component_version))
+
+    conforms, report = sap_kg.validate_shacl("semantic/shapes/sap_support_shapes.ttl")
+
+    assert conforms is False
+    assert "includes at least one software component version" in report.lower()
+
+
 def test_sparql_query_execution(sap_kg: SAPKnowledgeGraph) -> None:
     """Test standard SPARQL 1.1 query execution."""
     sparql = """

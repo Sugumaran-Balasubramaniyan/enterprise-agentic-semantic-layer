@@ -184,6 +184,12 @@ cifppms:ProductVersionShape a sh:NodeShape ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:message "Every synthetic product version has one release year."@en
+    ] ;
+    sh:property [
+        sh:path cifppms:includesComponent ;
+        sh:class cifppms:SoftwareComponentVersion ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic product version includes at least one software component version."@en
     ] .
 
 cifppms:SoftwareComponentVersionShape a sh:NodeShape ;
