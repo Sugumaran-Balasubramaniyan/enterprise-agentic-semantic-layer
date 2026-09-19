@@ -2,54 +2,203 @@
 @prefix cifppms: <https://example.org/cifre-kg/ppms#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-cifsup:SupportShapes a sh:NodeShape ; owl:versionInfo "1.0.0" .
+cifsup:SupportShapes a sh:NodeShape ;
+    owl:versionInfo "1.0.0" .
 
 cifsup:SAPNoteShape a sh:NodeShape ;
     sh:targetClass cifsup:SAPNote ;
     sh:property [
-        sh:path cifsup:noteNumber ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:path rdfs:label ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic support note has an English label."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:noteNumber ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
         sh:message "Every synthetic support note has exactly one note number."@en
     ] ;
     sh:property [
-        sh:path cifsup:title ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ; sh:minCount 1 ;
+        sh:path cifsup:title ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
         sh:message "Every synthetic support note has an English title."@en
     ] ;
     sh:property [
-        sh:path cifsup:priority ; sh:in ( "Very High"^^xsd:string "High"^^xsd:string "Medium"^^xsd:string "Low"^^xsd:string ) ; sh:minCount 1
+        sh:path cifsup:priority ;
+        sh:in ( "Very High"^^xsd:string "High"^^xsd:string "Medium"^^xsd:string "Low"^^xsd:string ) ;
+        sh:minCount 1 ;
+        sh:message "Synthetic support-note priority uses a governed value."@en
     ] ;
     sh:property [
-        sh:path cifsup:affectsComponent ; sh:class cifsup:ApplicationComponent ; sh:minCount 1
+        sh:path cifsup:affectsComponent ;
+        sh:class cifsup:ApplicationComponent ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic support note affects an application component."@en
     ] ;
     sh:property [
-        sh:path cifsup:validForComponentVersion ; sh:class cifppms:SoftwareComponentVersion ; sh:minCount 1
+        sh:path cifsup:validForComponentVersion ;
+        sh:class cifppms:SoftwareComponentVersion ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic support note specifies a component version."@en
     ] ;
-    sh:property [ sh:path cifsup:symptom ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] ;
-    sh:property [ sh:path cifsup:rootCause ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] ;
-    sh:property [ sh:path cifsup:resolution ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] .
+    sh:property [
+        sh:path cifsup:validForProductVersion ;
+        sh:class cifppms:ProductVersion ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic support note specifies a product version."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:symptom ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:message "Support-note symptoms are English human-readable text."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:rootCause ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:message "Support-note root causes are English human-readable text."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:resolution ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:message "Support-note resolutions are English human-readable text."@en
+    ] .
 
 cifsup:SystemAlertShape a sh:NodeShape ;
     sh:targetClass cifsup:SystemAlert ;
-    sh:property [ sh:path cifsup:alertCode ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
-    sh:property [ sh:path cifsup:severity ; sh:in ( "CRITICAL"^^xsd:string "ERROR"^^xsd:string "WARNING"^^xsd:string "INFO"^^xsd:string ) ; sh:minCount 1 ] ;
-    sh:property [ sh:path cifsup:affectsComponent ; sh:class cifsup:ApplicationComponent ; sh:minCount 1 ] .
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic system alert has an English label."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:alertCode ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every synthetic system alert has exactly one alert code."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:severity ;
+        sh:in ( "CRITICAL"^^xsd:string "ERROR"^^xsd:string "WARNING"^^xsd:string "INFO"^^xsd:string ) ;
+        sh:minCount 1 ;
+        sh:message "Synthetic alert severity uses a governed value."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:affectsComponent ;
+        sh:class cifsup:ApplicationComponent ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic alert affects an application component."@en
+    ] .
 
 cifsup:ApplicationComponentShape a sh:NodeShape ;
     sh:targetClass cifsup:ApplicationComponent ;
-    sh:property [ sh:path cifsup:componentCode ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
-    sh:property [ sh:path cifsup:componentDescription ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] .
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic application component has an English label."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:componentCode ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every synthetic application component has one component code."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:componentDescription ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic application component has an English description."@en
+    ] .
 
 cifsup:SimCatCategoryShape a sh:NodeShape ;
     sh:targetClass cifsup:SimCatCategory ;
-    sh:property [ sh:path cifsup:categoryName ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ; sh:minCount 1 ] .
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic similarity category has an English label."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:categoryName ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic similarity category has an English name."@en
+    ] .
 
 cifsup:HelpDocumentationShape a sh:NodeShape ;
     sh:targetClass cifsup:HelpDocumentation ;
-    sh:property [ sh:path cifsup:docUri ; sh:datatype xsd:anyURI ; sh:minCount 1 ; sh:maxCount 1 ] .
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic documentation resource has an English label."@en
+    ] ;
+    sh:property [
+        sh:path cifsup:docUri ;
+        sh:datatype xsd:anyURI ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every synthetic documentation resource has one URI."@en
+    ] .
 
 cifppms:ProductVersionShape a sh:NodeShape ;
     sh:targetClass cifppms:ProductVersion ;
-    sh:property [ sh:path cifppms:versionCode ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
-    sh:property [ sh:path cifppms:includesComponent ; sh:class cifppms:SoftwareComponentVersion ; sh:minCount 1 ] .
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic product version has an English label."@en
+    ] ;
+    sh:property [
+        sh:path cifppms:versionCode ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every synthetic product version has one version code."@en
+    ] ;
+    sh:property [
+        sh:path cifppms:releaseYear ;
+        sh:datatype xsd:integer ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every synthetic product version has one release year."@en
+    ] .
+
+cifppms:SoftwareComponentVersionShape a sh:NodeShape ;
+    sh:targetClass cifppms:SoftwareComponentVersion ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:datatype rdf:langString ;
+        sh:languageIn ( "en" ) ;
+        sh:minCount 1 ;
+        sh:message "Every synthetic component version has an English label."@en
+    ] ;
+    sh:property [
+        sh:path cifppms:componentVersionString ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every synthetic component version has one version string."@en
+    ] .

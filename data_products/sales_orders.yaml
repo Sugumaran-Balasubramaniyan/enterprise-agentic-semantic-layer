@@ -23,43 +23,43 @@ lineage:
     - local material codes are normalized to SAP product taxonomy
     - local order lifecycle values are normalized to the Group status vocabulary
 concepts:
-  - sap:SalesOrder
-  - sap:ActiveSalesOrder
-  - sap:Product
-  - sap:ProductAutomotive
+  - ciferp:SalesOrder
+  - ciferp:ActiveSalesOrder
+  - ciferp:Product
+  - ciferp:ProductAutomotive
 schema:
   - name: sales_order_id
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: partner_id
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
     pii: true
   - name: country
     type: string
-    concept: sap:CompanyCode
+    concept: ciferp:CompanyCode
     nullable: false
   - name: product
     type: string
-    concept: sap:Product
+    concept: ciferp:Product
     nullable: false
   - name: order_status
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: effective_date
     type: date
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: expiry_date
     type: date
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: net_value_eur
     type: decimal
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
 certification:
   status: CERTIFIED

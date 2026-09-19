@@ -23,39 +23,39 @@ lineage:
     - billing amounts are conformed to EUR company currency
     - local product codes are normalized to SAP product taxonomy
 concepts:
-  - sap:BillingDocument
-  - sap:SalesOrder
-  - sap:BusinessPartner
-  - sap:Product
+  - ciferp:BillingDocument
+  - ciferp:SalesOrder
+  - ciferp:BusinessPartner
+  - ciferp:Product
 schema:
   - name: billing_doc_id
     type: string
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
   - name: sales_order_id
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: partner_id
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
     pii: true
   - name: country
     type: string
-    concept: sap:CompanyCode
+    concept: ciferp:CompanyCode
     nullable: false
   - name: product
     type: string
-    concept: sap:Product
+    concept: ciferp:Product
     nullable: false
   - name: billing_date
     type: date
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
   - name: billed_amount_eur
     type: decimal
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
 certification:
   status: CERTIFIED

@@ -21,6 +21,7 @@
     cifppms:productCode "S4HANA_ONPREM"^^xsd:string .
 
 <https://example.org/cifre-kg/data/support/note/2765001> a cifsup:SAPNote ;
+    rdfs:label "NetWeaver 7.50 memory paging adjustment for background jobs"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM> ;
     cifsup:maxSupportPackage 5 ;
     cifsup:minSupportPackage 0 ;
@@ -32,6 +33,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2022> .
 
 <https://example.org/cifre-kg/data/support/note/2877120> a cifsup:SAPNote ;
+    rdfs:label "Missing RFC function interface in external tax computation"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/FI> ;
     cifsup:maxSupportPackage 2 ;
     cifsup:minSupportPackage 0 ;
@@ -43,6 +45,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/2954112> a cifsup:SAPNote ;
+    rdfs:label "Oracle to HANA migration data conversion syntax error in S4CORE"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB> ;
     cifsup:maxSupportPackage 1 ;
     cifsup:minSupportPackage 0 ;
@@ -54,6 +57,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3088210> a cifsup:SAPNote ;
+    rdfs:label "SAP HANA secondary index rebuild performance degradation"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB-HDB> ;
     cifsup:maxSupportPackage 2 ;
     cifsup:minSupportPackage 0 ;
@@ -65,6 +69,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3109922> a cifsup:SAPNote ;
+    rdfs:label "Memory allocation dump TSV_TNEW_PAGE_ALLOC_FAILED in ACDOCA reporting on S/4HANA 2023"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM>,
         <https://example.org/cifre-kg/data/support/component/FI-GL-GL> ;
     cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/PERFORMANCE> ;
@@ -83,6 +88,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3144890> a cifsup:SAPNote ;
+    rdfs:label "Sales order pricing condition lock contention during billing runs"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/SD-SLS> ;
     cifsup:maxSupportPackage 2 ;
     cifsup:minSupportPackage 1 ;
@@ -94,6 +100,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3155700> a cifsup:SAPNote ;
+    rdfs:label "Purchasing contract release authorization bypass check"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/MM-PUR> ;
     cifsup:maxSupportPackage 3 ;
     cifsup:minSupportPackage 0 ;
@@ -104,6 +111,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3201440> a cifsup:SAPNote ;
+    rdfs:label "DUMP_SYSTEM_TIME_OUT during high-volume Purchase Order processing"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/MM-PUR-PO> ;
     cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/3185002> ;
     cifsup:maxSupportPackage 1 ;
@@ -119,6 +127,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3221980> a cifsup:SAPNote ;
+    rdfs:label "Database deadlock in General Ledger posting on S/4HANA 2022"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/FI-GL> ;
     cifsup:maxSupportPackage 3 ;
     cifsup:minSupportPackage 0 ;
@@ -130,6 +139,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2022> .
 
 <https://example.org/cifre-kg/data/support/note/3299100> a cifsup:SAPNote ;
+    rdfs:label "Universal Journal ACDOCA currency translation precision mismatch"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/FI-GL-GL> ;
     cifsup:maxSupportPackage 3 ;
     cifsup:minSupportPackage 1 ;
@@ -140,6 +150,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3345100> a cifsup:SAPNote ;
+    rdfs:label "HANA connection leak DBSQL_NO_MORE_CONNECTION in multi-tenant environment"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB-HDB> ;
     cifsup:maxSupportPackage 2 ;
     cifsup:minSupportPackage 0 ;
@@ -153,6 +164,7 @@
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/simcat/CONFIGURATION> a cifsup:SimCatCategory ;
+    rdfs:label "Customizing and Configuration Inconsistency"@en ;
     cifsup:categoryName "Customizing and Configuration Inconsistency"@en .
 
 cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
@@ -196,6 +208,7 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifppms:stackLevel 3 .
 
 <https://example.org/cifre-kg/data/support/alert/ALERT_CALL_FN_NOT_FOUND> a cifsup:SystemAlert ;
+    rdfs:label "CALL_FUNCTION_NOT_FOUND"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC> ;
     cifsup:alertCode "CALL_FUNCTION_NOT_FOUND"^^xsd:string ;
     cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/ABAP_DUMP> ;
@@ -209,19 +222,23 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifsup:severity "ERROR"^^xsd:string .
 
 <https://example.org/cifre-kg/data/support/component/MM> a cifsup:ApplicationComponent ;
+    rdfs:label "Materials Management"@en ;
     cifsup:componentCode "MM"^^xsd:string ;
     cifsup:componentDescription "Materials Management"@en .
 
 <https://example.org/cifre-kg/data/support/component/MM-PUR-PO> a cifsup:ApplicationComponent ;
+    rdfs:label "Purchase Orders"@en ;
     cifsup:componentCode "MM-PUR-PO"^^xsd:string ;
     cifsup:componentDescription "Purchase Orders"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/MM-PUR> .
 
 <https://example.org/cifre-kg/data/support/component/SD> a cifsup:ApplicationComponent ;
+    rdfs:label "Sales and Distribution"@en ;
     cifsup:componentCode "SD"^^xsd:string ;
     cifsup:componentDescription "Sales and Distribution"@en .
 
 <https://example.org/cifre-kg/data/support/component/SD-SLS> a cifsup:ApplicationComponent ;
+    rdfs:label "Sales"@en ;
     cifsup:componentCode "SD-SLS"^^xsd:string ;
     cifsup:componentDescription "Sales"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/SD> .
@@ -235,6 +252,7 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifsup:docUri "https://example.org/cifre-kg/data/support/doc/s4hana_memory_mgmt"^^xsd:anyURI .
 
 <https://example.org/cifre-kg/data/support/note/3012445> a cifsup:SAPNote ;
+    rdfs:label "Core memory parameter configuration for HANA 2.0 SPS07"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM> ;
     cifsup:maxSupportPackage 3 ;
     cifsup:minSupportPackage 0 ;
@@ -249,6 +267,7 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3098110> a cifsup:SAPNote ;
+    rdfs:label "Memory paging buffer expansion in SAP_BASIS 758"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM> ;
     cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/3012445> ;
     cifsup:maxSupportPackage 2 ;
@@ -262,6 +281,7 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
 <https://example.org/cifre-kg/data/support/note/3185002> a cifsup:SAPNote ;
+    rdfs:label "Dispatcher queue optimization for asynchronous update tasks"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST> ;
     cifsup:maxSupportPackage 3 ;
     cifsup:minSupportPackage 0 ;
@@ -281,6 +301,7 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifppms:isVersionOfComponent <https://example.org/cifre-kg/data/ppms/component/SAP_BASIS> .
 
 <https://example.org/cifre-kg/data/support/alert/ALERT_CX_SY_OPEN_SQL> a cifsup:SystemAlert ;
+    rdfs:label "CX_SY_OPEN_SQL_ERROR"@en ;
     cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB> ;
     cifsup:alertCode "CX_SY_OPEN_SQL_ERROR"^^xsd:string ;
     cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/DATABASE_ERROR> ;
@@ -294,31 +315,38 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifsup:severity "CRITICAL"^^xsd:string .
 
 <https://example.org/cifre-kg/data/support/component/FI> a cifsup:ApplicationComponent ;
+    rdfs:label "Financial Accounting"@en ;
     cifsup:componentCode "FI"^^xsd:string ;
     cifsup:componentDescription "Financial Accounting"@en .
 
 <https://example.org/cifre-kg/data/support/component/FI-GL> a cifsup:ApplicationComponent ;
+    rdfs:label "General Ledger Accounting"@en ;
     cifsup:componentCode "FI-GL"^^xsd:string ;
     cifsup:componentDescription "General Ledger Accounting"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/FI> .
 
 <https://example.org/cifre-kg/data/support/component/FI-GL-GL> a cifsup:ApplicationComponent ;
+    rdfs:label "Universal Journal ACDOCA & Basic Functions"@en ;
     cifsup:componentCode "FI-GL-GL"^^xsd:string ;
     cifsup:componentDescription "Universal Journal ACDOCA & Basic Functions"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/FI-GL> .
 
 <https://example.org/cifre-kg/data/support/component/MM-PUR> a cifsup:ApplicationComponent ;
+    rdfs:label "Purchasing"@en ;
     cifsup:componentCode "MM-PUR"^^xsd:string ;
     cifsup:componentDescription "Purchasing"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/MM> .
 
 <https://example.org/cifre-kg/data/support/simcat/ABAP_DUMP> a cifsup:SimCatCategory ;
+    rdfs:label "Runtime ABAP Dump or Crash"@en ;
     cifsup:categoryName "Runtime ABAP Dump or Crash"@en .
 
 <https://example.org/cifre-kg/data/support/simcat/DATABASE_ERROR> a cifsup:SimCatCategory ;
+    rdfs:label "Database Connection and Execution Failure"@en ;
     cifsup:categoryName "Database Connection and Execution Failure"@en .
 
 <https://example.org/cifre-kg/data/support/simcat/PERFORMANCE> a cifsup:SimCatCategory ;
+    rdfs:label "Performance and Resource Contention"@en ;
     cifsup:categoryName "Performance and Resource Contention"@en .
 
 <https://example.org/cifre-kg/data/ppms/version/S4HANA_2022> a cifppms:ProductVersion ;
@@ -335,25 +363,30 @@ cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
     cifsup:severity "CRITICAL"^^xsd:string .
 
 <https://example.org/cifre-kg/data/support/component/BC> a cifsup:ApplicationComponent ;
+    rdfs:label "Basis Components"@en ;
     cifsup:componentCode "BC"^^xsd:string ;
     cifsup:componentDescription "Basis Components"@en .
 
 <https://example.org/cifre-kg/data/support/component/BC-CST> a cifsup:ApplicationComponent ;
+    rdfs:label "Client Server Technology"@en ;
     cifsup:componentCode "BC-CST"^^xsd:string ;
     cifsup:componentDescription "Client Server Technology"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC> .
 
 <https://example.org/cifre-kg/data/support/component/BC-DB> a cifsup:ApplicationComponent ;
+    rdfs:label "Database Interface and Infrastructure"@en ;
     cifsup:componentCode "BC-DB"^^xsd:string ;
     cifsup:componentDescription "Database Interface and Infrastructure"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC> .
 
 <https://example.org/cifre-kg/data/support/component/BC-DB-HDB> a cifsup:ApplicationComponent ;
+    rdfs:label "SAP HANA Database Interface"@en ;
     cifsup:componentCode "BC-DB-HDB"^^xsd:string ;
     cifsup:componentDescription "SAP HANA Database Interface"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC-DB> .
 
 <https://example.org/cifre-kg/data/support/component/BC-CST-MM> a cifsup:ApplicationComponent ;
+    rdfs:label "Memory Management & Work Processes"@en ;
     cifsup:componentCode "BC-CST-MM"^^xsd:string ;
     cifsup:componentDescription "Memory Management & Work Processes"@en ;
     cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC-CST> .

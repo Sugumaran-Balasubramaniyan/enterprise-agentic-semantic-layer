@@ -5,9 +5,26 @@ from __future__ import annotations
 from pathlib import Path
 
 from rdflib import OWL, RDF, RDFS, Graph, Namespace, URIRef
+from rdflib.compare import isomorphic
 
-from semantic_layer.kg.loader import CIFDATA, CIFERP, CIFMETA, CIFMETAID, CIFPPMS, CIFSKOS, CIFSUP
-from semantic_layer.kg.sap_dataset_generator import build_sap_support_graph
+from semantic_layer.kg.loader import (
+    CIFDATA,
+    CIFERP,
+    CIFMETA,
+    CIFMETAID,
+    CIFPPMS,
+    CIFSKOS,
+    CIFSUP,
+)
+from semantic_layer.kg.loader import (
+    NAMESPACE_REGISTRY as LOADER_NAMESPACE_REGISTRY,
+)
+from semantic_layer.kg.sap_dataset_generator import (
+    NAMESPACE_REGISTRY as GENERATOR_NAMESPACE_REGISTRY,
+)
+from semantic_layer.kg.sap_dataset_generator import (
+    build_sap_support_graph,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 NAMESPACE_REGISTRY = {
@@ -60,6 +77,19 @@ TEXT_ASSETS = (
     ROOT / "tests/semantic/test_shacl.py",
     ROOT / "tests/semantic/test_vocabulary.py",
 )
+LOGICAL_CONSUMERS = (
+    ROOT / "semantic/metrics/metrics.yaml",
+    ROOT / "semantic/rules/financial_postings.yaml",
+    ROOT / "semantic/vocabulary/sap_erp.yaml",
+    ROOT / "data_products/acdoca_financials.yaml",
+    ROOT / "data_products/billing_analytics.yaml",
+    ROOT / "data_products/business_partners.yaml",
+    ROOT / "data_products/sales_orders.yaml",
+    ROOT / "tests/semantic/test_active_policy_regression.py",
+    ROOT / "tests/semantic/test_mappings.py",
+    ROOT / "tests/semantic/test_metric_rules.py",
+    ROOT / "tests/semantic/test_vocabulary.py",
+)
 
 
 def _legacy_uris() -> tuple[str, ...]:
@@ -94,6 +124,7 @@ def test_registry_exposes_exact_neutral_namespace_contract() -> None:
     assert CIFSKOS == Namespace(NAMESPACE_REGISTRY["cifskos"])
     assert CIFMETA == Namespace(NAMESPACE_REGISTRY["cifmeta"])
     assert CIFMETAID == Namespace(NAMESPACE_REGISTRY["cifmetaid"])
+    assert LOADER_NAMESPACE_REGISTRY is GENERATOR_NAMESPACE_REGISTRY
 
 
 def test_tracked_rdf_assets_use_only_neutral_or_w3c_iris() -> None:
@@ -112,6 +143,11 @@ def test_runtime_and_yaml_assets_contain_no_legacy_uri_family() -> None:
         assert not any(uri in text for uri in legacy), path
 
 
+def test_logical_consumers_have_no_legacy_sap_aliases() -> None:
+    legacy_alias = "".join((chr(115), chr(97), chr(112), ":"))
+    assert all(legacy_alias not in path.read_text(encoding="utf-8") for path in LOGICAL_CONSUMERS)
+
+
 def test_generated_graph_is_neutral_and_provenanced() -> None:
     graph = build_sap_support_graph()
     for subject, predicate, obj in graph:
@@ -125,6 +161,18 @@ def test_generated_graph_is_neutral_and_provenanced() -> None:
     assert graph.value(metadata, CIFMETA.sourceKind).toPython() == "synthetic_fixture"
     assert graph.value(metadata, CIFMETA.official).toPython() is False
     assert graph.value(metadata, CIFMETA.datasetId).toPython() == "cifre-synthetic-support-ppms-v1"
+
+
+def test_generated_graph_is_rdf_isomorphic_to_checked_in_support_graph() -> None:
+    generated = build_sap_support_graph()
+    checked_in = Graph().parse(ROOT / "semantic/data/sap_support_graph.ttl", format="turtle")
+    assert isomorphic(generated, checked_in)
+
+
+def test_generator_derives_instance_iris_from_cifdata() -> None:
+    source = (ROOT / "src/semantic_layer/kg/sap_dataset_generator.py").read_text(encoding="utf-8")
+    assert "https://example.org/cifre-kg/data/" not in source
+    assert "CIFDATA[f\"" in source
 
 
 def test_erp_skos_crosswalk_keeps_class_and_concept_disjoint() -> None:

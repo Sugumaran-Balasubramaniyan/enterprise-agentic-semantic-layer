@@ -1,8 +1,8 @@
 version: "1.0.0"
-namespace: "sap"
+namespace: "ciferp"
 owner: "SAP SE"
 concepts:
-  - id: "sap:BusinessPartner"
+  - id: "ciferp:BusinessPartner"
     name: "Business Partner"
     version: "1.0.0"
     definition: "A person or organization with an active commercial and financial relationship in SAP S/4HANA (BUT000)."
@@ -15,14 +15,14 @@ concepts:
       classification: "Confidential"
       rationale: "Business partner identity is protected enterprise personal and organizational data."
     relationships:
-      - predicate: "sap:hasSalesOrder"
-        target: "sap:SalesOrder"
+      - predicate: "ciferp:hasSalesOrder"
+        target: "ciferp:SalesOrder"
         description: "A business partner holds one or more sales orders."
-      - predicate: "sap:hasFinancialPosting"
-        target: "sap:FinancialPosting"
+      - predicate: "ciferp:hasFinancialPosting"
+        target: "ciferp:FinancialPosting"
         description: "A business partner is associated with universal journal postings."
     examples: ["FR_001", "UK_001"]
-  - id: "sap:SalesOrder"
+  - id: "ciferp:SalesOrder"
     name: "Sales Order"
     version: "1.0.0"
     definition: "A contractual sales document in SAP S/4HANA Sales and Distribution (VBAK/VBAP)."
@@ -35,19 +35,19 @@ concepts:
       classification: "Confidential"
       rationale: "Sales order commercial values and line items."
     relationships:
-      - predicate: "sap:hasProduct"
-        target: "sap:Product"
+      - predicate: "ciferp:hasProduct"
+        target: "ciferp:Product"
         description: "A sales order is issued for a governed product/material."
-      - predicate: "sap:coversRisk"
-        target: "sap:Risk"
-      - predicate: "sap:hasCoverage"
-        target: "sap:Coverage"
-      - predicate: "sap:referencesBusinessPartner"
-        target: "sap:BusinessPartner"
+      - predicate: "ciferp:coversRisk"
+        target: "ciferp:Risk"
+      - predicate: "ciferp:hasCoverage"
+        target: "ciferp:Coverage"
+      - predicate: "ciferp:referencesBusinessPartner"
+        target: "ciferp:BusinessPartner"
         description: "A sales order belongs to a business partner."
     allowed_values: ["RELEASED", "OPEN", "CLOSED", "CANCELLED"]
     examples: ["FR_SO_001", "UK_SO_001"]
-  - id: "sap:FinancialPosting"
+  - id: "ciferp:FinancialPosting"
     name: "Financial Posting"
     version: "1.0.0"
     definition: "A financial journal entry item in SAP S/4HANA Universal Journal (ACDOCA)."
@@ -60,15 +60,15 @@ concepts:
       classification: "Confidential"
       rationale: "Financial postings contain sensitive audit, debit, and loss details."
     relationships:
-      - predicate: "sap:referencesSalesOrder"
-        target: "sap:SalesOrder"
-      - predicate: "sap:hasPostingStatus"
-        target: "sap:PostingStatus"
-      - predicate: "sap:hasFinancialLoss"
-        target: "sap:FinancialLoss"
+      - predicate: "ciferp:referencesSalesOrder"
+        target: "ciferp:SalesOrder"
+      - predicate: "ciferp:hasPostingStatus"
+        target: "ciferp:PostingStatus"
+      - predicate: "ciferp:hasFinancialLoss"
+        target: "ciferp:FinancialLoss"
     allowed_values: ["POSTED", "CLEARED", "REVERSED", "DUPLICATE"]
     examples: ["FR_DOC_001"]
-  - id: "sap:Product"
+  - id: "ciferp:Product"
     name: "Product"
     version: "1.0.0"
     definition: "A governed category of products and materials in SAP S/4HANA (MARA)."
@@ -80,8 +80,8 @@ concepts:
     sensitivity:
       classification: "Public"
     relationships: []
-    examples: ["sap:ProductAutomotive"]
-  - id: "sap:ProductAutomotive"
+    examples: ["ciferp:ProductAutomotive"]
+  - id: "ciferp:ProductAutomotive"
     name: "Automotive Product"
     version: "1.0.0"
     definition: "Material group and products for automotive components, vehicles, and parts."
@@ -94,9 +94,9 @@ concepts:
       classification: "Public"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:Product"
+        target: "ciferp:Product"
     examples: ["MOTOR", "MTR", "AUTO", "CAR"]
-  - id: "sap:ProductCommercial"
+  - id: "ciferp:ProductCommercial"
     name: "Commercial Product"
     version: "1.0.0"
     definition: "Material group for commercial, industrial, and facility products."
@@ -109,9 +109,9 @@ concepts:
       classification: "Public"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:Product"
+        target: "ciferp:Product"
     examples: ["HOME", "Commercial"]
-  - id: "sap:Risk"
+  - id: "ciferp:Risk"
     name: "Risk"
     version: "1.0.0"
     definition: "An assessed financial or operational exposure in SAP Financial Risk Management."
@@ -124,7 +124,7 @@ concepts:
       classification: "Internal"
     relationships: []
     examples: ["Counterparty default"]
-  - id: "sap:Coverage"
+  - id: "ciferp:Coverage"
     name: "Coverage"
     version: "1.0.0"
     definition: "Warranty and credit limits associated with an SAP commercial contract."
@@ -137,7 +137,7 @@ concepts:
       classification: "Internal"
     relationships: []
     examples: ["Full warranty coverage"]
-  - id: "sap:BillingDocument"
+  - id: "ciferp:BillingDocument"
     name: "Billing Document"
     version: "1.0.0"
     definition: "A billed invoice document item in SAP S/4HANA (VBRK/VBRP)."
@@ -150,7 +150,7 @@ concepts:
       classification: "Confidential"
     relationships: []
     examples: ["1250.00 EUR"]
-  - id: "sap:PostingStatus"
+  - id: "ciferp:PostingStatus"
     name: "Posting Status"
     version: "1.0.0"
     definition: "The governed lifecycle state of an SAP accounting document."
@@ -163,7 +163,7 @@ concepts:
       classification: "Internal"
     allowed_values: ["POSTED", "CLEARED", "REVERSED", "DUPLICATE"]
     examples: ["POSTED"]
-  - id: "sap:CompanyCode"
+  - id: "ciferp:CompanyCode"
     name: "Company Code"
     version: "1.0.0"
     definition: "The SAP Company Code and country jurisdiction governing master and transactional records."
@@ -176,7 +176,7 @@ concepts:
       classification: "Internal"
     allowed_values: ["FR", "GB", "DE"]
     examples: ["FR"]
-  - id: "sap:ActiveSalesOrder"
+  - id: "ciferp:ActiveSalesOrder"
     name: "Active Sales Order"
     version: "1.0.0"
     definition: "A sales order whose governed lifecycle status is RELEASED."
@@ -189,10 +189,10 @@ concepts:
       classification: "Confidential"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:SalesOrder"
+        target: "ciferp:SalesOrder"
     allowed_values: ["RELEASED"]
     examples: ["FR_SO_001"]
-  - id: "sap:QualifyingPosting"
+  - id: "ciferp:QualifyingPosting"
     name: "Qualifying Posting"
     version: "1.0.0"
     definition: "A financial posting eligible for governed audit and debit metrics after exclusions."
@@ -205,10 +205,10 @@ concepts:
       classification: "Confidential"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:FinancialPosting"
+        target: "ciferp:FinancialPosting"
     allowed_values: ["POSTED", "CLEARED"]
     examples: ["FR_DOC_001"]
-  - id: "sap:FinancialLoss"
+  - id: "ciferp:FinancialLoss"
     name: "Financial Loss"
     version: "1.0.0"
     definition: "The total debit amount or financial write-off loss for an accounting entry."

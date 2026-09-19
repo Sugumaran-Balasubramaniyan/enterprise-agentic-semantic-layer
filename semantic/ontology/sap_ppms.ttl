@@ -8,44 +8,90 @@ cifppms: a owl:Ontology ;
     rdfs:comment "Repository-authored synthetic lifecycle hierarchy for support fixtures."@en ;
     owl:versionInfo "1.0.0" .
 
-cifppms:ProductLine a owl:Class ; rdfs:label "Product Line"@en .
-cifppms:Product a owl:Class ; rdfs:label "Product"@en .
-cifppms:ProductVersion a owl:Class ; rdfs:label "Product Version"@en .
-cifppms:SoftwareComponent a owl:Class ; rdfs:label "Software Component"@en .
-cifppms:SoftwareComponentVersion a owl:Class ; rdfs:label "Software Component Version"@en .
-cifppms:SupportPackage a owl:Class ; rdfs:label "Support Package"@en .
-cifppms:PatchLevel a owl:Class ; rdfs:label "Patch Level"@en .
+cifppms:ProductLine a owl:Class ;
+    rdfs:label "Product Line"@en ;
+    rdfs:comment "A synthetic high-level family of products in the lifecycle fixtures."@en .
+cifppms:Product a owl:Class ;
+    rdfs:label "Product"@en ;
+    rdfs:comment "A synthetic product belonging to a product line."@en .
+cifppms:ProductVersion a owl:Class ;
+    rdfs:label "Product Version"@en ;
+    rdfs:comment "A synthetic release of a product."@en .
+cifppms:SoftwareComponent a owl:Class ;
+    rdfs:label "Software Component"@en ;
+    rdfs:comment "A synthetic technical module used by a product."@en .
+cifppms:SoftwareComponentVersion a owl:Class ;
+    rdfs:label "Software Component Version"@en ;
+    rdfs:comment "A versioned synthetic deliverable of a software component."@en .
+cifppms:SupportPackage a owl:Class ;
+    rdfs:label "Support Package"@en ;
+    rdfs:comment "A synthetic maintenance bundle for a component version."@en .
+cifppms:PatchLevel a owl:Class ;
+    rdfs:label "Patch Level"@en ;
+    rdfs:comment "A synthetic patch associated with a support package."@en .
 
 cifppms:belongsToProductLine a owl:ObjectProperty ;
+    rdfs:label "belongs to product line"@en ;
+    rdfs:comment "Associates a synthetic product with its product line."@en ;
     rdfs:domain cifppms:Product ; rdfs:range cifppms:ProductLine .
 cifppms:hasProductVersion a owl:ObjectProperty ;
+    rdfs:label "has product version"@en ;
+    rdfs:comment "Associates a synthetic product with one of its releases."@en ;
     rdfs:domain cifppms:Product ; rdfs:range cifppms:ProductVersion .
 cifppms:includesComponent a owl:ObjectProperty ;
+    rdfs:label "includes software component version"@en ;
+    rdfs:comment "Associates a synthetic product version with an included component version."@en ;
     rdfs:domain cifppms:ProductVersion ; rdfs:range cifppms:SoftwareComponentVersion .
 cifppms:isVersionOfComponent a owl:ObjectProperty ;
+    rdfs:label "is version of component"@en ;
+    rdfs:comment "Associates a synthetic component version with its component."@en ;
     rdfs:domain cifppms:SoftwareComponentVersion ; rdfs:range cifppms:SoftwareComponent .
 cifppms:hasSupportPackage a owl:ObjectProperty ;
+    rdfs:label "has support package"@en ;
+    rdfs:comment "Associates a synthetic component version with a support package."@en ;
     rdfs:domain cifppms:SoftwareComponentVersion ; rdfs:range cifppms:SupportPackage .
 cifppms:hasPatchLevel a owl:ObjectProperty ;
+    rdfs:label "has patch level"@en ;
+    rdfs:comment "Associates a synthetic support package with a patch level."@en ;
     rdfs:domain cifppms:SupportPackage ; rdfs:range cifppms:PatchLevel .
 cifppms:dependsOnComponent a owl:ObjectProperty ;
+    rdfs:label "depends on component version"@en ;
+    rdfs:comment "Associates a synthetic component version with a dependency."@en ;
     rdfs:domain cifppms:SoftwareComponentVersion ; rdfs:range cifppms:SoftwareComponentVersion .
 
 cifppms:productLineCode a owl:DatatypeProperty ;
+    rdfs:label "product-line code"@en ;
+    rdfs:comment "Synthetic code for a product line."@en ;
     rdfs:domain cifppms:ProductLine ; rdfs:range xsd:string .
 cifppms:productCode a owl:DatatypeProperty ;
+    rdfs:label "product code"@en ;
+    rdfs:comment "Synthetic code for a product."@en ;
     rdfs:domain cifppms:Product ; rdfs:range xsd:string .
 cifppms:versionCode a owl:DatatypeProperty ;
+    rdfs:label "version code"@en ;
+    rdfs:comment "Synthetic code for a product version."@en ;
     rdfs:domain cifppms:ProductVersion ; rdfs:range xsd:string .
 cifppms:componentName a owl:DatatypeProperty ;
+    rdfs:label "component name"@en ;
+    rdfs:comment "Synthetic name for a software component."@en ;
     rdfs:domain cifppms:SoftwareComponent ; rdfs:range xsd:string .
 cifppms:componentVersionString a owl:DatatypeProperty ;
+    rdfs:label "component version string"@en ;
+    rdfs:comment "Synthetic version string for a software component version."@en ;
     rdfs:domain cifppms:SoftwareComponentVersion ; rdfs:range xsd:string .
 cifppms:stackLevel a owl:DatatypeProperty ;
+    rdfs:label "stack level"@en ;
+    rdfs:comment "Synthetic support-package stack level."@en ;
     rdfs:domain cifppms:SupportPackage ; rdfs:range xsd:integer .
 cifppms:spName a owl:DatatypeProperty ;
+    rdfs:label "support-package name"@en ;
+    rdfs:comment "Synthetic support-package name."@en ;
     rdfs:domain cifppms:SupportPackage ; rdfs:range xsd:string .
 cifppms:patchNumber a owl:DatatypeProperty ;
+    rdfs:label "patch number"@en ;
+    rdfs:comment "Synthetic integer patch number."@en ;
     rdfs:domain cifppms:PatchLevel ; rdfs:range xsd:integer .
 cifppms:releaseYear a owl:DatatypeProperty ;
+    rdfs:label "release year"@en ;
+    rdfs:comment "Synthetic calendar year for a product release."@en ;
     rdfs:domain cifppms:ProductVersion ; rdfs:range xsd:integer .

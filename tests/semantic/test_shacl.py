@@ -16,6 +16,7 @@ TAXONOMY = ROOT / "semantic/taxonomy/sap_products.ttl"
 CIFERP = Namespace("https://example.org/cifre-kg/erp#")
 CIFSKOS = Namespace("https://example.org/cifre-kg/vocabulary#")
 CIFDATA = Namespace("https://example.org/cifre-kg/data/")
+CIFMETAID = Namespace("https://example.org/cifre-kg/id/meta/")
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 
 
@@ -128,8 +129,8 @@ def test_taxonomy_declares_version_and_skos_hierarchy_and_alternatives() -> None
 def test_shapes_and_sample_graphs_declare_semantic_versions() -> None:
     for path, subject in (
         (SHAPES, CIFERP.ERPShapes),
-        (VALID_GRAPH, CIFDATA["erp/sample-graph-valid"]),
-        (INVALID_GRAPH, CIFDATA["erp/sample-graph-invalid"]),
+        (VALID_GRAPH, CIFMETAID["sample-graph-valid"]),
+        (INVALID_GRAPH, CIFMETAID["sample-graph-invalid"]),
     ):
         graph = Graph().parse(path, format="turtle")
         assert (subject, OWL.versionInfo, None) in graph

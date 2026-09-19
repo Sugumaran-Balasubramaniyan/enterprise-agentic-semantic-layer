@@ -13,29 +13,11 @@ from typing import Any
 
 import pyshacl
 import rdflib
+import yaml
 from rdflib import Graph, Namespace, URIRef
 from rdflib.plugins.sparql.processor import SPARQLResult
 
 logger = logging.getLogger(__name__)
-
-_NAMESPACE_REGISTRY = {
-    "cifsup": "https://example.org/cifre-kg/support#",
-    "cifppms": "https://example.org/cifre-kg/ppms#",
-    "cifdata": "https://example.org/cifre-kg/data/",
-    "ciferp": "https://example.org/cifre-kg/erp#",
-    "cifskos": "https://example.org/cifre-kg/vocabulary#",
-    "cifmeta": "https://example.org/cifre-kg/meta#",
-    "cifmetaid": "https://example.org/cifre-kg/id/meta/",
-}
-
-CIFSUP = Namespace(_NAMESPACE_REGISTRY["cifsup"])
-CIFPPMS = Namespace(_NAMESPACE_REGISTRY["cifppms"])
-CIFDATA = Namespace(_NAMESPACE_REGISTRY["cifdata"])
-CIFERP = Namespace(_NAMESPACE_REGISTRY["ciferp"])
-CIFSKOS = Namespace(_NAMESPACE_REGISTRY["cifskos"])
-CIFMETA = Namespace(_NAMESPACE_REGISTRY["cifmeta"])
-CIFMETAID = Namespace(_NAMESPACE_REGISTRY["cifmetaid"])
-
 
 @dataclass(frozen=True)
 class ValidationReport:
@@ -183,3 +165,34 @@ class SAPKnowledgeGraph:
 
     def __len__(self) -> int:
         return len(self.graph)
+
+
+def _load_namespace_registry() -> dict[str, str]:
+    """Load Task 2's registry, with a dependency-light local fallback.
+
+    Importing ``semantic_layer.research.contracts`` normally exposes the
+    canonical registry.  The shared checkout environment used for semantic
+    asset checks may intentionally omit the optional JSON Schema dependency,
+    so read the checked-in provenance contract only for that environment
+    bootstrap case.  No namespace literals are duplicated here.
+    """
+
+    try:
+        from semantic_layer.research.contracts import NAMESPACE_REGISTRY
+    except ModuleNotFoundError as error:
+        if error.name != "jsonschema":
+            raise
+        provenance_path = Path(__file__).resolve().parents[3] / "semantic/provenance/synthetic_source.yaml"
+        document = yaml.safe_load(provenance_path.read_text(encoding="utf-8"))
+        return dict(document["namespace_registry"])
+    return NAMESPACE_REGISTRY
+
+
+NAMESPACE_REGISTRY = _load_namespace_registry()
+CIFSUP = Namespace(NAMESPACE_REGISTRY["cifsup"])
+CIFPPMS = Namespace(NAMESPACE_REGISTRY["cifppms"])
+CIFDATA = Namespace(NAMESPACE_REGISTRY["cifdata"])
+CIFERP = Namespace(NAMESPACE_REGISTRY["ciferp"])
+CIFSKOS = Namespace(NAMESPACE_REGISTRY["cifskos"])
+CIFMETA = Namespace(NAMESPACE_REGISTRY["cifmeta"])
+CIFMETAID = Namespace(NAMESPACE_REGISTRY["cifmetaid"])

@@ -5,7 +5,7 @@ from __future__ import annotations
 from itertools import pairwise
 from pathlib import Path
 
-from rdflib import RDF, RDFS, XSD, Graph, Literal, Namespace
+from rdflib import OWL, RDF, RDFS, XSD, Graph, Literal, Namespace
 
 from semantic_layer.semantic_validation import validate_graph
 
@@ -30,6 +30,7 @@ def test_support_ontology_declares_human_fields_as_english_lang_strings() -> Non
     )
     for field in human_fields:
         assert (field, RDFS.range, RDF.langString) in graph
+    assert (CIFSUP.hasPrerequisiteNote, RDF.type, OWL.TransitiveProperty) in graph
 
 
 def test_support_shapes_require_english_lang_strings_without_or_workaround() -> None:
@@ -52,6 +53,40 @@ def test_support_shapes_require_english_lang_strings_without_or_workaround() -> 
         language_list = graph.value(shape, SH.languageIn)
         assert language_list is not None
         assert list(graph.items(language_list)) == [Literal("en")]
+
+
+def test_every_support_and_ppms_target_class_requires_an_english_label() -> None:
+    graph = Graph().parse(ROOT / "semantic/shapes/sap_support_shapes.ttl", format="turtle")
+    target_classes = set(graph.objects(None, SH.targetClass))
+    assert target_classes
+    for target_class in target_classes:
+        shapes = set(graph.subjects(SH.targetClass, target_class))
+        label_shapes = {
+            prop_shape
+            for shape in shapes
+            for prop_shape in graph.objects(shape, SH.property)
+            if graph.value(prop_shape, SH.path) == RDFS.label
+        }
+        assert label_shapes, target_class
+        for prop_shape in label_shapes:
+            assert (prop_shape, SH.datatype, RDF.langString) in graph
+            language_list = graph.value(prop_shape, SH.languageIn)
+            assert language_list is not None
+            assert list(graph.items(language_list)) == [Literal("en")]
+
+
+def test_every_shape_property_has_an_english_diagnostic_message() -> None:
+    for path in (
+        ROOT / "semantic/shapes/sap_support_shapes.ttl",
+        ROOT / "semantic/shapes/sap_erp_shapes.ttl",
+    ):
+        graph = Graph().parse(path, format="turtle")
+        property_shapes = set(graph.objects(None, SH.property))
+        assert property_shapes
+        for prop_shape in property_shapes:
+            messages = list(graph.objects(prop_shape, SH.message))
+            assert messages, (path, prop_shape)
+            assert all(message.language == "en" for message in messages)
 
 
 def test_machine_fields_keep_declared_string_and_numeric_datatypes() -> None:

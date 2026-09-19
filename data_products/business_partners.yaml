@@ -23,24 +23,24 @@ lineage:
   transformations:
     - country codes are normalized to SAP company code jurisdictions
 concepts:
-  - sap:BusinessPartner
-  - sap:CompanyCode
+  - ciferp:BusinessPartner
+  - ciferp:CompanyCode
 schema:
   - name: partner_id
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
   - name: partner_name
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
   - name: country
     type: string
-    concept: sap:CompanyCode
+    concept: ciferp:CompanyCode
     nullable: false
   - name: email
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
     pii: true
 certification:

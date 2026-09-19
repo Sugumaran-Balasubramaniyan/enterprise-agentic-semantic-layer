@@ -25,45 +25,45 @@ lineage:
     - local accounting statuses and materials are normalized to SAP ERP semantics
     - REVERSED and DUPLICATE entries remain observable but are excluded by QualifyingPosting
 concepts:
-  - sap:FinancialPosting
-  - sap:QualifyingPosting
-  - sap:FinancialLoss
-  - sap:PostingStatus
-  - sap:SalesOrder
-  - sap:BusinessPartner
+  - ciferp:FinancialPosting
+  - ciferp:QualifyingPosting
+  - ciferp:FinancialLoss
+  - ciferp:PostingStatus
+  - ciferp:SalesOrder
+  - ciferp:BusinessPartner
 schema:
   - name: journal_entry_id
     type: string
-    concept: sap:FinancialPosting
+    concept: ciferp:FinancialPosting
     nullable: false
   - name: sales_order_id
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: partner_id
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
     pii: true
   - name: country
     type: string
-    concept: sap:CompanyCode
+    concept: ciferp:CompanyCode
     nullable: false
   - name: product
     type: string
-    concept: sap:Product
+    concept: ciferp:Product
     nullable: false
   - name: posting_status
     type: string
-    concept: sap:PostingStatus
+    concept: ciferp:PostingStatus
     nullable: false
   - name: posting_date
     type: date
-    concept: sap:FinancialPosting
+    concept: ciferp:FinancialPosting
     nullable: false
   - name: amount_in_company_currency_eur
     type: decimal
-    concept: sap:FinancialLoss
+    concept: ciferp:FinancialLoss
     nullable: false
 certification:
   status: CERTIFIED

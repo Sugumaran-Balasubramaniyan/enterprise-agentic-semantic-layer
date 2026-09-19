@@ -1,12 +1,11 @@
 @prefix ciferp: <https://example.org/cifre-kg/erp#> .
-@prefix cifdata: <https://example.org/cifre-kg/data/> .
 @prefix cifmeta: <https://example.org/cifre-kg/meta#> .
 @prefix cifmetaid: <https://example.org/cifre-kg/id/meta/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://example.org/cifre-kg/data/erp/sample-graph-valid> a owl:Ontology ; owl:versionInfo "1.0.0" .
-<https://example.org/cifre-kg/data/erp/dataset-sample-valid> a cifmeta:SyntheticDataset ;
+cifmetaid:sample-graph-valid a owl:Ontology ; owl:versionInfo "1.0.0" .
+cifmetaid:dataset-sample-valid a cifmeta:SyntheticDataset ;
     cifmeta:datasetId "cifre-synthetic-erp-valid" ;
     cifmeta:sourceKind "synthetic_fixture" ;
     cifmeta:official false .
