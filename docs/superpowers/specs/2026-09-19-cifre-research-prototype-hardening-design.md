@@ -108,7 +108,7 @@ support and PPMS models also have these semantic issues:
   ontology declares `sap:title` with range `xsd:string`; the shape works around
   this with an `sh:or` instead of making the contract coherent.
 - The ERP vocabulary uses SKOS concepts and the ERP ontology uses OWL classes
-  with overlapping local names and IRIs (for example `ProductAutomotive`).
+  with overlapping local names and IRIs, including `ProductAutomotive`.
   A taxonomy concept is not automatically an instance/class in the ontology.
 - Prerequisite traversal is modelled as an OWL transitive property, but the
   planner currently asks only for one direct `hasPrerequisiteNote` edge and
@@ -155,10 +155,11 @@ claim:
 > proposes future LLM/retrieval experiments; it does not claim completed PhD
 > research or production readiness.
 
-The wording may be shortened for metadata, but it must preserve the same
-meaning. “SAP” may describe the domain inspiration or names in synthetic
-question text; it must not be used as an owner, publisher, certification
-authority, or result sponsor.
+Metadata uses the first sentence of this disclaimer plus
+`independent_repository: true` and `official: false`; those fields preserve
+the same meaning. “SAP” may describe the domain inspiration or names in
+synthetic question text; it must not be used as an owner, publisher,
+certification authority, or result sponsor.
 
 The research contract is:
 
@@ -189,13 +190,14 @@ planner, compiler, and test references must migrate to these exact IRIs:
 | --- | --- | --- |
 | `cifsup` | `https://example.org/cifre-kg/support#` | Synthetic support classes, properties, and predicates |
 | `cifppms` | `https://example.org/cifre-kg/ppms#` | Synthetic PPMS classes, properties, and predicates |
-| `cifdata` | `https://example.org/cifre-kg/data/` | Synthetic support/PPMS instance resources; append `support/`, `ppms/`, or another explicit dataset segment |
+| `cifdata` | `https://example.org/cifre-kg/data/` | Synthetic instance resources under exactly `support/`, `ppms/`, or `erp/` |
 | `ciferp` | `https://example.org/cifre-kg/erp#` | Synthetic ERP OWL classes/properties currently represented by the `sap:` ERP namespace |
 | `cifskos` | `https://example.org/cifre-kg/vocabulary#` | Synthetic SKOS concept schemes and concepts |
+| `cifmeta` | `https://example.org/cifre-kg/meta#` | Synthetic-source, provenance, crosswalk, and result metadata predicates |
 
 `example.org` is used as a reserved documentation namespace. These IRIs are
 not SAP IRIs and must be labelled as synthetic in ontology metadata. The
-instance pattern should be, for example,
+instance pattern is exactly
 `https://example.org/cifre-kg/data/support/note/3109922` and
 `https://example.org/cifre-kg/data/ppms/version/S4HANA_2023`; it must not
 retain `data.sap.com` path names.
@@ -252,9 +254,9 @@ Keep the federated semantic layer's ERP ontology under `ciferp:` and its
 product taxonomy under `cifskos:`. `cifskos:ProductAutomotive` is a
 `skos:Concept`; `ciferp:ProductAutomotive` is an OWL class only if the ERP
 ontology needs that class. They must not share an IRI merely because the
-labels match. Use explicit reviewed mappings (for example a documented
-`ciferp:canonicalConcept` property or a mapping table) when a class is linked
-to a taxonomy concept. The mapping is not an implicit `rdf:type` assertion.
+labels match. Use the explicit reviewed mapping
+`ciferp:canonicalConcept` when a class is linked to a taxonomy concept. The
+mapping is not an implicit `rdf:type` assertion.
 
 Tests must assert both that SKOS scheme structure is valid and that a SKOS
 concept is not accidentally used as an OWL class/type. This preserves the
@@ -348,8 +350,8 @@ Relaxation is a research action, not exact satisfaction of the original
 request. A result must preserve:
 
 - the original constraint set;
-- each relaxation operation and order (for example remove support-package
-  bound, then widen a component);
+- each relaxation operation and order (remove the support-package bound, then
+  widen a component);
 - the relaxed query and its bindings;
 - whether strict execution was empty;
 - `answer_scope=relaxed` when a relaxed answer is shown.
@@ -384,8 +386,8 @@ the first migration. Change metadata and labels as follows:
 - treat `requires_reflection` as an analysis hint, not a gold claim that a
   repair must succeed;
 - add negative, unknown, ambiguous, unsupported, syntax, and strict-empty
-  queries in a subsequent corpus version, or add them to v1 only with new IDs
-  and an explicit version change.
+  queries only in the separate v2 corpus defined in Section 23; v1 remains
+  the original 40-query controlled corpus.
 
 Do not delete the legacy expected answer. For every changed gold expectation,
 record `legacy_expected_notes`, `revised_expected_notes`, a reason, the graph
@@ -454,7 +456,8 @@ The runner writes deterministic JSON to `results/latest_benchmark.json` with:
 - condition definitions;
 - aggregate metrics;
 - the complete ordered `per_query` result list;
-- run environment versions sufficient to reproduce the result;
+- run environment fields `python_version`, `platform_system`,
+  `platform_machine`, `pip_version`, and the sorted locked package versions;
 - no mutable wall-clock field in the content hash (a display-only run time may
   be kept outside the deterministic artifact).
 
@@ -479,8 +482,8 @@ The target performs, in order:
 3. Validate each declared SHACL scope, including expected valid and invalid
    fixtures, with partial/full scope labels.
 4. Validate benchmark metadata and input hashes.
-5. Run the deterministic no-reflection and bounded-repair benchmark, writing
-   `results/latest_benchmark.json`.
+5. Run the v1 and v2 deterministic no-reflection and bounded-repair benchmarks,
+   writing their `corpus_runs` entries to `results/latest_benchmark.json`.
 6. Run claim-contract, research, semantic, and complete pytest checks.
 7. Run Ruff and report a concise verification summary.
 
@@ -489,10 +492,10 @@ source fixtures. It should fail non-zero on namespace drift, graph parity
 failure, unexpected SHACL outcome, stale result hash, benchmark schema error,
 claim-contract violation, test failure, or lint failure.
 
-CI should run this target in a dedicated research-verification job if its
-measured runtime is reasonable for the existing suite; otherwise split the
-same steps into cached semantic and benchmark jobs without removing any
-acceptance check. No cloud account, external endpoint, API key, model
+CI runs this target in a dedicated `research-verify` job. If the measured
+post-install execution exceeds 120 seconds, split the same steps into the
+named `research-verify-assets` and `research-verify-benchmark` jobs without
+removing any acceptance check. No cloud account, external endpoint, API key, model
 download, or vector service is required in CI.
 
 ## 10. Documentation and claim sanitation
@@ -546,8 +549,8 @@ reports for unsupported ownership and capability language. In particular:
 - distinguish synthetic SAP-shaped names from official SAP assets;
 - remove production, cloud, partnership, benchmark-superiority, and
   hallucination guarantees unless backed by current evidence;
-- update `pyproject.toml` description and project URLs/metadata, if present,
-  to describe an independent local semantic-layer and KG research prototype;
+- update the `pyproject.toml` description to
+  `Independent synthetic semantic-layer and knowledge-graph research prototype`;
 - make `docs/verification-report.md` a fresh post-change report rather than a
   historical assertion, including exact commands, commit, hashes, and known
   limitations.
@@ -555,7 +558,7 @@ reports for unsupported ownership and capability language. In particular:
 The repository must not mutate GitHub metadata, releases, topics, remote
 descriptions, or other external state as part of this work.
 
-## 11. Architecture, data flow, and likely file impact
+## 11. Architecture, data flow, and exact file impact
 
 The hardened data flow is:
 
@@ -573,9 +576,9 @@ synthetic ontology/data fixtures
   -> per-query benchmark record + hashed JSON artifact
 ```
 
-Likely implementation impact is intentionally explicit:
+The implementation impact is fixed and explicit:
 
-| Area | Likely files | Required boundary |
+| Area | Exact files/globs | Required boundary |
 | --- | --- | --- |
 | Namespace constants and graph loading | `src/semantic_layer/kg/loader.py`, `src/semantic_layer/kg/sap_dataset_generator.py` | One neutral namespace registry; no legacy aliases |
 | Synthetic semantic assets | `semantic/ontology/`, `semantic/shapes/`, `semantic/data/`, `semantic/vocabulary/`, `semantic/taxonomy/` | Distinct support, PPMS, ERP OWL, and SKOS IRIs; coherent datatypes |
@@ -688,18 +691,22 @@ input never generates a guessed capability; relaxed results remain
 
 ### Task 5: Rebuild the preliminary benchmark
 
-Validate and version the retained 40-query corpus, add migration metadata and
-negative cases, remove the fake Vector RAG path, rename the one-shot ablation,
-implement exact-set/set metrics, and write the hashed per-query JSON artifact.
+Keep the 40-query v1 at `tests/research/benchmark_dataset.yaml` unchanged in
+scope and create `tests/research/benchmark_dataset_v2.yaml` with the 12
+negative records specified in Section 23. Add migration metadata to v1, remove
+the fake Vector RAG path, rename the one-shot ablation, implement exact-set/set
+metrics, and write the hashed v1/v2 per-query JSON artifact.
 
 **Acceptance:** A fresh run produces schema-valid `results/latest_benchmark.json`
-with no Vector RAG/hallucination fields, deterministic input hashes, per-query
-records, and hand-checked metric edge cases. Changed golds have explicit
-evidence and migration reasons.
+with one corpus run for v1 and one for v2, no Vector RAG/hallucination fields,
+deterministic input hashes, per-query records, and hand-checked metric edge
+cases. V1 golds remain stable; any revised gold has explicit evidence and
+migration reasons.
 
-### Task 6: Add the single verification target
+### Task 6: Add the single verification target (locked v1/v2 verification)
 
-Implement `research-verify`, connect it to proportionate CI, and make it
+Implement `research-verify`, install from `constraints/py312.txt`, add the
+`research-verify` CI job, and make the target
 exercise generation/load, parity, scoped SHACL, benchmark, results, tests, and
 lint without external services.
 
@@ -751,3 +758,674 @@ This design does not authorize or require:
 - GitHub metadata, release, remote, issue, or repository-setting mutation;
 - broad generalization claims from the 40-query synthetic corpus;
 - replacement of the deterministic baseline with a learned system.
+
+## 16. Normative grounding grammar and abstention contract
+
+The deterministic linker is a finite grammar, not an open-ended natural
+language capability. The grammar is checked in at
+`tests/research/grounding_grammar.yaml`, with schema version `1.0`. A parser
+normalizes Unicode whitespace, case-folds entity tokens, preserves the
+original question, and accepts only the templates and filler tokens declared
+in that file. Punctuation at template boundaries is ignored. A token that is
+not an entity slot or a declared filler token is an `UNKNOWN_TOKEN`; it is not
+silently discarded.
+
+The grammar permits the exact filler vocabulary below and no other free text:
+
+```yaml
+filler_tokens:
+  - addressing
+  - addresses
+  - alert
+  - any
+  - application
+  - are
+  - at
+  - before
+  - component
+  - database
+  - dependencies
+  - dependency
+  - details
+  - does
+  - dump
+  - errors
+  - error
+  - affecting
+  - for
+  - find
+  - fixing
+  - has
+  - have
+  - in
+  - identify
+  - information
+  - list
+  - management
+  - memory
+  - note
+  - notes
+  - of
+  - on
+  - package
+  - prerequisite
+  - prerequisites
+  - required
+  - resolve
+  - resolves
+  - resolving
+  - retrieve
+  - runtime
+  - sap
+  - support
+  - the
+  - title
+  - what
+  - which
+```
+
+The grammar source also contains these exact token sequences:
+
+```yaml
+templates:
+  - id: note_lookup
+    intent: NOTE_LOOKUP
+    sequence: [lookup_verb, filler*, note_number]
+  - id: alert_resolution
+    intent: ALERT_RESOLUTION
+    sequence: [question_word, filler*, alert_code, filler*, component_code?, product_version?, support_package?, priority?]
+  - id: component_search
+    intent: COMPONENT_SEARCH
+    sequence: [question_word, filler*, component_code, filler*, product_version?, support_package?, priority?]
+  - id: version_filtered_search
+    intent: VERSION_FILTERED_SEARCH
+    sequence: [question_word, filler*, alert_code|component_code, filler*, product_version|support_package, filler*, priority?]
+  - id: prerequisite_closure
+    intent: PREREQUISITE_CLOSURE
+    sequence: [question_word, filler*, prerequisite_marker, filler*, note_number]
+  - id: general_note_lookup
+    intent: GENERAL_SEARCH
+    sequence: [note_number]
+lookup_verb: [find, get, identify, retrieve, what, which]
+question_word: [find, get, identify, what, which, list]
+prerequisite_marker: [dependency, dependencies, prerequisite, prerequisites]
+```
+
+`filler*` consumes only the declared `filler_tokens`; `?` consumes zero or
+one slot; `|` consumes exactly one alternative. The sequence is token-based,
+not a permissive regular expression. The parser rejects a sequence that binds
+an optional slot before its required anchor or binds two alternatives from the
+same family.
+
+The entity slots are exactly the linker vocabulary sets already declared in
+`schema_linker.py`: `alert_code`, `component_code`, `product_version`,
+`software_component`, `support_package`, `note_number`, and `priority`.
+Entity values are case-insensitive for matching and are emitted in their
+canonical spelling. A seven-digit note number is accepted only as a
+`note_number`; an `SPnn` token is accepted only as a `support_package`; the
+remaining entity forms must occur in the finite vocabulary. A distinct second
+value in any entity family is an ambiguity and causes abstention. Repeating
+the same canonical value is harmless.
+
+The supported intents and their required slots are fixed:
+
+| Intent | Required slots | Optional slots | Semantics |
+| --- | --- | --- | --- |
+| `NOTE_LOOKUP` | exactly one `note_number` | none | Direct lookup of one synthetic note |
+| `ALERT_RESOLUTION` | exactly one `alert_code` | one `component_code`, one `product_version`, one `support_package`, one `priority` | Notes linked to an alert, with optional exact qualifiers |
+| `COMPONENT_SEARCH` | exactly one `component_code` | one `product_version`, one `support_package`, one `priority` | Notes linked to a component and optional exact qualifiers |
+| `VERSION_FILTERED_SEARCH` | exactly one `product_version` or one `support_package`, plus exactly one `component_code` or `alert_code` | one of the remaining version/priority slots | Anchored version-constrained search |
+| `PREREQUISITE_CLOSURE` | exactly one `note_number` | none | Transitive prerequisite closure for one note |
+| `GENERAL_SEARCH` | exactly one `note_number` | none | Alias for `NOTE_LOOKUP` only; it never emits an unconstrained note search |
+
+Intent selection is deterministic and ordered: prerequisite words select
+`PREREQUISITE_CLOSURE`; an alert selects `ALERT_RESOLUTION`; a component
+without an alert selects `COMPONENT_SEARCH`; a version/support-package
+qualifier with an alert or component selects `VERSION_FILTERED_SEARCH`; a
+single note number with lookup wording selects `NOTE_LOOKUP`; the only
+remaining accepted case is `GENERAL_SEARCH` with exactly one note number.
+Conflicting intent markers, no required slot, multiple distinct values,
+unknown tokens, and a version/package qualifier without an alert or component
+return `UNSUPPORTED` before planning. The linker never invents an entity from
+an unrecognised spelling, parent, synonym, or external capability.
+
+The grammar fixtures must include these exact cases:
+
+| Input | Expected intent/status | Extracted entities |
+| --- | --- | --- |
+| `Retrieve the title and details for SAP Note 3012445.` | `NOTE_LOOKUP` / `SUCCESS` after execution | `note_number=[3012445]` |
+| `Which SAP note resolves alert TIME_OUT in component MM-PUR-PO?` | `ALERT_RESOLUTION` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]` |
+| `What are the prerequisite notes required for SAP Note 3109922?` | `PREREQUISITE_CLOSURE` / `SUCCESS` after execution | `note_number=[3109922]` |
+| `Find notes valid for S/4HANA 2023.` | `UNSUPPORTED` / `UNSUPPORTED` | no anchored alert/component |
+| `Find notes for TIME_OUT and DBSQL_NO_MORE_CONNECTION.` | `UNSUPPORTED` / `UNSUPPORTED` | two distinct `alert_code` values |
+| `Find notes for UNKNOWN_ALERT.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_TOKEN` |
+| `Find notes for TIME_OUT in component BC-DB-HDB for an Oracle system.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_TOKEN=oracle/system` |
+
+The fixture expected status is the status after execution for supported
+templates and `UNSUPPORTED` for rejected templates. A grammar test must prove
+that no rejected fixture reaches planner or compiler code.
+
+## 17. Normative deterministic result JSON contract
+
+Every benchmark condition writes one JSON object per query conforming to the
+following contract. The aggregate artifact at
+`results/latest_benchmark.json` contains `schema_version: "1.0.0"`, a
+`corpus_runs` array, and these query objects in `per_query`. `null` is the
+only representation of a missing nullable value; omitted fields are schema
+violations. `NaN`, positive infinity, negative infinity, and the strings
+`"None"` and `"NaN"` are forbidden.
+
+```json
+{
+  "schema_version": "1.0.0",
+  "query_id": "Q01",
+  "condition": "deterministic_bounded_repair",
+  "question": "Which SAP Notes directly resolve alert DBSQL_NO_MORE_CONNECTION?",
+  "expected_status": "SUCCESS",
+  "observed_status": "SUCCESS",
+  "reason_code": "NONE",
+  "grounding": {
+    "intent": "ALERT_RESOLUTION",
+    "entities": {
+      "alert_code": ["DBSQL_NO_MORE_CONNECTION"],
+      "component_code": [],
+      "product_version": [],
+      "software_component": [],
+      "support_package": [],
+      "note_number": [],
+      "priority": []
+    }
+  },
+  "plan": {"digest_sha256": "...", "required_variables": ["?note", "?title", "?noteNumber"]},
+  "sparql": {"initial": "...", "final": "..."},
+  "attempts": 1,
+  "repair": {
+    "max_repairs": 3,
+    "recovered": false,
+    "recovery_attempt": 0,
+    "recovery_success": false,
+    "relaxation_attempted": false,
+    "operations": []
+  },
+  "bindings": [
+    {"noteNumber": "3345100", "title": "...", "alertCode": "DBSQL_NO_MORE_CONNECTION"}
+  ],
+  "predicted_note_numbers": ["3345100"],
+  "gold_note_numbers": ["3345100"],
+  "metrics": {
+    "applicable": true,
+    "exact_set": true,
+    "precision": "1.000000",
+    "recall": "1.000000",
+    "f1": "1.000000"
+  },
+  "provenance": {
+    "dataset_id": "cifre-synthetic-support-ppms-v1",
+    "source_kind": "synthetic_fixture",
+    "official": false,
+    "graph_sha256": "...",
+    "citation": "Synthetic fixture cifre-synthetic-support-ppms-v1; not official data."
+  }
+}
+```
+
+The JSON Schema checked in at
+`tests/research/result_schema.json` is authoritative and must encode the
+following details:
+
+- The required top-level fields are `schema_version`, `query_id`,
+  `condition`, `question`, `expected_status`, `observed_status`,
+  `reason_code`, `grounding`, `plan`, `sparql`, `attempts`, `repair`,
+  `bindings`, `predicted_note_numbers`, `gold_note_numbers`, `metrics`, and
+  `provenance`.
+- `grounding`, `plan`, and `sparql` are nullable objects; `metrics` is always
+  an object; `metrics.exact_set`, `metrics.precision`, `metrics.recall`, and
+  `metrics.f1` are nullable and become JSON `null` when `applicable` is false.
+  `provenance` is never nullable, including for an unsupported query.
+- `condition` is one of `deterministic_no_reflection_ablation` or
+  `deterministic_bounded_repair`.
+- `expected_status`, `observed_status`, and every operation `status_before`
+  and `status_after` are one of `SUCCESS`, `UNSUPPORTED`, `SYNTAX_ERROR`,
+  `EXECUTION_ERROR`, or `EMPTY_RESULT`.
+- `reason_code` is the enum in Section 18; it is `NONE` only for a strict
+  `SUCCESS` or `EMPTY_RESULT` without an error/abstention reason.
+- `grounding.intent`, `grounding.entities`, `plan`, and `sparql` are nullable
+  only when the status is `UNSUPPORTED`; unsupported records have
+  `grounding: null`, `plan: null`, and `sparql: null`.
+- `bindings` is always an array. A supported empty result has `[]`; an
+  unsupported result also has `[]`. Binding objects contain all required
+  projected fields and contain optional projected fields with JSON `null`.
+- `predicted_note_numbers` and `gold_note_numbers` are unique arrays of
+  seven-digit strings sorted by Unicode code point. No set is represented as
+  an object or comma-separated string.
+- Required projected variables are `?note`, `?noteNumber`, and `?title` for
+  note answers. Optional variables have an explicit `optional: true` entry in
+  the plan and their missing bindings are JSON `null`.
+- Binding rows sort by the tuple `(noteNumber, title, note IRI, remaining
+  projected variable names)` after conversion to UTF-8 strings. Object keys
+  sort lexicographically. This ordering is applied before hashing.
+- Metric values are decimal strings with exactly six fractional digits,
+  rounded half-even from `Decimal`; binary JSON floats are forbidden. Counts
+  are non-negative JSON integers. Boolean fields are JSON booleans.
+- Canonical JSON is UTF-8, RFC 8785-style key ordering, no insignificant
+  whitespace, `\n` only where a file writer requires a final line ending, and
+  no timestamp in the hashed content.
+
+### 17.1 Exact hash manifest and environment
+
+`results/latest_benchmark.json` contains `manifest_version: "1.0"` and an
+ordered `hash_manifest` with this exact path order. Each entry stores the
+repository-relative path, byte SHA-256, and byte length:
+
+```text
+semantic/ontology/sap_support.ttl
+semantic/ontology/sap_ppms.ttl
+semantic/ontology/sap_erp.ttl
+semantic/shapes/sap_support_shapes.ttl
+semantic/shapes/sap_erp_shapes.ttl
+semantic/taxonomy/sap_products.ttl
+semantic/vocabulary/sap_erp.yaml
+semantic/data/sap_support_graph.ttl
+semantic/provenance/synthetic_source.yaml
+tests/research/grounding_grammar.yaml
+tests/research/benchmark_dataset.yaml
+tests/research/benchmark_dataset_v2.yaml
+tests/research/result_schema.json
+constraints/py312.txt
+Makefile
+pyproject.toml
+.github/workflows/ci.yml
+src/semantic_layer/kg/*.py
+src/semantic_layer/reasoning/*.py
+src/semantic_layer/research/*.py
+```
+
+Glob entries expand using POSIX path separators and bytewise lexical order;
+the expanded paths are inserted in that order and duplicates are removed.
+No other files are included, and `results/latest_benchmark.json` is never
+included in its own manifest. The manifest digest is SHA-256 of each
+`path\\0sha256\\0byte_length\\n` record concatenated in the listed order.
+
+The artifact also records `environment` with exact `python_version`,
+`platform_system`, `platform_machine`, `pip_version`, and the sorted package
+versions read from `constraints/py312.txt`. It records the lock-file digest,
+not an unconstrained live `pip freeze`. A run with a different Python major,
+minor, platform, or package version is a distinct environment and cannot reuse
+the recorded benchmark claim.
+
+## 18. Correctness gating, repair lifecycle, and reason codes
+
+### 18.1 Status-gated metrics
+
+Each query has a declared `expected_status`. `status_correct` is true only
+when `observed_status == expected_status`. Answer metrics (`exact_set`,
+precision, recall, and F1) are applicable only when both conditions hold:
+
+1. `expected_status == SUCCESS`; and
+2. `status_correct == true`.
+
+For every other case, `metrics.applicable` is false and answer metrics are
+JSON `null`; the row remains in status and operational metric denominators.
+In particular, an observed `EMPTY_RESULT` with an empty predicted set cannot
+score as a correct answer when the expected status is `SUCCESS`, and an
+observed `SUCCESS` with an empty set cannot score when the expected status is
+`UNSUPPORTED` or `EMPTY_RESULT`. Aggregate answer metrics report
+`applicable_count` and `not_applicable_count` and exclude nulls from both
+macro and micro calculations. N/A is never converted to zero.
+
+The following hand-calculated fixtures are mandatory metric tests, with note
+numbers represented as sorted strings:
+
+| Expected status/gold | Observed status/predicted | Status correct | Applicable | Exact | Precision | Recall | F1 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `SUCCESS` / `["1","2"]` | `SUCCESS` / `["1","3"]` | true | true | false | `0.500000` | `0.500000` | `0.500000` |
+| `SUCCESS` / `["1"]` | `EMPTY_RESULT` / `[]` | false | false | null | null | null | null |
+| `EMPTY_RESULT` / `[]` | `EMPTY_RESULT` / `[]` | true | false | null | null | null | null |
+| `UNSUPPORTED` / `[]` | `SUCCESS` / `[]` | false | false | null | null | null | null |
+| `SUCCESS` / `["1","2"]` | `SUCCESS` / `["1","2"]` | true | true | true | `1.000000` | `1.000000` | `1.000000` |
+
+Status metrics remain separately reportable: status accuracy, syntax repair
+success, execution success, unsupported rejection, strict empty rate, and
+recovery counts. A relaxed candidate is never used as a predicted set for
+strict answer metrics.
+
+### 18.2 Lifecycle counts and reason enum
+
+`max_repairs` is exactly `3`. Attempt index `0` is the initial grounding,
+planning, compilation, and execution attempt. Repair indices `1`, `2`, and
+`3` are the only permitted repair attempts, so `attempts` is an integer in
+`[0,4]`; unsupported input has `attempts: 0`. A syntax or execution repair
+replaces the current plan/query only after recording the failed attempt. If a
+repaired query executes with strict bindings, the final status is `SUCCESS`
+and `repair.recovery_success` is true. If all three repairs fail, the final
+status is `SYNTAX_ERROR` or `EXECUTION_ERROR` according to the last failure,
+and `recovery_success` is false.
+
+An empty strict execution records `EMPTY_RESULT`. A semantic relaxation may
+be attempted at repair index 1, 2, or 3 and may produce `relaxed_candidates`,
+but final status remains `EMPTY_RESULT` for the original constraints and
+`recovery_success` remains false. `recovered` is true only when a syntax or
+execution repair yields strict `SUCCESS`; `recovery_attempt` is the 1-based
+repair index of the first successful syntax/execution repair, or `0` when no
+such repair occurred; `recovery_success` is the corresponding boolean.
+
+The closed `reason_code` enum is:
+
+```text
+NONE
+UNKNOWN_TOKEN
+UNKNOWN_ENTITY
+AMBIGUOUS_INTENT
+MULTIPLE_DISTINCT_ENTITIES
+UNSUPPORTED_INTENT
+MISSING_REQUIRED_ENTITY
+UNBOUND_REQUIRED_PROJECTION
+SPARQL_SYNTAX
+SPARQL_EXECUTION
+EMPTY_STRICT_RESULT
+RELAX_SUPPORT_PACKAGE
+WIDEN_COMPONENT
+REPAIR_BUDGET_EXHAUSTED
+PROVENANCE_MISSING
+HASH_MISMATCH
+INVALID_DATASET
+```
+
+Each `repair.operations[]` ledger entry is required to contain
+`attempt_index`, `operation_kind` (`initial`, `syntax_repair`,
+`execution_repair`, `semantic_relaxation`, or `abstention`), `reason_code`,
+`status_before`, `status_after`, `query_sha256`, `plan_sha256` (nullable for
+abstention), `sparql_sha256` (nullable for abstention),
+`changed_constraints` (sorted array), `binding_count`, `error_class` (nullable
+for success), and `diagnostic` (bounded to 512 UTF-8 characters). The full
+query and plan are stored only in the top-level fields and are null for
+unsupported inputs. A ledger entry is append-only; no repair may overwrite a
+previous query or diagnostic.
+
+## 19. Locked dependencies and installation
+
+The current baseline requires a committed constraints artifact at
+`constraints/py312.txt`. It pins every direct and transitive package needed by
+the runtime and development commands, including Python 3.12-compatible
+versions of DuckDB, FastAPI, Pydantic, PyYAML, RDFLib, pySHACL, Uvicorn,
+pytest, HTTPX, and Ruff. The file is generated from the reviewed environment,
+contains hashes for installable distributions, and is updated in the same
+commit as a dependency change. Its SHA-256 is included in
+`results/latest_benchmark.json` and `docs/verification-report.md`.
+
+The exact installation command from a clean checkout is:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip==25.2
+.venv/bin/python -m pip install --require-hashes --constraint constraints/py312.txt -e '.[dev]'
+```
+
+The lock-generation command is fixed to `pip-tools==7.4.1` and is not required
+for ordinary installation:
+
+```bash
+.venv/bin/python -m pip install pip-tools==7.4.1
+.venv/bin/pip-compile --extra=dev --generate-hashes --output-file=constraints/py312.txt pyproject.toml
+```
+
+An installation that cannot satisfy the lock fails before verification; the
+verification target never silently resolves unpinned latest versions.
+
+## 20. Machine-readable synthetic provenance
+
+Commit `semantic/provenance/synthetic_source.yaml` with schema version `1.0`.
+It must contain exactly these top-level fields:
+
+```yaml
+schema_version: "1.0"
+dataset_id: cifre-synthetic-support-ppms-v1
+source_kind: synthetic_fixture
+authority: independent_repository
+official: false
+source_license: repository-authored synthetic data
+generator: src/semantic_layer/kg/sap_dataset_generator.py:build_sap_support_graph
+graph_path: semantic/data/sap_support_graph.ttl
+namespace_registry:
+  cifsup: https://example.org/cifre-kg/support#
+  cifppms: https://example.org/cifre-kg/ppms#
+  cifdata: https://example.org/cifre-kg/data/
+  cifmeta: https://example.org/cifre-kg/meta#
+synthetic_label_policy:
+  official_help_documentation: forbidden
+  official_note: forbidden
+  official_product: forbidden
+```
+
+The RDF graph contains a metadata resource under
+`https://example.org/cifre-kg/meta#dataset-cifre-synthetic-support-ppms-v1`
+with `cifmeta:sourceKind "synthetic_fixture"`,
+`cifmeta:official false`, `cifmeta:datasetId`, `cifmeta:generatedBy`, and
+`cifmeta:graphPath`. Runtime result provenance must copy `dataset_id`,
+`source_kind`, `official`, and `graph_sha256`; every answer citation must
+begin with `Synthetic fixture <dataset_id>; not official data.`
+
+All documentation labels and resource titles use “Synthetic Help
+Documentation”, “Synthetic Support Note”, and “Synthetic Product Version”.
+The label “Official Help Documentation” is forbidden. Generator and checked-in
+data must remove every `help.sap.com` URI and replace it with a neutral
+`https://example.org/cifre-kg/docs/<identifier>` URI. A repository scan rejects
+`help.sap.com`, regardless of whether it occurs in code, data, tests, or
+documentation.
+
+## 21. Complete namespace, crosswalk, and legacy-URI contract
+
+The namespace registry is closed. The allowed class and property names are:
+
+| Namespace | Allowed classes | Allowed object/data properties |
+| --- | --- | --- |
+| `cifsup` | `SAPNote`, `SystemAlert`, `ApplicationComponent`, `SimCatCategory`, `HelpDocumentation` | `affectsComponent`, `parentComponent`, `resolvesAlert`, `validForComponentVersion`, `validForProductVersion`, `hasPrerequisiteNote`, `hasSideEffectNote`, `classifiedUnderSimCat`, `referencedDocumentation`, `noteNumber`, `title`, `symptom`, `rootCause`, `resolution`, `priority`, `alertCode`, `severity`, `systemId`, `componentCode`, `componentDescription`, `categoryName`, `docUri`, `minSupportPackage`, `maxSupportPackage` |
+| `cifppms` | `ProductLine`, `Product`, `ProductVersion`, `SoftwareComponent`, `SoftwareComponentVersion`, `SupportPackage`, `PatchLevel` | `belongsToProductLine`, `hasProductVersion`, `includesComponent`, `isVersionOfComponent`, `hasSupportPackage`, `hasPatchLevel`, `dependsOnComponent`, `productLineCode`, `productCode`, `versionCode`, `componentName`, `componentVersionString`, `stackLevel`, `spName`, `patchNumber`, `releaseYear` |
+| `ciferp` | `BusinessPartner`, `SalesOrder`, `FinancialPosting`, `Product`, `ProductAutomotive`, `ProductCommercial`, `Risk`, `Coverage`, `BillingDocument`, `PostingStatus`, `CompanyCode`, `CountryCodedEntity`, `ActiveSalesOrder`, `QualifyingPosting`, `FinancialLoss` | `hasSalesOrder`, `hasFinancialPosting`, `referencesSalesOrder`, `hasProduct`, `coversRisk`, `hasCoverage`, `generatesBilling`, `postingOrder`, `orderProduct`, `countryCode`, `partnerId`, `salesOrderId`, `journalEntryId`, `postingDate`, `postingStatus`, `orderStatus`, `amountInCompanyCurrency`, `hasPostingStatus`, `hasFinancialLoss`, `statusValue`, `amountValue` |
+| `cifskos` | `ProductScheme`, `Product`, `ProductAutomotive`, `ProductCommercial` as SKOS resources only | `skos:hasTopConcept`, `skos:topConceptOf`, `skos:narrower`, `skos:broader`, `skos:inScheme`, `skos:prefLabel`, `skos:altLabel` |
+| `cifmeta` | `SyntheticDataset`, `SyntheticCrosswalk` | `sourceKind`, `official`, `datasetId`, `generatedBy`, `graphPath`, `mapsToConcept`, `crosswalkVersion` |
+
+Allowed instance bases are exact: support instances use
+`https://example.org/cifre-kg/data/support/{note,alert,component,simcat,doc}/`;
+PPMS instances use
+`https://example.org/cifre-kg/data/ppms/{productline,product,version,component,compversion,sp,patch}/`;
+ERP instances use
+`https://example.org/cifre-kg/data/erp/{partner,order,doc,product,risk,coverage,status,loss}/`;
+and metadata resources use
+`https://example.org/cifre-kg/meta/`. The RDF namespace IRIs in Section 5.1
+are the only class/property bases. No other HTTP(S) IRI is valid for a
+synthetic domain resource except W3C vocabulary IRIs (`rdf`, `rdfs`, `owl`,
+`xsd`, `sh`, and `skos`).
+
+The explicit ERP-to-SKOS crosswalk is a separate resource with this schema:
+
+```turtle
+cifmeta:crosswalk-v1 a cifmeta:SyntheticCrosswalk ;
+    cifmeta:crosswalkVersion "1.0"^^xsd:string ;
+    cifmeta:mapsToConcept cifskos:ProductAutomotive .
+
+ciferp:ProductAutomotive cifmeta:mapsToConcept cifskos:ProductAutomotive .
+```
+
+`cifmeta:mapsToConcept` has domain `ciferp:Product` and range
+`skos:Concept`; it never asserts that the SKOS concept is an OWL class and
+never replaces `rdf:type`.
+
+The implementation and claim-contract tests scan all tracked runtime,
+semantic-asset, test, README, proposal, metadata, and result files and reject
+the legacy URI families `https://sap.example/erp/`,
+`http://ontology.sap.com/`, and `http://data.sap.com/`, as well as their
+prefix abbreviations when bound to those IRIs. The migration design file is
+the sole documented exception because it names the forbidden families in this
+contract; the scanner excludes only this file and reports its exclusion.
+
+## 22. Exact SHACL and validation matrix
+
+After namespace migration, these repository-relative graph and shape paths
+are fixed. Each check runs RDFLib/pySHACL with `inference: "rdfs"`,
+`abort_on_first: false`, `advanced: false`, `js: false`, and
+`meta_shacl: false` unless the matrix explicitly says otherwise.
+
+| Check ID | Data graph | Shapes graph | Inference | Expected conforms | Purpose |
+| --- | --- | --- | --- | ---: | --- |
+| `SUPPORT_VALID` | `semantic/data/sap_support_graph.ttl` | `semantic/shapes/sap_support_shapes.ttl` | `rdfs` | true | Generated support/PPMS fixture |
+| `SUPPORT_INVALID` | `semantic/data/support-graph-invalid.ttl` | `semantic/shapes/sap_support_shapes.ttl` | `rdfs` | false | Missing note/component or invalid datatype negative control |
+| `ERP_VALID` | `semantic/ontology/sample-graph-valid.ttl` | `semantic/shapes/sap_erp_shapes.ttl` | `rdfs` | true | Valid synthetic ERP fixture |
+| `ERP_INVALID` | `semantic/ontology/sample-graph-invalid.ttl` | `semantic/shapes/sap_erp_shapes.ttl` | `rdfs` | false | Missing required fields and negative amount |
+| `COMBINED_VALID` | union of `semantic/data/sap_support_graph.ttl` and `semantic/ontology/sample-graph-valid.ttl` | union of both shape graphs | `rdfs` | true | Cross-domain load with separate namespaces |
+
+`SUPPORT_INVALID` is a new committed fixture and must carry the same
+`cifmeta:sourceKind "synthetic_fixture"` metadata as the valid fixture.
+`COMBINED_VALID` must not cause a support shape to target an ERP resource or
+an ERP shape to target a support resource; the separate neutral namespaces
+make that isolation testable. There is no combined invalid fixture: the two
+negative checks above are the required negative evidence.
+
+The validation report records check ID, exact graph/shapes paths, byte hashes,
+inference string, `conforms`, violation count, and synthetic dataset ID. A
+valid graph with a missing provenance triple fails the provenance contract
+before SHACL; a deliberately invalid graph with the expected nonconformance
+passes the negative-control test.
+
+## 23. Corpus versions and reflection metadata
+
+The existing 40 questions remain unchanged as the controlled v1 corpus at
+`tests/research/benchmark_dataset.yaml`, with header
+`version: "1.0.0"`, `corpus_id: "cifre-synthetic-aqr-v1"`, and exactly five
+tiers of eight questions. No negative questions are added to v1 and no v1
+question is silently deleted. Revised gold expectations remain governed by
+the migration fields in Section 8.1; v1 is the positive baseline used for the
+headline preliminary metrics.
+
+Create a separate v2 file at
+`tests/research/benchmark_dataset_v2.yaml`, with header
+`version: "2.0.0"`, `corpus_id: "cifre-synthetic-aqr-v2"`, and all 40 v1
+records copied byte-for-byte plus 12 new negative records: two unknown-token,
+two unknown-entity, two ambiguous/multiple-entity, two unsupported-intent,
+two syntax, and two strict-empty cases. V2 does not alter v1 golds. The
+reproducibility target runs both files, writes one `corpus_runs` entry per
+version to `results/latest_benchmark.json`, and reports v1 and v2 separately.
+
+Every record includes `reflection_reason`, whose enum is exactly:
+
+```text
+NONE
+SYNTAX_REPAIR_REQUIRED
+EXECUTION_REPAIR_REQUIRED
+STRICT_EMPTY_SEMANTIC_RELAXATION
+NO_REPAIR_EXPECTED
+```
+
+`reflection_reason` is `NONE` for v1 non-reflective cases, explicitly records
+the reason for each v1 tier-5 query, and is `NO_REPAIR_EXPECTED` when a query
+is supported but its expected path has no repair. It never means that a repair
+must succeed. V2 negative records use `NONE`; they abstain before repair.
+Task 5 in Section 13 must create v2 before benchmark result generation, and
+Task 6 must validate and run both versions.
+
+## 24. Optional projections and documentation contracts
+
+The plan schema contains `required_variables` and `optional_variables` as
+separate sorted arrays. A required variable must have a mandatory triple
+pattern; the compiler rejects a missing pattern with
+`UNBOUND_REQUIRED_PROJECTION`. An optional variable must occur only in an
+`OPTIONAL` pattern and is encoded as JSON `null` when unbound. Optional
+variables never enter `predicted_note_numbers`, exact-set, precision, recall,
+or F1 scoring. The required `optional_binding_rate` field is a decimal-string
+operational metric computed as bound optional cells divided by optional cells
+encountered, with `"0.000000"` for a zero-cell plan. This resolves the prior conflict between
+an optional pattern and an asserted mandatory answer field.
+
+Add executable documentation tests to
+`tests/unit/test_documentation_contract.py` with these exact assertions:
+
+1. The first research heading and the first benchmark command in `README.md`
+   are preceded by the independent disclaimer text from Section 4.
+2. The README first-screen research table labels AQR/KG as primary and links
+   to the federated semantic layer under a secondary heading after the AQR
+   reproducibility command.
+3. The first screen contains the literal labels `Implemented locally`,
+   `Synthetic/simulated`, `Proposed future work`, and `Not implemented`.
+4. `pyproject.toml` description contains `independent`, `synthetic`, and
+   `research prototype`, and contains no affiliation or production claim.
+5. `docs/research/cifre-interview-brief.md` contains the disclaimer,
+   `cifre-synthetic-aqr-v1`, `results/latest_benchmark.json`, and
+   `make PYTHON=.venv/bin/python research-verify`.
+6. `docs/data-products.md`, `docs/governance.md`, and every mapping YAML use
+   `repository-maintained synthetic contract` or `illustrative mapping`, not
+   SAP ownership, publication, certification, or platform-connection claims.
+
+The tests also assert that the benchmark artifact, lock artifact, provenance
+manifest, and validation matrix paths exist after implementation. These are
+acceptance tests, not prose review suggestions.
+
+## 25. Exact affected paths, target, CI, and sequencing amendment
+
+The complete implementation path set is:
+
+```text
+constraints/py312.txt
+semantic/provenance/synthetic_source.yaml
+semantic/ontology/sap_support.ttl
+semantic/ontology/sap_ppms.ttl
+semantic/ontology/sap_erp.ttl
+semantic/ontology/sample-graph-valid.ttl
+semantic/ontology/sample-graph-invalid.ttl
+semantic/shapes/sap_support_shapes.ttl
+semantic/shapes/sap_erp_shapes.ttl
+semantic/taxonomy/sap_products.ttl
+semantic/vocabulary/sap_erp.yaml
+semantic/data/sap_support_graph.ttl
+semantic/data/support-graph-invalid.ttl
+src/semantic_layer/kg/loader.py
+src/semantic_layer/kg/sap_dataset_generator.py
+src/semantic_layer/reasoning/schema_linker.py
+src/semantic_layer/reasoning/query_planner.py
+src/semantic_layer/reasoning/text_to_sparql.py
+src/semantic_layer/reasoning/reflective_agent.py
+src/semantic_layer/research/benchmark_runner.py
+tests/research/grounding_grammar.yaml
+tests/research/result_schema.json
+tests/research/benchmark_dataset.yaml
+tests/research/benchmark_dataset_v2.yaml
+tests/semantic/test_sap_kg.py
+tests/semantic/test_shacl.py
+tests/unit/test_sap_reasoning.py
+tests/unit/test_documentation_contract.py
+Makefile
+README.md
+docs/research/cifre_phd_proposal.md
+docs/research/cifre-interview-brief.md
+docs/data-products.md
+docs/governance.md
+docs/verification-report.md
+pyproject.toml
+.github/workflows/ci.yml
+results/latest_benchmark.json
+```
+
+The exact reproducibility target is `research-verify`; its CI job is also
+named `research-verify` in `.github/workflows/ci.yml`. CI executes
+`make PYTHON=.venv/bin/python research-verify` after installing
+`constraints/py312.txt`. The job has a 120-second execution-time budget after
+dependency installation; exceeding it fails the job and requires a measured
+split into `research-verify-assets` and `research-verify-benchmark` jobs that
+run the same checks. The target must always run graph generation/load,
+isomorphism parity, the five validation-matrix checks, v1 and v2 benchmark
+runs, JSON Schema validation, result recording, the full pytest suite, and
+Ruff. No check may be removed to meet the time budget.
+
+Task sequencing is therefore fixed: Task 1 records baseline evidence; Task 2
+migrates every namespace and adds the provenance file; Task 3 adds the exact
+validation matrix, datatype/closure fixes, crosswalk, and graph parity; Task 4
+adds the grammar, JSON result schema, status-gated metrics, and repair ledger;
+Task 5 creates v2 and the hashed v1/v2 artifact; Task 6 adds the locked
+installation and `research-verify` CI target; Task 7 updates README, proposal,
+interview brief, metadata, mappings, and verification report. A task is
+accepted only when its listed files, tests, and exact contract fields are
+present and the preceding task's verification remains green.
+
+This section is normative and supersedes earlier shorthand that refers to one
+benchmark file, one benchmark run, or an unspecified dependency installation:
+the implementation uses both named corpus versions, the locked constraints
+file, and the v1/v2 `corpus_runs` structure in `results/latest_benchmark.json`.
