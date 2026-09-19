@@ -20,8 +20,8 @@ from pathlib import Path
 
 import yaml
 
-_CANONICAL_AUTOMOTIVE = "sap:ProductAutomotive"
-_CANONICAL_COMMERCIAL = "sap:ProductCommercial"
+_CANONICAL_AUTOMOTIVE = "ciferp:ProductAutomotive"
+_CANONICAL_COMMERCIAL = "ciferp:ProductCommercial"
 _GOVERNED_PRODUCT_CONCEPTS = {_CANONICAL_AUTOMOTIVE, _CANONICAL_COMMERCIAL}
 _PLATFORM_DIRECTORIES = {
     "databricks": "databricks/france.yaml",
