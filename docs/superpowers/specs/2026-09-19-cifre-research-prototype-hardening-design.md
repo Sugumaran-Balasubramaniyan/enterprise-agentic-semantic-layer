@@ -844,7 +844,10 @@ templates:
     sequence: [question_word, "filler*", component_code, "filler*", "product_version?", "support_package?", "priority?"]
   - id: version_filtered_search
     intent: VERSION_FILTERED_SEARCH
-    sequence: [question_word, "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "product_version|support_package", "filler*", "priority?"]
+    sequences:
+      - [question_word, "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "product_version|support_package", "filler*", "priority?"]
+      - [question_word, "filler*", "alert_code", "filler*", "product_version|support_package", "filler*", "component_code?", "filler*", "priority?"]
+      - [question_word, "filler*", "product_version|support_package", "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "priority?"]
   - id: prerequisite_closure
     intent: PREREQUISITE_CLOSURE
     sequence: [question_word, "filler*", prerequisite_marker, "filler*", note_number]
@@ -858,23 +861,33 @@ unsupported_intent_marker: [explain, recommend, summarize]
 ```
 
 `filler*` consumes only the declared `filler_tokens`; `?` consumes zero or
-one slot; `|` consumes exactly one alternative. The sequence is token-based,
+one slot; `|` consumes exactly one alternative. Each sequence is token-based,
 not a permissive regular expression. The parser rejects a sequence that binds
 an optional slot before its required anchor or binds two alternatives from the
 same family. In `VERSION_FILTERED_SEARCH`, an alert anchor may be followed by
 one component qualifier and one version/package qualifier; a component anchor
-does not consume a second component slot. Therefore alert+component+version
-is accepted with the alert as anchor and component as qualifier.
+does not consume a second component slot. Therefore alert+component+version is
+accepted with the alert as anchor and component as qualifier. The second
+alternative accepts alert+version+component and the third accepts
+version+alert+component, so the combined anchors may appear in either order
+around the version qualifier. A component anchor never consumes a second
+component slot.
 
 The entity slots are exactly the linker vocabulary sets already declared in
 `schema_linker.py`: `alert_code`, `component_code`, `product_version`,
 `software_component`, `support_package`, `note_number`, and `priority`.
 Entity values are case-insensitive for matching and are emitted in their
 canonical spelling. A seven-digit note number is accepted only as a
-`note_number`; an `SPnn` token is accepted only as a `support_package`; the
-remaining entity forms must occur in the finite vocabulary. A distinct second
-value in any entity family is an ambiguity and causes abstention. Repeating
-the same canonical value is harmless.
+`note_number`. Support packages have an explicit syntax policy: after an
+`SP` cue or in a support-package slot, an uppercase-canonical token consisting
+of `SP` followed by one or two decimal digits is a syntactically valid
+`support_package` constraint even when that package is absent from the finite
+graph/entity lexicon. `SP99` is therefore a valid numeric constraint that can
+execute to `EMPTY_RESULT`; a named or malformed package token absent from the
+lexicon is `UNKNOWN_ENTITY`. The remaining entity forms must occur in the
+finite vocabulary. A distinct second value in any entity family is an
+ambiguity and causes abstention. Repeating the same canonical value is
+harmless.
 
 The supported intents and their required slots are fixed:
 
@@ -905,12 +918,13 @@ The grammar fixtures must include these exact cases:
 | --- | --- | --- |
 | `Retrieve the title and details for SAP Note 3012445.` | `NOTE_LOOKUP` / `SUCCESS` after execution | `note_number=[3012445]` |
 | `Which SAP note resolves alert TIME_OUT in component MM-PUR-PO?` | `ALERT_RESOLUTION` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]` |
-| `Find notes for TIME_OUT in component MM-PUR-PO on S/4HANA 2023.` | `VERSION_FILTERED_SEARCH` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]`, `product_version=[S4HANA_2023]` |
+| `Find notes for alert TIME_OUT in component MM-PUR-PO on S/4HANA 2023.` | `VERSION_FILTERED_SEARCH` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]`, `product_version=[S4HANA_2023]` |
+| `Find notes resolving alert TIME_OUT on S/4HANA 2022 in component SD-SLS.` | `VERSION_FILTERED_SEARCH` / `EMPTY_RESULT` after execution | `alert_code=[TIME_OUT]`, `product_version=[S4HANA_2022]`, `component_code=[SD-SLS]` |
 | `What are the prerequisite notes required for SAP Note 3109922?` | `PREREQUISITE_CLOSURE` / `SUCCESS` after execution | `note_number=[3109922]` |
 | `Find notes valid for S/4HANA 2023.` | `UNSUPPORTED` / `UNSUPPORTED` | no anchored alert/component |
-| `Find notes for TIME_OUT and DBSQL_NO_MORE_CONNECTION.` | `UNSUPPORTED` / `UNSUPPORTED` | two distinct `alert_code` values |
+| `Find notes for alert TIME_OUT and alert DBSQL_NO_MORE_CONNECTION.` | `UNSUPPORTED` / `UNSUPPORTED` | two distinct `alert_code` values |
 | `Find notes for alert UNKNOWN_ALERT.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_ENTITY` |
-| `Find notes for TIME_OUT in component BC-DB-HDB for an Oracle system.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_TOKEN=oracle/system` |
+| `Find notes for alert TIME_OUT in component BC-DB-HDB for an Oracle system.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_TOKEN=oracle/system` |
 
 The fixture expected status is the status after execution for supported
 templates and `UNSUPPORTED` for rejected templates. A grammar test must prove
@@ -929,6 +943,7 @@ violations. `NaN`, positive infinity, negative infinity, and the strings
 ```json
 {
   "schema_version": "1.0.0",
+  "corpus_id": "cifre-synthetic-aqr-v1",
   "query_id": "Q01",
   "condition": "deterministic_bounded_repair",
   "question": "Which SAP Notes directly resolve alert DBSQL_NO_MORE_CONNECTION?",
@@ -958,7 +973,7 @@ violations. `NaN`, positive infinity, negative infinity, and the strings
       "priority": []
     }
   },
-  "plan": {"digest_sha256": "...", "required_variables": ["?note", "?title", "?noteNumber"]},
+  "plan": {"digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000", "required_variables": ["?note", "?title", "?noteNumber"]},
   "sparql": {"initial": "...", "final": "..."},
   "attempts": 1,
   "repair": {
@@ -992,7 +1007,7 @@ violations. `NaN`, positive infinity, negative infinity, and the strings
     "dataset_id": "cifre-synthetic-support-ppms-v1",
     "source_kind": "synthetic_fixture",
     "official": false,
-    "graph_sha256": "...",
+    "graph_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
     "citation": "Synthetic fixture cifre-synthetic-support-ppms-v1; not official data."
   }
 }
@@ -1002,7 +1017,7 @@ The JSON Schema checked in at
 `tests/research/result_schema.json` is authoritative and must encode the
 following details:
 
-- The required top-level fields are `schema_version`, `query_id`,
+- The required top-level fields are `schema_version`, `corpus_id`, `query_id`,
   `condition`, `question`, `expected_status`, `observed_status`,
   `reason_code`, `grounding`, `plan`, `sparql`, `attempts`, `repair`,
   `bindings`, `predicted_note_numbers`, `gold_note_numbers`, `metrics`, and
@@ -1027,13 +1042,20 @@ following details:
 - `predicted_note_numbers` and `gold_note_numbers` are unique arrays of
   seven-digit strings sorted by Unicode code point. No set is represented as
   an object or comma-separated string.
+- `corpus_id` is required on every per-query record. Query IDs are unique only
+  within a corpus; the authoritative identity is the unique tuple
+  `(corpus_id, condition, query_id)`, serialized in `result_ids` as
+  `<corpus_id>:<condition>:<query_id>`. The schema enforces unique `query_ids`
+  and `result_ids` arrays, and a semantic result-contract check enforces
+  uniqueness of that composite tuple and exact result-ID references.
 - Required projected variables are `?note`, `?noteNumber`, and `?title` for
   note answers. Optional variables have an explicit `optional: true` entry in
   the plan and their missing bindings are JSON `null`.
 - Binding rows sort by the tuple `(noteNumber, title, note IRI, remaining
   projected variable names)` after conversion to UTF-8 strings. Object keys
   sort lexicographically. This ordering is applied before hashing.
-- Metric values are decimal strings with exactly six fractional digits,
+- Aggregate metric-object values are decimal strings with exactly six
+  fractional digits,
   rounded half-even from `Decimal`; binary JSON floats are forbidden. Counts
   are non-negative JSON integers. Boolean fields are JSON booleans.
 - Canonical JSON is UTF-8, RFC 8785-style key ordering, no insignificant
@@ -1073,6 +1095,7 @@ pyproject.toml
 src/semantic_layer/kg/*.py
 src/semantic_layer/reasoning/*.py
 src/semantic_layer/research/*.py
+data/**/*.py
 ```
 
 Glob entries expand using POSIX path separators and bytewise lexical order;
@@ -1379,10 +1402,11 @@ pattern; the compiler rejects a missing pattern with
 `UNBOUND_REQUIRED_PROJECTION`. An optional variable must occur only in an
 `OPTIONAL` pattern and is encoded as JSON `null` when unbound. Optional
 variables never enter `predicted_note_numbers`, exact-set, precision, recall,
-or F1 scoring. The required `optional_binding_rate` field is a decimal-string
+or F1 scoring. The required `optional_binding_rate` field is a six-decimal
 operational metric computed as bound optional cells divided by optional cells
-encountered, with `"0.000000"` for a zero-cell plan. This resolves the prior conflict between
-an optional pattern and an asserted mandatory answer field.
+encountered, with JSON `null` for a zero-cell plan because its denominator is
+zero. This resolves the prior conflict between an optional pattern and an
+asserted mandatory answer field.
 
 Add executable documentation tests to
 `tests/unit/test_documentation_contract.py` with these exact assertions:
@@ -1529,14 +1553,14 @@ normalized schema adds required fields:
 | Q42 | `negative_unknown_token` | `UNSUPPORTED` | `UNKNOWN_TOKEN` | `Which notes resolve an unexplained outage?` |
 | Q43 | `negative_unknown_entity` | `UNSUPPORTED` | `UNKNOWN_ENTITY` | `Find notes for alert UNKNOWN_ALERT.` |
 | Q44 | `negative_unknown_entity` | `UNSUPPORTED` | `UNKNOWN_ENTITY` | `Find notes for component ZZ-UNKNOWN.` |
-| Q45 | `negative_ambiguity` | `UNSUPPORTED` | `AMBIGUOUS_INPUT` | `Find notes for TIME_OUT and DBSQL_NO_MORE_CONNECTION.` |
+| Q45 | `negative_ambiguity` | `UNSUPPORTED` | `AMBIGUOUS_INPUT` | `Find notes for alert TIME_OUT and alert DBSQL_NO_MORE_CONNECTION.` |
 | Q46 | `negative_ambiguity` | `UNSUPPORTED` | `AMBIGUOUS_INPUT` | `Find notes for component FI and component MM.` |
 | Q47 | `negative_unsupported_intent` | `UNSUPPORTED` | `UNSUPPORTED_INTENT` | `Summarize the support landscape in a paragraph.` |
 | Q48 | `negative_unsupported_intent` | `UNSUPPORTED` | `UNSUPPORTED_INTENT` | `Recommend a patch for this system.` |
-| Q49 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for TIME_OUT in component MM-PUR-PO at SP99.` |
-| Q50 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB at SP99.` |
-| Q51 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes resolving TIME_OUT on S/4HANA 2022 in component SD-SLS.` |
-| Q52 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for CALL_FUNCTION_NOT_FOUND in component SD-SLS.` |
+| Q49 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for alert TIME_OUT in component MM-PUR-PO at SP99.` |
+| Q50 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for alert DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB at SP99.` |
+| Q51 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes resolving alert TIME_OUT on S/4HANA 2022 in component SD-SLS.` |
+| Q52 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for alert CALL_FUNCTION_NOT_FOUND in component SD-SLS.` |
 
 Q43 and Q44 are unknown entities, not unknown tokens, because the explicit
 `alert` and `component` cues select their finite lexicons and the values are
@@ -1546,6 +1570,13 @@ grammar requests whose strict graph constraints return no bindings. Syntax and
 execution failures are not corpus records: they are deterministic mocked
 executor tests at `tests/research/test_failure_state_machine.py`, which supply
 fixed parser/store exceptions and fixed input hashes.
+
+The four strict-empty records are derivable from the grammar contract: Q49 and
+Q50 classify `SP99` as a syntactically valid support-package constraint, then
+execute strict queries with no matching graph rows; Q51 uses the
+version-before-component alternative and likewise returns no strict bindings;
+Q52 is a valid alert/component request whose strict graph constraints return
+no bindings. None of these records is an unknown-entity abstention.
 
 ### 26.2 Normalized record schema
 
@@ -1593,17 +1624,19 @@ Intent precedence is exactly:
 Two distinct values in any entity family produce `AMBIGUOUS_INPUT`. An
 `unsupported_intent_marker` produces `UNSUPPORTED_INTENT` before token
 classification. Classification is lexicon- and cue-based, never regex-based:
-after the explicit cue `alert`, `component`, `SP`, `S/4HANA`, or `note`, the
-next token is looked up in that exact finite lexicon; a missing lookup is
-`UNKNOWN_ENTITY`. A token outside `filler_tokens` and outside a cued entity
-slot is `UNKNOWN_TOKEN`. Thus `ORACLE` and `SYSTEM` are unknown tokens unless
-they are part of a complete known identifier in a lexicon. This
+after the explicit cue `alert`, `component`, `S/4HANA`, or `note`, the next
+token is looked up in that exact finite lexicon; a missing lookup is
+`UNKNOWN_ENTITY`. The separate support-package syntax policy admits numeric
+`SP` tokens as described above, while a nonnumeric or named package still
+requires the finite lexicon. A token outside `filler_tokens` and outside a
+cued entity slot is `UNKNOWN_TOKEN`. Thus `ORACLE` and `SYSTEM` are unknown
+tokens unless they are part of a complete known identifier in a lexicon. This
 classification happens before intent precedence and is recorded in
 `grounding.failure_class`.
 
 The filler vocabulary includes `and` and `an`; the grammar therefore accepts
-the v2 wording `TIME_OUT and DBSQL_NO_MORE_CONNECTION` long enough to classify
-it as `AMBIGUOUS_INPUT`, while `an unlicensed Oracle system` is rejected as
+the v2 wording `alert TIME_OUT and alert DBSQL_NO_MORE_CONNECTION` long enough
+to classify it as `AMBIGUOUS_INPUT`, while `an unlicensed Oracle system` is rejected as
 `UNKNOWN_TOKEN`.
 
 `FI` and `MM` are both entries in the committed component lexicon. Q46 is
@@ -1622,8 +1655,8 @@ required fields:
   "artifact_id": "cifre-aqr-benchmark-results",
   "generated_by": "semantic_layer.research.benchmark_runner",
   "canonicalization": {"encoding": "UTF-8", "key_order": "lexicographic", "metric_precision": 6},
-  "hash_manifest": {"manifest_version": "1.0", "entries": [], "digest_sha256": "..."},
-  "environment": {"python_version": "3.12.0", "platform_system": "Linux", "platform_machine": "x86_64", "pip_version": "25.2", "lock_sha256": "...", "packages": {}},
+  "hash_manifest": {"manifest_version": "1.0", "entries": [], "digest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+  "environment": {"python_version": "3.12.0", "platform_system": "Linux", "platform_machine": "x86_64", "pip_version": "25.2", "lock_sha256": "0000000000000000000000000000000000000000000000000000000000000000", "packages": {}},
   "namespace_registry": {
     "cifsup": "https://example.org/cifre-kg/support#",
     "cifppms": "https://example.org/cifre-kg/ppms#",
@@ -1634,7 +1667,7 @@ required fields:
     "cifmetaid": "https://example.org/cifre-kg/id/meta/",
     "legacy_uris_rejected": ["http://data.sap.com/", "http://ontology.sap.com/", "https://sap.example/erp/"]
   },
-  "validation": {"checks": [], "combined_graph": {"data_paths": [], "shape_paths": [], "construction_order": [], "combined_graph_sha256": "...", "combined_shapes_sha256": "...", "inference": "rdfs", "conforms": true}},
+  "validation": {"checks": [], "combined_graph": {"data_paths": [], "shape_paths": [], "construction_order": [], "combined_graph_sha256": "0000000000000000000000000000000000000000000000000000000000000000", "combined_shapes_sha256": "0000000000000000000000000000000000000000000000000000000000000000", "inference": "rdfs", "conforms": true}},
   "corpus_runs": [],
   "per_query": []
 }
@@ -1648,7 +1681,10 @@ array `["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]`
 and `aggregate` is the object specified below. `result_ids` references
 `per_query` objects by the exact string
 `<corpus_id>:<condition>:<query_id>`. `per_query` is the complete array of
-records, sorted by `(corpus_id, condition, query_id)`.
+records, sorted by `(corpus_id, condition, query_id)`. The generated benchmark
+artifact must contain exactly two `corpus_runs` entries, one for v1 and one
+for v2; the empty arrays in the compact root example are structural notation
+only and are replaced before verification.
 
 Each per-query record additionally requires `normalized_request` (string),
 `original_constraints` (object containing sorted entity arrays and the exact
@@ -1718,7 +1754,21 @@ Every `aggregate` has exactly these required keys and types:
     "exact_set": {"value": "0.937500", "numerator": 30, "denominator": 32},
     "precision": {"value": "0.968750", "numerator": "31.000000", "denominator": "32.000000"},
     "recall": {"value": "0.937500", "numerator": "30.000000", "denominator": "32.000000"},
-    "f1": {"value": "0.950000", "numerator": "30.400000", "denominator": "32.000000"}
+    "f1": {"value": "0.950000", "numerator": "30.400000", "denominator": "32.000000"},
+    "micro": {
+      "exact_set": {"value": "0.937500", "numerator": 30, "denominator": 32},
+      "precision": {"value": "0.968750", "numerator": "31.000000", "denominator": "32.000000"},
+      "recall": {"value": "0.937500", "numerator": "30.000000", "denominator": "32.000000"},
+      "f1": {"value": "0.950000", "numerator": "30.400000", "denominator": "32.000000"}
+    },
+    "macro": {
+      "exact_set": {"value": "0.937500", "numerator": "30.000000", "denominator": "32.000000"},
+      "precision": {"value": "0.968750", "numerator": "31.000000", "denominator": "32.000000"},
+      "recall": {"value": "0.937500", "numerator": "30.000000", "denominator": "32.000000"},
+      "f1": {"value": "0.950000", "numerator": "30.400000", "denominator": "32.000000"}
+    },
+    "by_tier": {},
+    "by_category": {}
   },
   "operational_metrics": {
     "syntax_success_rate": {"value": "1.000000", "numerator": 52, "denominator": 52},
@@ -1726,7 +1776,8 @@ Every `aggregate` has exactly these required keys and types:
     "recovery_attempt_rate": {"value": "0.153846", "numerator": 8, "denominator": 52},
     "recovery_success_rate": {"value": "0.500000", "numerator": 4, "denominator": 8},
     "strict_empty_rate": {"value": "0.230769", "numerator": 12, "denominator": 52},
-    "unsupported_rejection_rate": {"value": "1.000000", "numerator": 8, "denominator": 8}
+    "unsupported_rejection_rate": {"value": "1.000000", "numerator": 8, "denominator": 8},
+    "optional_binding_rate": {"value": null, "numerator": 0, "denominator": 0}
   }
 }
 ```
@@ -1738,6 +1789,271 @@ is JSON `null` exactly when its denominator is zero. `status_counts` has all
 five status enum keys, including zero values. The sole authoritative schema is
 `tests/research/result_schema.json`; all examples and implementations must
 validate against it.
+
+`answer_metrics.micro` and `answer_metrics.macro` each contain exact-set,
+precision, recall, and F1 metrics. Every value in `answer_metrics.by_tier` and
+`answer_metrics.by_category` is an `aggregate_slice` with the same four direct
+metrics, both micro/macro groups, all five status counts, applicable and
+non-applicable denominators, query count, and `optional_binding_rate`.
+`operational_metrics.optional_binding_rate` is the same six-decimal metric at
+the overall scope. These are the only metric names; Section 8.3's macro/micro,
+tier/category, status, and optional-binding requirements map to these schema
+fields exactly.
+
+`tests/research/result_schema.json` is the machine-authoritative root schema;
+it is not a per-query-only schema. Its complete root contract is the following
+schema (the implementation may factor the `$defs` into separate files only
+when they are referenced by this exact `$id`):
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/cifre-kg/schema/research-result-root-1.0.0.json",
+  "title": "CIFRE benchmark result root",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_id", "generated_by", "canonicalization", "hash_manifest", "environment", "namespace_registry", "validation", "corpus_runs", "per_query"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_id": {"type": "string"},
+    "generated_by": {"type": "string"},
+    "canonicalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["encoding", "key_order", "metric_precision"],
+      "properties": {
+        "encoding": {"const": "UTF-8"},
+        "key_order": {"const": "lexicographic"},
+        "metric_precision": {"const": 6}
+      }
+    },
+    "hash_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_version", "entries", "digest_sha256"],
+      "properties": {
+        "manifest_version": {"const": "1.0"},
+        "entries": {"type": "array", "items": {"type": "object"}},
+        "digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python_version", "platform_system", "platform_machine", "pip_version", "lock_sha256", "packages"],
+      "properties": {
+        "python_version": {"type": "string"},
+        "platform_system": {"type": "string"},
+        "platform_machine": {"type": "string"},
+        "pip_version": {"type": "string"},
+        "lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "packages": {"type": "object", "additionalProperties": {"type": "string"}}
+      }
+    },
+    "namespace_registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cifsup", "cifppms", "cifdata", "ciferp", "cifskos", "cifmeta", "cifmetaid", "legacy_uris_rejected"],
+      "properties": {
+        "cifsup": {"const": "https://example.org/cifre-kg/support#"},
+        "cifppms": {"const": "https://example.org/cifre-kg/ppms#"},
+        "cifdata": {"const": "https://example.org/cifre-kg/data/"},
+        "ciferp": {"const": "https://example.org/cifre-kg/erp#"},
+        "cifskos": {"const": "https://example.org/cifre-kg/vocabulary#"},
+        "cifmeta": {"const": "https://example.org/cifre-kg/meta#"},
+        "cifmetaid": {"const": "https://example.org/cifre-kg/id/meta/"},
+        "legacy_uris_rejected": {"type": "array", "const": ["http://data.sap.com/", "http://ontology.sap.com/", "https://sap.example/erp/"]}
+      }
+    },
+    "validation": {"$ref": "#/$defs/validation"},
+    "corpus_runs": {"type": "array", "items": {"$ref": "#/$defs/corpus_run"}},
+    "per_query": {"type": "array", "items": {"$ref": "#/$defs/per_query"}, "uniqueItems": true}
+  },
+  "$defs": {
+    "status": {"enum": ["SUCCESS", "UNSUPPORTED", "SYNTAX_ERROR", "EXECUTION_ERROR", "EMPTY_RESULT"]},
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "numerator", "denominator"],
+      "properties": {
+        "value": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"}]},
+        "numerator": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "string", "pattern": "^[0-9]+\\.[0-9]{6}$"}]},
+        "denominator": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "string", "pattern": "^[0-9]+\\.[0-9]{6}$"}]}
+      }
+    },
+    "status_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["SUCCESS", "UNSUPPORTED", "SYNTAX_ERROR", "EXECUTION_ERROR", "EMPTY_RESULT"],
+      "properties": {
+        "SUCCESS": {"type": "integer", "minimum": 0},
+        "UNSUPPORTED": {"type": "integer", "minimum": 0},
+        "SYNTAX_ERROR": {"type": "integer", "minimum": 0},
+        "EXECUTION_ERROR": {"type": "integer", "minimum": 0},
+        "EMPTY_RESULT": {"type": "integer", "minimum": 0}
+      }
+    },
+    "metric_group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact_set", "precision", "recall", "f1"],
+      "properties": {
+        "exact_set": {"$ref": "#/$defs/metric"},
+        "precision": {"$ref": "#/$defs/metric"},
+        "recall": {"$ref": "#/$defs/metric"},
+        "f1": {"$ref": "#/$defs/metric"}
+      }
+    },
+    "aggregate_slice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query_count", "status_counts", "applicable_count", "not_applicable_count", "exact_set", "precision", "recall", "f1", "micro", "macro", "optional_binding_rate"],
+      "properties": {
+        "query_count": {"type": "integer", "minimum": 0},
+        "status_counts": {"$ref": "#/$defs/status_counts"},
+        "applicable_count": {"type": "integer", "minimum": 0},
+        "not_applicable_count": {"type": "integer", "minimum": 0},
+        "exact_set": {"$ref": "#/$defs/metric"},
+        "precision": {"$ref": "#/$defs/metric"},
+        "recall": {"$ref": "#/$defs/metric"},
+        "f1": {"$ref": "#/$defs/metric"},
+        "micro": {"$ref": "#/$defs/metric_group"},
+        "macro": {"$ref": "#/$defs/metric_group"},
+        "optional_binding_rate": {"$ref": "#/$defs/metric"}
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query_count", "status_counts", "status_accuracy", "answer_metrics", "operational_metrics"],
+      "properties": {
+        "query_count": {"type": "integer", "minimum": 0},
+        "status_counts": {"$ref": "#/$defs/status_counts"},
+        "status_accuracy": {"$ref": "#/$defs/metric"},
+        "answer_metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["applicable_count", "not_applicable_count", "exact_set", "precision", "recall", "f1", "micro", "macro", "by_tier", "by_category"],
+          "properties": {
+            "applicable_count": {"type": "integer", "minimum": 0},
+            "not_applicable_count": {"type": "integer", "minimum": 0},
+            "exact_set": {"$ref": "#/$defs/metric"},
+            "precision": {"$ref": "#/$defs/metric"},
+            "recall": {"$ref": "#/$defs/metric"},
+            "f1": {"$ref": "#/$defs/metric"},
+            "micro": {"$ref": "#/$defs/metric_group"},
+            "macro": {"$ref": "#/$defs/metric_group"},
+            "by_tier": {"type": "object", "additionalProperties": {"$ref": "#/$defs/aggregate_slice"}},
+            "by_category": {"type": "object", "additionalProperties": {"$ref": "#/$defs/aggregate_slice"}}
+          }
+        },
+        "operational_metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["syntax_success_rate", "execution_success_rate", "recovery_attempt_rate", "recovery_success_rate", "strict_empty_rate", "unsupported_rejection_rate", "optional_binding_rate"],
+          "properties": {
+            "syntax_success_rate": {"$ref": "#/$defs/metric"},
+            "execution_success_rate": {"$ref": "#/$defs/metric"},
+            "recovery_attempt_rate": {"$ref": "#/$defs/metric"},
+            "recovery_success_rate": {"$ref": "#/$defs/metric"},
+            "strict_empty_rate": {"$ref": "#/$defs/metric"},
+            "unsupported_rejection_rate": {"$ref": "#/$defs/metric"},
+            "optional_binding_rate": {"$ref": "#/$defs/metric"}
+          }
+        }
+      }
+    },
+    "corpus_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["corpus_id", "version", "path", "dataset_sha256", "query_count", "query_ids", "conditions", "aggregate", "result_ids"],
+      "properties": {
+        "corpus_id": {"type": "string"},
+        "version": {"type": "string"},
+        "path": {"type": "string"},
+        "dataset_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "query_count": {"type": "integer", "minimum": 0},
+        "query_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "conditions": {"const": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]},
+        "aggregate": {"$ref": "#/$defs/aggregate"},
+        "result_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "required": ["note", "noteNumber", "title"],
+      "properties": {
+        "note": {"type": "string"},
+        "noteNumber": {"type": "string"},
+        "title": {"type": ["string", "null"]}
+      }
+    },
+    "per_query_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicable", "exact_set", "precision", "recall", "f1"],
+      "properties": {
+        "applicable": {"type": "boolean"},
+        "exact_set": {"type": ["boolean", "null"]},
+        "precision": {"type": ["string", "null"], "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"},
+        "recall": {"type": ["string", "null"], "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"},
+        "f1": {"type": ["string", "null"], "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "source_kind", "official", "graph_sha256", "citation"],
+      "properties": {
+        "dataset_id": {"type": "string"},
+        "source_kind": {"const": "synthetic_fixture"},
+        "official": {"const": false},
+        "graph_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "citation": {"type": "string"}
+      }
+    },
+    "per_query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "corpus_id", "query_id", "condition", "question", "normalized_request", "expected_status", "observed_status", "reason_code", "original_constraints", "grounding", "plan", "sparql", "attempts", "repair", "relaxation", "answer_scope", "relaxed_candidates", "bindings", "predicted_note_numbers", "gold_note_numbers", "metrics", "provenance"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"},
+        "corpus_id": {"type": "string"},
+        "query_id": {"type": "string"},
+        "condition": {"enum": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]},
+        "question": {"type": "string"},
+        "normalized_request": {"type": "string"},
+        "expected_status": {"$ref": "#/$defs/status"},
+        "observed_status": {"$ref": "#/$defs/status"},
+        "reason_code": {"type": "string"},
+        "original_constraints": {"type": "object"},
+        "grounding": {"oneOf": [{"type": "null"}, {"type": "object"}]},
+        "plan": {"oneOf": [{"type": "null"}, {"type": "object"}]},
+        "sparql": {"oneOf": [{"type": "null"}, {"type": "object"}]},
+        "attempts": {"type": "integer", "minimum": 0, "maximum": 4},
+        "repair": {"type": "object"},
+        "relaxation": {"type": "object"},
+        "answer_scope": {"enum": ["strict", "relaxed_candidates", "none"]},
+        "relaxed_candidates": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+        "bindings": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+        "predicted_note_numbers": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9]{7}$"}},
+        "gold_note_numbers": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9]{7}$"}},
+        "metrics": {"$ref": "#/$defs/per_query_metrics"},
+        "provenance": {"$ref": "#/$defs/provenance"}
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checks", "combined_graph"],
+      "properties": {
+        "checks": {"type": "array", "items": {"type": "object"}},
+        "combined_graph": {"type": "object"}
+      }
+    }
+  }
+}
+```
 
 ### 26.5 Complete status/reason pairs and repair state machine
 
@@ -1796,6 +2112,7 @@ semantic/**/*.ttl
 semantic/**/*.yaml
 semantic/**/*.json
 src/semantic_layer/**/*.py
+data/**/*.py
 tests/**/*.py
 tests/**/*.yaml
 tests/**/*.json
@@ -1945,8 +2262,14 @@ changes:
       Q31, Q32, Q33, Q34, Q35, Q36, Q37, Q38, Q39, Q40]
     before: {field: expected_notes, type: legacy_yaml}
     after: {field: gold_note_numbers, type: sorted_unique_string_array}
-    reason: SCHEMA_NORMALIZATION
+    migration_reason: SCHEMA_NORMALIZATION
     policy_citation: Section 26.2
+    derivation_query:
+      kind: policy
+      text: "Convert legacy expected_notes to sorted gold_note_numbers."
+      graph_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+      result: {gold_before: [], gold_after: []}
+      result_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
 records: []
 review:
   reviewer_id: repository-maintainer
@@ -1957,13 +2280,20 @@ review:
 `records` is required to contain exactly 40 entries in Q01-Q40 order. Each
 entry has `id`, `category_before`, `category_after`, `gold_before`,
 `gold_after`, `status_before`, `status_after`, `schema_before`,
-`schema_after`, `reason`, `policy_citation`, `reviewer_id`, and `signed_off`.
+`schema_after`, `migration_reason`, `policy_citation`, `derivation_query`,
+`reviewer_id`, and `signed_off`. `derivation_query` has `kind` (`canonical_sparql`
+or `policy`), the canonical query or policy `text`, `graph_sha256`, the
+deterministic `result`, and `result_sha256`; the result is the exact evidence
+used to derive `gold_after` (or to prove schema-only normalization).
 The script rejects a missing entry, duplicate ID, changed category without a
-reason, or any unsigned record. Every entry uses
-`reason: SCHEMA_NORMALIZATION` for the field rename and the following exact
+`migration_reason`, a missing derivation field, or any unsigned record. The
+`migration_reason` enum is exactly `SCHEMA_NORMALIZATION`,
+`PREREQUISITE_CLOSURE_EXPANSION`, `PREREQUISITE_CLOSURE_NORMALIZATION`, or
+`STRICT_CONSTRAINT_STATUS_CORRECTION`. Every entry uses
+`migration_reason: SCHEMA_NORMALIZATION` for the field rename and the following exact
 additional reasons where semantics change:
 
-| IDs | `gold_before` | `gold_after` | `status_before` | `status_after` | Reason | Policy citation |
+| IDs | `gold_before` | `gold_after` | `status_before` | `status_after` | `migration_reason` | Policy citation |
 | --- | --- | --- | --- | --- | --- | --- |
 | Q01-Q24 | historical `expected_notes` converted to sorted strings | same note set | `SUCCESS` | `SUCCESS` | `SCHEMA_NORMALIZATION` | Sections 26.1-26.2 |
 | Q25, Q28, Q31 | `[3098110]` | `[3012445, 3098110]` | `SUCCESS` | `SUCCESS` | `PREREQUISITE_CLOSURE_EXPANSION` | Sections 6.3 and 26.1 |
