@@ -20,7 +20,7 @@ classification, quality checks, and lineage.
 The local API's role and country fields are simulated caller context, not
 authentication. A production identity-aware transport must supply authenticated
 attributes before invoking this policy. The demo roles are
-`ClaimsAnalystFR`, `ClaimsManagerGroup`, and `FinanceAnalyst`. Authorization
+`FinancialControllerFR`, `FinancialControllerGroup`, and `FinanceAnalyst`. Authorization
 evaluates role, country, purpose, product classification, and derived PII. A
 French financial analyst is scoped to French postings; Finance can use financial
 metrics without partner PII; an unknown or over-classified role is denied.

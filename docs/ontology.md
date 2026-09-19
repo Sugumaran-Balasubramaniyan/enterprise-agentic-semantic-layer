@@ -2,7 +2,7 @@
 
 The canonical ontology lives in [`semantic/ontology/sap_erp.ttl`](../semantic/ontology/sap_erp.ttl). It is a governed OWL/RDFS vocabulary for the concepts that must interoperate across the French, UK, and German enterprise operating units.
 
-`ProductAutomotive` and `ProductCommercial` are subclasses of `Product`. A `BusinessPartner` holds a `SalesOrder` and is associated with `FinancialPosting` records; a `FinancialPosting` references its `SalesOrder`. A `SalesOrder` has a product, covers a risk, has coverage, and generates billing documents. The ontology defines domain and range declarations for those relationships, plus identifier, status, date, and loss properties used by the local validation graph. `orderProduct` and `postingOrder` remain explicit subproperty aliases for compatibility; the canonical sample graph and SHACL constraints use `hasProduct` and `referencesSalesOrder`.
+`ProductAutomotive` and `ProductCommercial` are subclasses of `Product`. A `BusinessPartner` holds a `SalesOrder` and is associated with `FinancialPosting` records; a `FinancialPosting` references its `SalesOrder`. A `SalesOrder` has a product, references business partners, and generates billing documents. The ontology defines domain and range declarations for those relationships, plus identifier, status, date, and debit amount properties used by the local validation graph. `orderProduct` and `postingOrder` remain explicit subproperty aliases for compatibility; the canonical sample graph and SHACL constraints use `hasProduct` and `referencesSalesOrder`.
 
 `countryCode` is shared by business partners and sales orders through the `CountryCodedEntity` superclass, so its domain does not incorrectly require an instance to be both.
 

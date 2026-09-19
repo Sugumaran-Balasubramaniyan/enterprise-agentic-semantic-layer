@@ -5,7 +5,7 @@ The semantic layer keeps the canonical business vocabulary in versioned YAML and
 The semantic layers have distinct responsibilities:
 
 - `semantic/vocabulary/sap_erp.yaml` is the governed glossary and metadata contract.
-- `semantic/taxonomy/sap_products.ttl` organizes product labels with SKOS. Local automotive values such as `MTR`, `CAR`, and `MotorInsurance` map to `sap:ProductAutomotive`; `HOME` and `HomeInsurance` map to the governed `sap:ProductEnterprise` concept.
+- `semantic/taxonomy/sap_products.ttl` organizes product labels with SKOS. Local automotive values such as `MTR`, `CAR`, and `Automotive` map to `sap:ProductAutomotive`; `ENTERPRISE` and `ENT` map to the governed `sap:ProductEnterprise` concept.
 - `semantic/ontology/sap_erp.ttl` defines OWL classes and property domain/range constraints.
 - `semantic/shapes/sap_erp_shapes.ttl` validates ERP instances. Postings require an ID, date, status, sales order, and non-negative debit loss; sales orders require an ID, product, and status.
 

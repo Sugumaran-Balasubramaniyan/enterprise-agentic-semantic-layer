@@ -2,6 +2,7 @@
 
 from semantic_layer.agents.workflow import (
     AgentAnswer,
+    AgentWorkflow,
     ClaimsInvestigationAgent,
     FinancialAuditAgent,
     SAPFinancialAuditAgent,
@@ -9,6 +10,7 @@ from semantic_layer.agents.workflow import (
 
 __all__ = [
     "AgentAnswer",
+    "AgentWorkflow",
     "ClaimsInvestigationAgent",
     "FinancialAuditAgent",
     "SAPFinancialAuditAgent",

@@ -7,7 +7,7 @@ concepts:
     version: "1.0.0"
     definition: "A person or organization with an active commercial and financial relationship in SAP S/4HANA (BUT000)."
     description: "The governed party connecting sales orders, billing documents, and general ledger journal postings."
-    synonyms: ["Customer", "Commercial Partner", "BP", "Customers", "Policyholder", "Policyholders", "Insured Customer", "Insured Customers"]
+    synonyms: ["Customer", "Commercial Partner", "BP", "Customers", "Partner", "Partners", "Policyholder", "Policyholders", "Insured Customer", "Insured Customers"]
     domain: "MasterData"
     owner: "SAP SE"
     classification: "Restricted"
@@ -33,22 +33,26 @@ concepts:
     classification: "Internal"
     sensitivity:
       classification: "Confidential"
-      rationale: "Sales order details are restricted to authorized enterprise controllers."
+      rationale: "Sales order commercial values and line items."
     relationships:
       - predicate: "sap:hasProduct"
         target: "sap:Product"
+        description: "A sales order is issued for a governed product/material."
       - predicate: "sap:coversRisk"
         target: "sap:Risk"
       - predicate: "sap:hasCoverage"
         target: "sap:Coverage"
-    allowed_values: ["RELEASED", "CLOSED", "CANCELLED"]
-    examples: ["FR_SO_001"]
+      - predicate: "sap:referencesBusinessPartner"
+        target: "sap:BusinessPartner"
+        description: "A sales order belongs to a business partner."
+    allowed_values: ["RELEASED", "OPEN", "CLOSED", "CANCELLED"]
+    examples: ["FR_SO_001", "UK_SO_001"]
   - id: "sap:FinancialPosting"
     name: "Financial Posting"
     version: "1.0.0"
     definition: "A financial journal entry item in SAP S/4HANA Universal Journal (ACDOCA)."
     description: "A ledger posting is assessed, tracked by posting status, and associated with a sales order and financial loss/debit."
-    synonyms: ["Journal Entry", "Universal Journal Item", "ACDOCA Entry", "Claim", "Claims", "Insurance Claim"]
+    synonyms: ["Journal Entry", "Universal Journal Item", "ACDOCA Entry", "Posting", "Postings", "Financial Posting", "Financial Postings", "Cost-Revenue Ratio", "Cost Revenue Ratio", "Claim", "Claims", "Insurance Claim"]
     domain: "Financials"
     owner: "SAP SE"
     classification: "Restricted"
@@ -193,7 +197,7 @@ concepts:
     version: "1.0.0"
     definition: "A financial posting eligible for governed audit and debit metrics after exclusions."
     description: "Qualifying postings exclude REVERSED and DUPLICATE records."
-    synonyms: ["Audited Posting", "Valid Journal Entry", "Qualifying Claim", "Qualifying Claims", "Qualifying Posting", "Qualifying Postings"]
+    synonyms: ["Audited Posting", "Valid Journal Entry", "Qualifying Financial Posting", "Qualifying Financial Postings", "Qualifying Posting", "Qualifying Postings", "Qualifying Claim", "Qualifying Claims"]
     domain: "Financials"
     owner: "SAP SE"
     classification: "Internal"

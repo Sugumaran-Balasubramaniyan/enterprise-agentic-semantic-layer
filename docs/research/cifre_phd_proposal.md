@@ -236,3 +236,37 @@ make kg-validate
 make research-benchmark
 make research-demo
 ```
+
+---
+
+## 8. Academic References & Bibliography
+
+1. **Hogan, A., Blomqvist, E., Cochez, M., d'Amato, C., Melo, G. D., Gutierrez, C., ... & Zimmermann, A.** (2021). Knowledge Graphs. *ACM Computing Surveys (CSUR)*, 54(4), 1-37.
+2. **Pan, S., Luo, L., Wang, Y., Chen, C., Wang, J., & Wu, X.** (2024). Unifying Large Language Models and Knowledge Graphs: A Roadmap. *IEEE Transactions on Knowledge and Data Engineering (TKDE)*, 36(7), 3568-3589.
+3. **Ji, S., Pan, S., Cambria, E., Marttinen, P., & Yu, P. S.** (2021). A Survey on Knowledge Graphs: Representation, Acquisition, and Applications. *IEEE Transactions on Neural Networks and Learning Systems (TNNLS)*, 33(2), 494-514.
+4. **Yasunaga, M., Ren, H., Bosselut, A., Liang, P., & Leskovec, J.** (2021). QA-GNN: Reasoning with Language Models and Knowledge Graphs for Question Answering. *Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (NAACL-HLT)*, 535-546.
+5. **Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., & Cao, Y.** (2023). ReAct: Synergizing Reasoning and Acting in Language Models. *International Conference on Learning Representations (ICLR)*.
+6. **Madaan, A., Tandon, N., Gupta, P., Hallinan, S., Gao, L., Wiegreffe, S., ... & Clark, P.** (2023). Self-Refine: Iterative Refinement with Self-Feedback. *Advances in Neural Information Processing Systems (NeurIPS)*, 36, 46534-46594.
+7. **Shinn, N., Cassano, F., Gopinath, A., Narasimhan, K., & Yao, S.** (2023). Reflexion: Language Agents with Verbal Reinforcement Learning. *Advances in Neural Information Processing Systems (NeurIPS)*, 36, 8634-8652.
+8. **Edge, D., Trinh, H., Cheng, N., Bradley, J., Chao, A., Mody, A., ... & Larson, J.** (2024). From Local to Global: A Graph RAG Approach to Query-Focused Summarization. *arXiv preprint arXiv:2404.16130*.
+9. **Knublauch, H., & Kontokostas, D.** (2017). *Shapes Constraint Language (SHACL)*. W3C Recommendation, World Wide Web Consortium.
+10. **Harris, S., Seaborne, A., & Prud'hommeaux, E.** (2013). *SPARQL 1.1 Query Language*. W3C Recommendation, World Wide Web Consortium.
+11. **Cyganiak, R., Wood, D., & Lanthaler, M.** (2014). *RDF 1.1 Concepts and Abstract Syntax*. W3C Recommendation, World Wide Web Consortium.
+12. **W3C OWL Working Group.** (2012). *OWL 2 Web Ontology Language Document Overview*. W3C Recommendation, World Wide Web Consortium.
+13. **SAP SE.** (2023). *SAP Product and Product Version Management System (PPMS) Architecture & Software Logistics*. SAP Online Information System.
+
+---
+
+## 9. How to Cite
+
+If you use or reference this framework, ontologies, or benchmark in your research, please cite:
+
+```bibtex
+@misc{balasubramaniyan2026sap_aqr,
+  author = {Balasubramaniyan, Sugumaran},
+  title = {{Agentic AI: Knowledge Graphs, LLMs \& Autonomous Query Reasoning for Enterprise Support}},
+  howpublished = {\url{https://github.com/Sugumaran-Balasubramaniyan/enterprise-agentic-semantic-layer}},
+  year = {2026},
+  note = {Doctoral Research Framework, SAP Labs France (Sophia-Antipolis) \& INRIA / Universit{\'e} C{\^o}te d'Azur}
+}
+```

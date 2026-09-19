@@ -9,7 +9,7 @@ or query plan can use them.
 | --- | --- | --- | --- |
 | France | Databricks | FR | `MOTOR`, `MTR` |
 | United Kingdom | Snowflake | GB | `AUTO`, `CAR` |
-| Germany | Microsoft Fabric | DE | `MotorInsurance` |
+| Germany | Microsoft Fabric | DE | `Automotive` |
 
 All three values resolve to `sap:ProductAutomotive` through
 `canonical_product(platform, value)`. Unknown platforms and values fail closed
@@ -18,9 +18,9 @@ metric. Status mappings work the same way and preserve the canonical
 `POSTED`, `CLEARED`, `REVERSED`, and `DUPLICATE` vocabulary.
 
 Order lifecycle mappings are explicit on every platform as well. Local
-`EN_COURS` (FR), `IN_FORCE` (GB), and `AKTIV` (DE) all normalize to canonical
-`RELEASED`, the only value admitted by `sap:ActiveSalesOrder`; local closed
-and cancelled values normalize to `COMPLETED` and `CANCELLED` respectively.
+`EN_COURS` (FR), `OPEN` / `RELEASED` (GB), and `FREIGEGEBEN` (DE) all normalize to canonical
+`RELEASED`, the value admitted by `sap:ActiveSalesOrder`; local closed
+and cancelled values normalize to `CLOSED` and `CANCELLED` respectively.
 
 ```mermaid
 flowchart LR

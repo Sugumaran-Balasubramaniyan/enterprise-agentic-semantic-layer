@@ -2,7 +2,7 @@
   "caller": {
     "country": "FR",
     "purpose": "semantic_query",
-    "role": "ClaimsAnalystFR"
+    "role": "FinancialControllerFR"
   },
   "filters": [
     {

@@ -25,16 +25,16 @@ plan or executing SQL.
 ```bash
 curl -s -X POST http://127.0.0.1:8000/resolve \
   -H 'content-type: application/json' \
-  -d '{"question":"car insurance"}'
+  -d '{"question":"automotive"}'
 ```
 
 The stable response is:
 
 ```json
 {
-  "text": "car insurance",
+  "text": "automotive",
   "concept_ids": ["sap:ProductAutomotive"],
-  "matched_terms": {"sap:ProductAutomotive": "car insurance"}
+  "matched_terms": {"sap:ProductAutomotive": "automotive"}
 }
 ```
 

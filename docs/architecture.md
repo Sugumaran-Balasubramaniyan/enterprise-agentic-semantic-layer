@@ -84,8 +84,8 @@ flowchart TB
 ```
 
 The mapping boundary is explicit and platform-independent. For example,
-`MTR`, `CAR`, and `MotorInsurance` normalize to
-`sap:ProductAutomotive`, while `HOME` and `HomeInsurance` normalize to the
+`MTR`, `CAR`, and `Automotive` normalize to
+`sap:ProductAutomotive`, while `ENTERPRISE` and `ENT` normalize to the
 governed `sap:ProductEnterprise` concept. A normalization target absent from
 the vocabulary or an unknown local value fails closed. Cloud identifiers
 and SQL examples are documentation/interface artifacts only. The repository

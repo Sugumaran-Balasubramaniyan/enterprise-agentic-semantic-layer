@@ -1,15 +1,15 @@
-"""Run the primary governed claims investigation without an LLM or cloud account."""
+"""Run the primary governed SAP S/4HANA ERP financial audit without an LLM or cloud account."""
 
 from __future__ import annotations
 
 import json
 
-from semantic_layer.agents import ClaimsInvestigationAgent
+from semantic_layer.agents import AgentWorkflow
 from semantic_layer.models import CallerContext
 
 PRIMARY_QUESTION = (
-    "Find French motor-insurance customers with at least three qualifying claims "
-    "in the last 12 months and total incurred loss above EUR 20,000."
+    "Find French automotive business partners with at least three qualifying financial postings "
+    "in the last 12 months and total debit loss above EUR 20,000."
 )
 
 
@@ -21,7 +21,7 @@ def _print_section(heading: str, value: object) -> None:
 def main() -> None:
     """Print each deterministic control-plane stage for the primary question."""
 
-    answer = ClaimsInvestigationAgent().answer(PRIMARY_QUESTION, CallerContext(role="ClaimsAnalystFR"))
+    answer = AgentWorkflow().answer(PRIMARY_QUESTION, CallerContext(role="FinancialControllerFR"))
     rendered = answer.to_dict()
     _print_section("BUSINESS QUESTION", rendered["question"])
     _print_section("SEMANTIC RESOLUTION", rendered["resolution"])

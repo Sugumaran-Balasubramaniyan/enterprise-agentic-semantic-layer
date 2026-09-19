@@ -202,3 +202,4 @@ class ClaimsInvestigationAgent:
 
 FinancialAuditAgent = ClaimsInvestigationAgent
 SAPFinancialAuditAgent = ClaimsInvestigationAgent
+AgentWorkflow = ClaimsInvestigationAgent

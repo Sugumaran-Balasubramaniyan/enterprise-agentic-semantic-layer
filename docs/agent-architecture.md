@@ -1,6 +1,6 @@
 # Agent architecture
 
-`ClaimsInvestigationAgent` is an explicit deterministic workflow, not an
+`AgentWorkflow` is an explicit deterministic workflow, not an
 autonomous SQL generator. Its tools expose concept search, definitions,
 relationships, certified products, metrics, plan construction, execution, and
 provenance. Every stage consumes a typed result from the previous stage.
@@ -40,9 +40,9 @@ delegates to this workflow.
 
 ## RAG and semantic responsibilities
 
-Document retrieval may supply a claims-handling explanation or a policy
-passage. It cannot establish that “motor insurance” means the canonical
-product, that cancelled claims are excluded, or that a caller may see French
+Document retrieval may supply an explanatory note or documentation
+passage. It cannot establish that “automotive product” means the canonical
+product, that reversed postings are excluded, or that a caller may see French
 PII. Those decisions come from the versioned semantic assets and governance
 services. If an LLM is added, it may propose a question interpretation, but
 the resolver, Pydantic plan, authorization, compiler, and quality gates can

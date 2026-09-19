@@ -15,7 +15,7 @@ Run it locally with:
 .venv/bin/python -m semantic_layer.demo
 ```
 
-Use the `ClaimsAnalystFR` role. The deterministic result contains `FR_001` and
+Use the `FinancialControllerFR` role. The deterministic result contains `FR_001` and
 `FR_002`; reversed and duplicate postings are excluded by the governed
 `QualifyingPosting` rule.
 

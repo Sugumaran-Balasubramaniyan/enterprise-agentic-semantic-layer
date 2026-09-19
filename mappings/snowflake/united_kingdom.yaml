@@ -45,6 +45,7 @@ normalization:
     REVERSED: REVERSED
     DUPLICATE: DUPLICATE
   order_statuses:
+    OPEN: RELEASED
     IN_FORCE: RELEASED
     RELEASED: RELEASED
     CLOSED: CLOSED

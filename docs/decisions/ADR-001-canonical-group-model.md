@@ -2,8 +2,7 @@
 
 ## Context
 
-France, the UK, and Germany use different labels and physical schemas, while
-Group reporting needs one meaning for Customer, Policy, Claim, and products.
+Enterprise reporting needs one meaning for Business Partner, Sales Order, Financial Posting, and products.
 
 ## Decision
 

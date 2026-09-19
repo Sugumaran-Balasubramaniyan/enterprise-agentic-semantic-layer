@@ -35,8 +35,8 @@ make PYTHON=.venv/bin/python research-demo      # Run interactive CLI agent reas
 ### Pillar 2: Governed Federated Semantic Layer (BI & Data Products)
 The primary relational path answers this business question end to end:
 
-> Find French motor-insurance customers with at least three qualifying claims
-> in the last 12 months and total incurred loss above EUR 20,000.
+> Find French automotive business partners with at least three qualifying financial postings
+> in the last 12 months and total debit loss above EUR 20,000.
 
 The deterministic agent resolves canonical concepts, selects certified data
 products, authorizes the caller, builds a typed SQL-free plan, compiles trusted
@@ -71,6 +71,8 @@ account, production credential, or LLM key is required.
 - [Production extension matrix](#production-extension-matrix)
 - [Production deployment and operating model](#production-deployment-and-operating-model)
 - [Support and escalation](#support-and-escalation)
+- [Citation](#citation)
+- [License](#license)
 
 ## Reader paths
 
@@ -240,7 +242,7 @@ that this repository performs raw-to-curated transformation, orchestration, or
 deployment.
 
 Raw fixtures contain representative failures such as missing identifiers,
-negative amounts, future dates, invalid statuses, and duplicate claims. They
+negative amounts, future dates, invalid statuses, and duplicate postings. They
 exist to exercise quality gates and should not be used as a trusted query
 source. Curated fixtures contain the rows consumed by the normal DuckDB path;
 they are a small, reviewable stand-in for certified data products. This policy
@@ -258,7 +260,7 @@ script as-of date `2026-08-28`. Its records are explicit and deterministic (the
 current implementation does not use a random-number generator); the documented
 seed policy is that any future randomized expansion must use a pinned seed and
 must preserve the explicit as-of date. The as-of date anchors all relative
-claim, policy, and premium dates, so results do not drift with wall-clock time.
+posting, sales order, and billing dates, so results do not drift with wall-clock time.
 For a different reporting cut, call `generate_demo_data(output_dir, as_of)`
 from Python with an explicit `datetime.date`; do not silently replace it with
 `date.today()` in a test or production job.
@@ -337,7 +339,7 @@ then:
 curl -s http://127.0.0.1:8000/health
 curl -s -X POST http://127.0.0.1:8000/execute \
   -H 'content-type: application/json' \
-  -d '{"question":"Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.","role":"ClaimsAnalystFR"}'
+  -d '{"question":"Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.","role":"FinancialControllerFR"}'
 ```
 
 The stable health output is `{"status":"ok"}`. The execute response includes
@@ -469,21 +471,19 @@ sequenceDiagram
 
 ## The semantic contract
 
-The canonical vocabulary includes `Customer`, `Policy`, `Claim`,
-`InsuranceProduct`, `MotorInsurance`, `HomeInsurance`, `Risk`, `Coverage`, `Premium`,
-`ClaimStatus`, `Country`, `ActivePolicy`, `QualifyingClaim`, and
-`IncurredLoss`. The compact ontology models:
+The canonical vocabulary includes `BusinessPartner`, `SalesOrder`, `FinancialPosting`,
+`BillingDocument`, `Product`, `ProductAutomotive`, `ProductCommercial`, `ProductEnterprise`,
+`CompanyCode`, `ActiveSalesOrder`, `QualifyingPosting`, and
+`FinancialLoss`. The compact ontology models:
 
 ```text
-Customer ownsPolicy Policy
-Customer submitsClaim Claim
-Claim relatesToPolicy Policy
-Policy hasProduct InsuranceProduct
-Policy coversRisk Risk
-Policy hasCoverage Coverage
-Policy generatesPremium Premium
-MotorInsurance subclassOf InsuranceProduct
-HomeInsurance subclassOf InsuranceProduct
+BusinessPartner hasSalesOrder SalesOrder
+BusinessPartner hasFinancialPosting FinancialPosting
+FinancialPosting referencesSalesOrder SalesOrder
+SalesOrder hasProduct Product
+SalesOrder generatesBillingDocument BillingDocument
+ProductAutomotive subclassOf Product
+ProductCommercial subclassOf Product
 ```
 
 Governed metrics are defined in `semantic/metrics/metrics.yaml`:
@@ -509,12 +509,12 @@ mappings, extensions, and regulatory rules.
 | --- | --- | --- | --- |
 | France | Databricks | `MOTOR`, `MTR` | `sap:ProductAutomotive` |
 | UK | Snowflake | `AUTO`, `CAR` | `sap:ProductAutomotive` |
-| Germany | Microsoft Fabric | `MotorInsurance` | `sap:ProductAutomotive` |
+| Germany | Microsoft Fabric | `Automotive`, `AUT` | `sap:ProductAutomotive` |
 
 The same enterprise plan can compile against different physical columns and code
 systems without making the agent rediscover joins.
 
-The active mappings also normalize `HOME` or `HomeInsurance` to the governed
+The active mappings also normalize `ENTERPRISE` or `ENT` to the governed
 `sap:ProductEnterprise` concept. Registry construction rejects any product
 normalization target that is absent from the canonical vocabulary, and runtime
 normalization continues to fail closed for an unknown local value.
@@ -522,7 +522,7 @@ normalization continues to fail closed for an unknown local value.
 ## Governance and data quality
 
 The local policy engine demonstrates RBAC and ABAC patterns for
-`ClaimsAnalystFR`, `ClaimsManagerGroup`, and `FinanceAnalyst`. Country scope,
+`FinancialControllerFR`, `FinancialControllerGroup`, and `FinanceAnalyst`. Country scope,
 purpose, product classification, and PII access are checked before final
 planning and execution. The request-body role is a simulator, not production
 identity authentication.
@@ -662,7 +662,7 @@ deliberately federated:
 | Decision area | Accountable owner | Required reviewers | Evidence before approval |
 | --- | --- | --- | --- |
 | Canonical vocabulary, ontology, taxonomy, and cross-domain relationships | Group semantic owner | Domain steward and knowledge engineer | Definition rationale, compatibility classification, vocabulary/ontology/SHACL tests, and affected golden cases |
-| Metric and business-rule meaning | Metric owner in the relevant business domain | Finance or claims steward, semantic owner, and data-product owner | Formula, inclusion/exclusion logic, grain analysis, regression expectations, and metric-rule tests |
+| Metric and business-rule meaning | Metric owner in the relevant business domain | Finance or ERP steward, semantic owner, and data-product owner | Formula, inclusion/exclusion logic, grain analysis, regression expectations, and metric-rule tests |
 | Certified data-product contract and quality SLA | data-product owner | Domain steward, platform owner, and governance reviewer | Schema/grain/join-key impact, lineage, classification/PII assessment, quality checks, and product certification decision |
 | Country mapping and local extension | Local entity semantic owner | Group semantic owner and platform owner | Canonical target, local-code coverage, source lineage, residency implications, and mapping tests |
 | Compiler/adapter behavior | platform owner | Semantic owner, security and privacy, and data-product owner | Plan-to-SQL test evidence, least-privilege design, native platform controls, and staged adapter contract tests |
@@ -730,7 +730,7 @@ documentation correction.
 | Product hierarchy and alternate labels | [Product taxonomy](semantic/taxonomy/sap_products.ttl) | [Ontology/taxonomy tests](tests/semantic/test_shacl.py) | Preserve SKOS hierarchy and map local labels only to governed concepts. |
 | Class and relationship meaning | [ERP ontology](semantic/ontology/sap_erp.ttl) | [Ontology/SHACL tests](tests/semantic/test_shacl.py) | Confirm domains, ranges, subclass semantics, graph fixtures, and planner relationship paths. |
 | Graph validity constraints | [SHACL shapes](semantic/shapes/sap_erp_shapes.ttl) | [SHACL validation tests](tests/semantic/test_shacl.py) | Add valid and invalid fixtures whenever a mandatory property or constraint changes. |
-| Inclusion/exclusion and lifecycle logic | [Business rules](semantic/rules/financial_postings.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [ActivePolicy regression](tests/semantic/test_active_policy_regression.py) | Treat as a metric behavior change where a rule feeds a metric. |
+| Inclusion/exclusion and lifecycle logic | [Business rules](semantic/rules/financial_postings.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [Active sales order regression](tests/semantic/test_active_policy_regression.py) | Treat as a metric behavior change where a rule feeds a metric. |
 | Metric formulas, dependencies, and aggregation grain | [Metric definitions](semantic/metrics/metrics.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [compiler tests](tests/unit/test_compiler.py) | Preserve independent aggregation for ratios; update golden expectations. |
 | Certified source contract, quality, lineage, and PII | [Certified data-product contracts](data_products/) | [Registry tests](tests/unit/test_registry.py) and [quality tests](tests/unit/test_quality.py) | Re-certify after schema, SLA, classification, or grain changes. |
 | Local physical fields, values, and source lineage | [Federated mappings](mappings/) — [France](mappings/databricks/france.yaml), [UK](mappings/snowflake/united_kingdom.yaml), [Germany](mappings/fabric/germany.yaml) | [Mapping tests](tests/semantic/test_mappings.py) and [resolver tests](tests/unit/test_resolver.py) | Mapping changes require country owner approval and certified-product compatibility evidence. |
@@ -758,7 +758,7 @@ A **breaking change** is any alteration that can change a previously valid
 answer, authorization outcome, plan interpretation, source selection, or
 provenance meaning. Renaming a local field can be a patch only when the
 canonical mapping, normalized values, output semantics, and contract tests are
-unchanged. Changing `QualifyingClaim` from excluding to including a status is
+unchanged. Changing `QualifyingPosting` from excluding to including a status is
 major even if no Python signature changes.
 
 ### Compatibility and migration policy
@@ -847,12 +847,12 @@ clear which capabilities are local implementation and which are production
 extension points.
 
 | Capability | Authoritative contract | Runnable local example | Regression evidence | Boundary |
-| --- | --- | --- | --- | --- | --- |
-| Business-language grounding | [Vocabulary](semantic/vocabulary/sap_erp.yaml), [taxonomy](semantic/taxonomy/sap_products.ttl), and mappings | `POST /resolve` with “car insurance” or “loss amount” | [Resolver tests](tests/unit/test_resolver.py) | Deterministic lexical/mapping resolution; no hosted model required. |
+| --- | --- | --- | --- | --- |
+| Business-language grounding | [Vocabulary](semantic/vocabulary/sap_erp.yaml), [taxonomy](semantic/taxonomy/sap_products.ttl), and mappings | `POST /resolve` with “automotive product” or “debit amount” | [Resolver tests](tests/unit/test_resolver.py) | Deterministic lexical/mapping resolution; no hosted model required. |
 | Relationships and graph validity | [Ontology](semantic/ontology/sap_erp.ttl) and [SHACL shapes](semantic/shapes/sap_erp_shapes.ttl) | `make validate-semantic` validates valid and invalid RDF fixtures | [SHACL tests](tests/semantic/test_shacl.py) | RDFLib/pySHACL local graph; no graph database is required. |
 | Governed metrics and rules | [Metrics](semantic/metrics/metrics.yaml) and [rules](semantic/rules/financial_postings.yaml) | `make PYTHON=.venv/bin/python demo` computes qualifying financial posting metrics | [Metric/rule tests](tests/semantic/test_metric_rules.py) | Rules are compiler-owned semantics, not LLM prompt instructions. |
 | Certified-product selection | [Data-product contracts](data_products/) | `GET /data-products`; `/query-plan` selects the required contracts | [Registry tests](tests/unit/test_registry.py) | Local CSV fixtures model certified serving products only. |
-| Federated physical normalization | [Mappings](mappings/) | France `MOTOR`/`MTR`, UK `AUTO`/`CAR`, Germany `MotorInsurance` resolve to `sap:ProductAutomotive` | [Mapping tests](tests/semantic/test_mappings.py) | Cloud mappings are unexecuted extension artifacts. |
+| Federated physical normalization | [Mappings](mappings/) | France `MOTOR`/`MTR`, UK `AUTO`/`CAR`, Germany `Automotive` resolve to `sap:ProductAutomotive` | [Mapping tests](tests/semantic/test_mappings.py) | Cloud mappings are unexecuted extension artifacts. |
 | Typed planning and trusted SQL | [ADR-004](docs/decisions/ADR-004-typed-query-plans.md) and `src/semantic_layer/query_planner/` | `POST /query-plan`, then `/execute` | [Planner tests](tests/unit/test_query_planner.py) and [compiler tests](tests/unit/test_compiler.py) | Only DuckDB is executed locally; cloud dialect fragments are not equivalent executed queries. |
 | Authorization and quality gates | [Governance guidance](docs/governance.md), contracts, and mappings | An FR analyst can execute FR scope; unsupported/unauthorized input is denied | [Authorization tests](tests/unit/test_authorization.py), [quality tests](tests/unit/test_quality.py), and [execution-control tests](tests/unit/test_execution_controls_security.py) | Request-body role is demo-only; production derives claims from trusted identity. |
 | Lineage and tamper-evident provenance | `src/semantic_layer/lineage/` and `src/semantic_layer/provenance/` | `/execute` returns a `query_id`; `GET /provenance/{query_id}` retrieves evidence | [Provenance/integrity tests](tests/unit/test_capability_integrity.py) and [execution integration test](tests/integration/test_duckdb_execution.py) | Local SQLite/HMAC is not a multi-writer enterprise audit store. |
@@ -890,7 +890,7 @@ The pilot has three practical phases:
    question set to a named user cohort, measure accuracy/denials/quality/latency
    and feedback, run change and incident drills, then decide whether a
    promotion gate is met. The pilot must not use an agent answer as an
-   unreviewed claims, underwriting, pricing, or customer-impacting decision.
+   unreviewed audit, posting, financial, or partner-impacting decision.
 
 ## Scale-out plan and promotion gates
 
@@ -1056,7 +1056,7 @@ customer identifiers, full SQL parameters, tokens, or sensitive result rows in
 application logs, traces, prompts, or incident tickets. Define classification,
 PII handling, cross-border transfer, consent/purpose, retention, and deletion
 requirements with legal, privacy, security, and each data-product owner before
-onboarding real insurance data. A semantic definition or provenance digest does
+onboarding real enterprise ERP data. A semantic definition or provenance digest does
 not replace records-of-processing, DPIA, or regulatory obligations.
 
 ### Provenance retention, signing, and backup
@@ -1246,8 +1246,8 @@ This is a local reference implementation, not a claim of live cloud integration.
 ## Operational walkthrough recap
 
 The local execution path begins with business intent and records each governed
-transition as reviewable evidence. Resolver output grounds “car insurance” and
-“loss amount”; the typed plan identifies certified products; the mappings
+transition as reviewable evidence. Resolver output grounds “automotive product” and
+“debit amount”; the typed plan identifies certified products; the mappings
 normalize FR, UK, and DE values; and the successful response binds
 authorization, quality, SQL, results, and provenance. The architecture documents
 why retrieval or graph context can supplement these contracts but cannot replace
@@ -1275,6 +1275,20 @@ enterprise-scale performance; and benchmark claims.
 contracts are documented above and in the [Example index](examples/README.md).
 
 No confidential data, credentials, paid cloud account, or hosted LLM is required.
+
+## Citation
+
+If you use or reference this framework, ontologies, or benchmark in your research, please cite:
+
+```bibtex
+@misc{balasubramaniyan2026sap_aqr,
+  author = {Balasubramaniyan, Sugumaran},
+  title = {{Agentic AI: Knowledge Graphs, LLMs \& Autonomous Query Reasoning for Enterprise Support}},
+  howpublished = {\url{https://github.com/Sugumaran-Balasubramaniyan/enterprise-agentic-semantic-layer}},
+  year = {2026},
+  note = {Doctoral Research Framework, SAP Labs France (Sophia-Antipolis) \& INRIA / Universit{\'e} C{\^o}te d'Azur}
+}
+```
 
 ## License
 

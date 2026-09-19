@@ -2,8 +2,8 @@ version: "1.0.0"
 owner: SAP SE
 questions:
   - id: primary-claims
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected: &primary
       concepts: [sap:BusinessPartner, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting]
       relationships:
@@ -18,141 +18,141 @@ questions:
           - {partner_id: FR_001, country: FR, posting_count: 3, total_debit_loss_eur: 24000.0}
           - {partner_id: FR_002, country: FR, posting_count: 3, total_debit_loss_eur: 25000.0}
   - id: primary-mtr
-    question: Find French MTR customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French MTR business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-motor-cover
-    question: Find French motor cover customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive cover business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       concepts: [sap:BusinessPartner, sap:Coverage, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting]
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-car-insurance
-    question: Find French car insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French car insurance business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-policyholder
-    question: Find French motor-insurance policyholders with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-insured-customer
-    question: Find French motor-insurance insured customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive bp with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-twelve
-    question: Find French motor-insurance customers with at least twelve qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least twelve qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       metrics: [sap:PostingCount, sap:TotalDebitLossEur]
       deterministic: {answer_constraints: {mode: governed_threshold_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-more-than-two
-    question: Find French motor-insurance customers with more than two qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with more than two qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       metrics: [sap:PostingCount, sap:TotalDebitLossEur]
       deterministic: {answer_constraints: {mode: governed_threshold_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-over-three
-    question: Find French motor-insurance customers with over three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with over three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       metrics: [sap:PostingCount, sap:TotalDebitLossEur]
       deterministic: {answer_constraints: {mode: governed_threshold_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-loss-threshold
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 10,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 10,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_threshold_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-loss-high
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 30,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 30,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_threshold_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-country-name
-    question: Find France motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find France automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-insurance-policy
-    question: Find French motor insurance policyholders with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive policyholders with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-claim-loss
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000 for claim-loss review.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000 for debit review.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       concepts: [sap:BusinessPartner, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting]
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-included-claims
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000 for inclusion review.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000 for inclusion review.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       concepts: [sap:BusinessPartner, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting]
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-current-policy
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000 for policy review.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000 for policy review.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       concepts: [sap:BusinessPartner, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting, sap:SalesOrder]
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-settled
-    question: Find French motor-insurance customers with at least one qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least one qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       metrics: [sap:PostingCount, sap:TotalDebitLossEur]
       deterministic: {answer_constraints: {mode: governed_threshold_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-two
-    question: Find French motor-insurance customers with at least two qualifying claims in the last 12 months and total incurred loss above EUR 20,000.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least two qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       metrics: [sap:PostingCount, sap:TotalDebitLossEur]
       deterministic: {answer_constraints: {mode: governed_threshold_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-current-year-loss
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000 for loss review.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000 for loss review.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       concepts: [sap:BusinessPartner, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting]
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-claim-state
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000 for claims-state review.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000 for financial audit review.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       concepts: [sap:BusinessPartner, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting]
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
   - id: primary-contract
-    question: Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000 for contract review.
-    role: ClaimsAnalystFR
+    question: Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000 for contract review.
+    role: FinancialControllerFR
     expected:
       <<: *primary
       concepts: [sap:BusinessPartner, sap:FinancialLoss, sap:FinancialPosting, sap:ProductAutomotive, sap:QualifyingPosting, sap:SalesOrder]
       deterministic: {answer_constraints: {mode: governed_primary_variant, required_metrics: [sap:PostingCount, sap:TotalDebitLossEur]}}
 
   - id: secondary-01-active-french
-    question: How many French motor insurance customers have active policies this year?
-    role: ClaimsAnalystFR
+    question: How many French automotive business partners have active sales orders this year?
+    role: FinancialControllerFR
     expected:
       concepts: [sap:ActiveSalesOrder, sap:BusinessPartner, sap:ProductAutomotive, sap:SalesOrder]
       relationships: [sap:BusinessPartner|sap:hasSalesOrder|sap:SalesOrder]
@@ -161,8 +161,8 @@ questions:
       authorization: {allowed: true, reason_code: ALLOWED}
       deterministic: {answer_constraints: {mode: discovery_only, rule: sap:ActiveSalesOrder, required_metrics: [sap:ActiveSalesOrderCount]}}
   - id: secondary-02-ratio-french
-    question: Show the claims ratio for French motor insurance customers in the current year.
-    role: ClaimsManagerGroup
+    question: Show the cost-revenue ratio for French automotive business partners in the current year.
+    role: FinancialControllerGroup
     expected:
       concepts: [sap:BusinessPartner, sap:FinancialPosting, sap:ProductAutomotive]
       relationships:
@@ -174,8 +174,8 @@ questions:
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
       deterministic: {answer_constraints: {mode: discovery_only, metric: sap:CostRevenueRatio, required_rules: [sap:QualifyingPosting]}}
   - id: secondary-03-active-uk
-    question: How many United Kingdom motor insurance customers have active policies this year?
-    role: ClaimsManagerGroup
+    question: How many United Kingdom automotive business partners have active sales orders this year?
+    role: FinancialControllerGroup
     expected:
       concepts: [sap:ActiveSalesOrder, sap:BusinessPartner, sap:ProductAutomotive, sap:SalesOrder]
       relationships: [sap:BusinessPartner|sap:hasSalesOrder|sap:SalesOrder]
@@ -184,8 +184,8 @@ questions:
       authorization: {allowed: true, reason_code: ALLOWED}
       deterministic: {answer_constraints: {mode: discovery_only, rule: sap:ActiveSalesOrder, required_metrics: [sap:ActiveSalesOrderCount]}}
   - id: secondary-04-active-germany
-    question: How many German MotorInsurance customers have active policies this year?
-    role: ClaimsManagerGroup
+    question: How many German Automotive business partners have active sales orders this year?
+    role: FinancialControllerGroup
     expected:
       concepts: [sap:ActiveSalesOrder, sap:BusinessPartner, sap:ProductAutomotive, sap:SalesOrder]
       relationships: [sap:BusinessPartner|sap:hasSalesOrder|sap:SalesOrder]
@@ -194,8 +194,8 @@ questions:
       authorization: {allowed: true, reason_code: ALLOWED}
       deterministic: {answer_constraints: {mode: discovery_only, rule: sap:ActiveSalesOrder, required_metrics: [sap:ActiveSalesOrderCount]}}
   - id: secondary-05-ratio-uk
-    question: Show the claims ratio for British car insurance customers in the current year.
-    role: ClaimsManagerGroup
+    question: Show the cost-revenue ratio for British automotive business partners in the current year.
+    role: FinancialControllerGroup
     expected:
       concepts: [sap:BusinessPartner, sap:FinancialPosting, sap:ProductAutomotive]
       relationships:
@@ -207,8 +207,8 @@ questions:
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
       deterministic: {answer_constraints: {mode: discovery_only, metric: sap:CostRevenueRatio, required_rules: [sap:QualifyingPosting]}}
   - id: secondary-06-ratio-germany
-    question: Show the claims ratio for German MotorInsurance customers in the current year.
-    role: ClaimsManagerGroup
+    question: Show the cost-revenue ratio for German Automotive business partners in the current year.
+    role: FinancialControllerGroup
     expected:
       concepts: [sap:BusinessPartner, sap:FinancialPosting, sap:ProductAutomotive]
       relationships:
@@ -220,8 +220,8 @@ questions:
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
       deterministic: {answer_constraints: {mode: discovery_only, metric: sap:CostRevenueRatio, required_rules: [sap:QualifyingPosting]}}
   - id: secondary-07-active-alias
-    question: How many French car insurance policyholders have active policies this year?
-    role: ClaimsAnalystFR
+    question: How many French automotive partners have active sales orders this year?
+    role: FinancialControllerFR
     expected:
       concepts: [sap:ActiveSalesOrder, sap:BusinessPartner, sap:ProductAutomotive, sap:SalesOrder]
       relationships: [sap:BusinessPartner|sap:hasSalesOrder|sap:SalesOrder]
@@ -230,8 +230,8 @@ questions:
       authorization: {allowed: true, reason_code: ALLOWED}
       deterministic: {answer_constraints: {mode: discovery_only, rule: sap:ActiveSalesOrder, required_metrics: [sap:ActiveSalesOrderCount]}}
   - id: secondary-08-ratio-mtr
-    question: Show the claims ratio for French MTR customers in the current year.
-    role: ClaimsManagerGroup
+    question: Show the cost-revenue ratio for French MTR business partners in the current year.
+    role: FinancialControllerGroup
     expected:
       concepts: [sap:BusinessPartner, sap:FinancialPosting, sap:ProductAutomotive]
       relationships:
@@ -243,8 +243,8 @@ questions:
       authorization: {allowed: false, reason_code: PRODUCT_DENIED}
       deterministic: {answer_constraints: {mode: discovery_only, metric: sap:CostRevenueRatio, required_rules: [sap:QualifyingPosting]}}
   - id: secondary-09-active-manager
-    question: How many French motor cover customers have active policies this year?
-    role: ClaimsManagerGroup
+    question: How many French automotive cover business partners have active sales orders this year?
+    role: FinancialControllerGroup
     expected:
       concepts: [sap:ActiveSalesOrder, sap:BusinessPartner, sap:Coverage, sap:ProductAutomotive, sap:SalesOrder]
       relationships: [sap:BusinessPartner|sap:hasSalesOrder|sap:SalesOrder]
@@ -253,7 +253,7 @@ questions:
       authorization: {allowed: true, reason_code: ALLOWED}
       deterministic: {answer_constraints: {mode: discovery_only, rule: sap:ActiveSalesOrder, required_metrics: [sap:ActiveSalesOrderCount]}}
   - id: secondary-10-ratio-finance
-    question: Show the claims ratio for French motor insurance customers in the current year for finance planning.
+    question: Show the cost-revenue ratio for French automotive business partners in the current year for finance planning.
     role: FinanceAnalyst
     expected:
       concepts: [sap:BusinessPartner, sap:FinancialPosting, sap:ProductAutomotive]

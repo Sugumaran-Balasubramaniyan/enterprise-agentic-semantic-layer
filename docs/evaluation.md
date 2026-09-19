@@ -2,8 +2,8 @@
 
 The checked-in suite in `tests/golden/questions.yaml` is a small, reviewable
 contract test set for the semantic control plane. It contains 31 governed
-questions, including ten secondary examples covering active-policy and
-claims-ratio discovery across the French, UK, and German vocabulary. Every case
+questions, including ten secondary examples covering active-sales-order and
+cost-revenue-ratio discovery across the French, UK, and German vocabulary. Every case
 declares expected canonical concepts, relationship paths, certified products,
 metrics, authorization outcome, and either an executable deterministic answer
 or an explicit discovery-only constraint.
@@ -32,7 +32,7 @@ Golden evaluation: 31/31 cases passed (resolution=31/31, relationships=31/31, pr
 ```
 
 The semantic regression tests separately protect metric/rule references,
-ClaimsRatio's independent aggregate contract, and the `ActivePolicy` semantic
+CostRevenueRatio's independent aggregate contract, and the `ActiveSalesOrder` semantic
 version, definition, included status, and exclusions. CI runs YAML parsing,
 SHACL validation, mapping/data-quality tests, compiler tests, this golden
 suite, and the complete pytest suite.
