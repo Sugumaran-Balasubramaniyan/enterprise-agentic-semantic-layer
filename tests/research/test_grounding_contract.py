@@ -1,0 +1,105 @@
+"""Contract tests for deterministic, fail-closed grammar grounding."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+import yaml
+
+from semantic_layer.reasoning.schema_linker import SchemaLinker
+
+GRAMMAR = yaml.safe_load(
+    (Path(__file__).with_name("grounding_grammar.yaml")).read_text(encoding="utf-8")
+)
+
+
+def _assert_entities(result, fixture: dict) -> None:
+    for field in (
+        "component_codes",
+        "alert_codes",
+        "product_versions",
+        "software_components",
+        "support_packages",
+        "note_numbers",
+        "priorities",
+    ):
+        assert getattr(result, field) == fixture.get(field, [])
+
+
+def test_grounding_grammar_is_versioned_and_closed() -> None:
+    assert GRAMMAR["schema_version"] == "1.0"
+    assert "and" in GRAMMAR["filler_tokens"]
+    assert "an" in GRAMMAR["filler_tokens"]
+    assert GRAMMAR["unsupported_intent_marker"] == ["explain", "recommend", "summarize"]
+
+
+@pytest.mark.parametrize("fixture", GRAMMAR["fixtures"][:7], ids=lambda item: item["id"])
+def test_grounding_accepts_declared_templates_and_preserves_canonical_entities(fixture: dict) -> None:
+    result = SchemaLinker().ground_or_abstain(fixture["query"])
+
+    assert result.raw_query == fixture["query"]
+    assert result.normalized_request == " ".join(SchemaLinker._tokens(fixture["query"]))
+    assert result.intent == fixture["intent"]
+    assert result.failure_class == fixture["failure_class"]
+    _assert_entities(result, fixture)
+
+
+def test_numeric_support_package_is_valid_but_named_unknown_is_not() -> None:
+    valid = SchemaLinker().ground_or_abstain(
+        "Find notes for alert TIME_OUT in component MM-PUR-PO at SP99."
+    )
+    invalid = SchemaLinker().ground_or_abstain(
+        "Find notes for alert TIME_OUT in component MM-PUR-PO at SP_FUTURE."
+    )
+
+    assert valid.failure_class == "NONE"
+    assert valid.intent == "VERSION_FILTERED_SEARCH"
+    assert valid.support_packages == [99]
+    assert invalid.failure_class == "UNKNOWN_ENTITY"
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        item
+        for item in GRAMMAR["fixtures"] + GRAMMAR["v2_fixtures"]
+        if item["failure_class"] != "NONE"
+    ],
+    ids=lambda item: item["id"],
+)
+def test_grounding_rejects_unknown_ambiguous_and_unsupported_inputs_before_planning(
+    fixture: dict,
+) -> None:
+    result = SchemaLinker().ground_or_abstain(fixture["query"])
+
+    assert result.raw_query == fixture["query"]
+    assert result.intent == "UNSUPPORTED"
+    assert result.failure_class == fixture["failure_class"]
+    if "component_codes" in fixture:
+        assert result.component_codes == fixture["component_codes"]
+    if "alert_codes" in fixture:
+        assert result.alert_codes == fixture["alert_codes"]
+
+    # Grounding owns no planner/compiler hook: rejected input is data only and
+    # cannot produce a planning opportunity or exception.
+    assert not hasattr(result, "plan")
+    assert not hasattr(result, "sparql")
+
+
+@pytest.mark.parametrize("fixture", GRAMMAR["v2_fixtures"][:8], ids=lambda item: item["id"])
+def test_v2_rejections_expose_exact_failure_class(fixture: dict) -> None:
+    result = SchemaLinker().ground_or_abstain(fixture["query"])
+    assert result.failure_class == fixture["failure_class"]
+    assert result.intent == "UNSUPPORTED"
+
+
+@pytest.mark.parametrize(
+    "fixture", [item for item in GRAMMAR["v2_fixtures"] if item["failure_class"] == "NONE"],
+    ids=lambda item: item["id"],
+)
+def test_v2_strict_empty_cases_are_valid_grounding(fixture: dict) -> None:
+    result = SchemaLinker().ground_or_abstain(fixture["query"])
+    assert result.failure_class == "NONE"
+    assert result.intent in {"ALERT_RESOLUTION", "VERSION_FILTERED_SEARCH"}
+    _assert_entities(result, fixture)
