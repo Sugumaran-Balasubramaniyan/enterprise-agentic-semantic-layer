@@ -115,13 +115,15 @@ Observed in `semantic/ontology/sap_erp.ttl`,
 
 Observed strictly at branch-start in `semantic/data/sap_support_graph.ttl`
 and `src/semantic_layer/kg/sap_dataset_generator.py`. This is a separate
-official-looking documentation-host namespace and is not covered by any of the
-three namespace families above.
+official-looking documentation-host namespace. This list is limited to
+branch-start runtime/data occurrences; it does not assert that the URI is
+absent from normative control documents.
 
 The approved specification and plan also quote the three legacy families above
-as control text. This fourth family is present in branch-start source assets,
-not in the approved control documents. Those documents are evidence about the
-migration, not source assets;
+as control text and quote `help.sap.com` as a forbidden migration/scan term.
+Those normative references are control text, not additional branch-start
+source occurrences; the documents are evidence about the migration, not source
+assets;
 their quoted occurrences are intentionally allowlisted for later claim scans.
 
 ## Unsupported claim inventory for later tasks
