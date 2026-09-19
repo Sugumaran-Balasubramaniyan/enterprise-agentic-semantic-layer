@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from semantic_layer.reasoning.schema_linker import SchemaLinker
+from semantic_layer.research.contracts import ReasonCode
 
 GRAMMAR = yaml.safe_load(
     (Path(__file__).with_name("grounding_grammar.yaml")).read_text(encoding="utf-8")
@@ -57,6 +58,28 @@ def test_numeric_support_package_is_valid_but_named_unknown_is_not() -> None:
     assert valid.intent == "VERSION_FILTERED_SEARCH"
     assert valid.support_packages == [99]
     assert invalid.failure_class == "UNKNOWN_ENTITY"
+
+
+@pytest.mark.parametrize(
+    ("query", "failure_class"),
+    [
+        ("Find notes TIME_OUT.", "UNKNOWN_TOKEN"),
+        ("Find notes for alert TIME_OUT 3012445.", "UNSUPPORTED_INTENT"),
+        ("Find notes for alert TIME_OUT on S/4HANA 2023 3012445.", "UNSUPPORTED_INTENT"),
+        (
+            "Find notes for alert TIME_OUT priority HIGH in component MM-PUR-PO.",
+            "UNSUPPORTED_INTENT",
+        ),
+    ],
+)
+def test_grounding_rejects_uncued_entities_and_extra_slots(
+    query: str, failure_class: str
+) -> None:
+    result = SchemaLinker().ground_or_abstain(query)
+
+    assert result.intent == "UNSUPPORTED"
+    assert result.failure_class == failure_class
+    assert isinstance(result.failure_class, ReasonCode)
 
 
 @pytest.mark.parametrize(

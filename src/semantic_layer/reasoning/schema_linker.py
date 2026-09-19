@@ -13,6 +13,8 @@ from typing import ClassVar
 
 import yaml
 
+from semantic_layer.research.contracts import ReasonCode
+
 
 @dataclass
 class GroundedEntities:
@@ -29,7 +31,7 @@ class GroundedEntities:
     intent: str = "GENERAL_SEARCH"
     confidence: float = 1.0
     normalized_request: str = ""
-    failure_class: str = "NONE"
+    failure_class: ReasonCode = ReasonCode.NONE
 
 
 class SchemaLinker:
@@ -56,19 +58,6 @@ class SchemaLinker:
         "very high": "Very High", "high": "High", "medium": "Medium", "low": "Low",
     }
 
-    @staticmethod
-    def _reason(name: str) -> str:
-        """Use Task 2's closed ReasonCode vocabulary when importable."""
-
-        try:
-            from semantic_layer.research.contracts import ReasonCode
-
-            return ReasonCode[name].value
-        except (ImportError, KeyError):
-            # Direct linker imports can occur while optional research exports
-            # are still initializing.
-            return name
-
     def __init__(self) -> None:
         grammar = yaml.safe_load(self.GRAMMAR_PATH.read_text(encoding="utf-8"))
         if grammar.get("schema_version") != "1.0":
@@ -78,6 +67,8 @@ class SchemaLinker:
         self._question_words = frozenset(grammar["question_word"])
         self._prerequisite_markers = frozenset(grammar["prerequisite_marker"])
         self._unsupported_markers = frozenset(grammar["unsupported_intent_marker"])
+        self._templates = tuple(grammar["templates"])
+        self._template_intents = frozenset(template["intent"] for template in self._templates)
         self._component_lookup = {value.casefold(): value for value in self.KNOWN_COMPONENTS}
         self._alert_lookup = {value.casefold(): value for value in self.KNOWN_ALERTS}
         self._product_lookup = {code.casefold(): code for _, code in self.KNOWN_PRODUCT_VERSIONS}
@@ -116,8 +107,8 @@ class SchemaLinker:
             values.append(value)
 
     def _mark_cued_unknowns(
-        self, tokens: list[str], consumed: set[int], failure: str | None
-    ) -> str | None:
+        self, tokens: list[str], consumed: set[int], failure: ReasonCode | None
+    ) -> ReasonCode | None:
         """Classify unknown values immediately after an explicit entity cue."""
 
         for index, token in enumerate(tokens):
@@ -129,10 +120,10 @@ class SchemaLinker:
                         consumed.update({index, value_index})
                     else:
                         consumed.update({index, value_index})
-                        failure = failure or self._reason("UNKNOWN_ENTITY")
+                        failure = failure or ReasonCode.UNKNOWN_ENTITY
                 else:
                     consumed.add(index)
-                    failure = failure or self._reason("UNKNOWN_ENTITY")
+                    failure = failure or ReasonCode.UNKNOWN_ENTITY
                 continue
             if token not in {"alert", "component", "note", "priority"}:
                 continue
@@ -143,11 +134,11 @@ class SchemaLinker:
                     consumed.update({index, value_index})
                 else:
                     consumed.add(index)
-                    failure = failure or self._reason("UNKNOWN_ENTITY")
+                    failure = failure or ReasonCode.UNKNOWN_ENTITY
                 continue
             if value_index >= len(tokens):
                 consumed.add(index)
-                failure = failure or self._reason("UNKNOWN_ENTITY")
+                failure = failure or ReasonCode.UNKNOWN_ENTITY
                 continue
             value = tokens[value_index]
             # "SAP note resolves ..." uses note as an ordinary filler noun;
@@ -161,7 +152,7 @@ class SchemaLinker:
             )
             consumed.update({index, value_index})
             if not known:
-                failure = failure or self._reason("UNKNOWN_ENTITY")
+                failure = failure or ReasonCode.UNKNOWN_ENTITY
         return failure
 
     def _collect_entities(self, tokens: list[str], entities: GroundedEntities) -> set[int]:
@@ -203,17 +194,167 @@ class SchemaLinker:
                     consumed.update({index, index + 1})
         return consumed
 
+    def _recognized_entities(self, tokens: list[str]) -> list[tuple[str, int, bool]]:
+        """Return recognized slots with their token positions and cue state."""
+
+        records: list[tuple[str, int, bool]] = []
+        for index, token in enumerate(tokens):
+            previous = tokens[index - 1] if index else ""
+            if token in self._alert_lookup:
+                records.append(("alert_code", index, previous == "alert"))
+            if token in self._component_lookup:
+                records.append(("component_code", index, previous == "component"))
+            if token in self._software_lookup:
+                records.append(("software_component", index, False))
+            if token in self._product_lookup:
+                records.append(("product_version", index, False))
+            if (
+                token == "s/4hana"
+                and index + 1 < len(tokens)
+                and f"{token} {tokens[index + 1]}" in self._product_labels
+            ):
+                records.append(("product_version", index, True))
+            if (
+                token == "netweaver"
+                and index + 1 < len(tokens)
+                and f"{token} {tokens[index + 1]}" in self._product_labels
+            ):
+                records.append(("product_version", index, True))
+            if len(token) == 7 and token.isdecimal():
+                records.append(("note_number", index, previous == "note"))
+            if self._numeric_support(token) is not None:
+                records.append(("support_package", index, True))
+            if (
+                token == "priority"
+                and index + 1 < len(tokens)
+                and tokens[index + 1] in self.KNOWN_PRIORITIES
+            ):
+                records.append(("priority", index, True))
+        return records
+
+    def _match_declared_template(
+        self, tokens: list[str], entities: GroundedEntities
+    ) -> tuple[str | None, ReasonCode | None]:
+        """Select one declared template and reject extra or uncued slots."""
+
+        records = self._recognized_entities(tokens)
+        families = {family for family, _, _ in records}
+        lookup = any(token in self._lookup_verbs for token in tokens)
+        question = any(token in self._question_words for token in tokens)
+        prerequisite = any(token in self._prerequisite_markers for token in tokens)
+        has_alert = len(entities.alert_codes) == 1
+        has_component = len(entities.component_codes) == 1
+        has_version = len(entities.product_versions) == 1
+        has_package = len(entities.support_packages) == 1
+        has_note = len(entities.note_numbers) == 1
+
+        if prerequisite:
+            candidate = "PREREQUISITE_CLOSURE"
+        elif has_version or has_package:
+            candidate = "VERSION_FILTERED_SEARCH"
+        elif has_alert:
+            candidate = "ALERT_RESOLUTION"
+        elif has_component:
+            candidate = "COMPONENT_SEARCH"
+        elif has_note and lookup:
+            candidate = "NOTE_LOOKUP"
+        elif has_note and len(tokens) == 1:
+            candidate = "GENERAL_SEARCH"
+        else:
+            return None, ReasonCode.MISSING_REQUIRED_ENTITY
+
+        if candidate not in self._template_intents:
+            return None, ReasonCode.UNSUPPORTED_INTENT
+
+        allowed = {
+            "PREREQUISITE_CLOSURE": {"note_number"},
+            "NOTE_LOOKUP": {"note_number"},
+            "GENERAL_SEARCH": {"note_number"},
+            "ALERT_RESOLUTION": {"alert_code", "component_code", "priority"},
+            "COMPONENT_SEARCH": {"component_code", "priority"},
+            "VERSION_FILTERED_SEARCH": {
+                "alert_code", "component_code", "product_version", "support_package", "priority"
+            },
+        }[candidate]
+        if families - allowed:
+            return None, ReasonCode.UNSUPPORTED_INTENT
+
+        ordered: list[str] = []
+        for family, _, _ in records:
+            if family not in ordered:
+                ordered.append(family)
+        if "priority" in ordered and ordered[-1] != "priority":
+            return None, ReasonCode.UNSUPPORTED_INTENT
+        if candidate == "ALERT_RESOLUTION":
+            valid_orders = {
+                ("alert_code",),
+                ("alert_code", "component_code"),
+                ("component_code", "alert_code"),
+            }
+        elif candidate == "COMPONENT_SEARCH":
+            valid_orders = {("component_code",)}
+        elif candidate == "VERSION_FILTERED_SEARCH":
+            valid_orders = {
+                ("alert_code", "product_version"),
+                ("alert_code", "support_package"),
+                ("component_code", "product_version"),
+                ("component_code", "support_package"),
+                ("product_version", "alert_code"),
+                ("support_package", "alert_code"),
+                ("product_version", "component_code"),
+                ("support_package", "component_code"),
+                ("alert_code", "component_code", "product_version"),
+                ("alert_code", "component_code", "support_package"),
+                ("alert_code", "product_version", "component_code"),
+                ("alert_code", "support_package", "component_code"),
+                ("product_version", "alert_code", "component_code"),
+                ("support_package", "alert_code", "component_code"),
+                ("component_code", "alert_code", "product_version"),
+                ("component_code", "alert_code", "support_package"),
+            }
+        else:
+            valid_orders = {("note_number",)}
+        if tuple(item for item in ordered if item not in {"priority"}) not in valid_orders:
+            return None, ReasonCode.UNSUPPORTED_INTENT
+
+        for family, _, cued in records:
+            if family in {"alert_code", "component_code", "product_version", "software_component"} and not cued:
+                return None, ReasonCode.UNKNOWN_TOKEN
+            if family == "note_number" and not cued:
+                bare_lookup = candidate == "NOTE_LOOKUP" and lookup and families == {"note_number"}
+                bare_prerequisite = candidate == "PREREQUISITE_CLOSURE" and families == {"note_number"}
+                if not (bare_lookup or bare_prerequisite or candidate == "GENERAL_SEARCH"):
+                    return None, ReasonCode.UNSUPPORTED_INTENT
+
+        if candidate in {"PREREQUISITE_CLOSURE", "NOTE_LOOKUP", "GENERAL_SEARCH"}:
+            if candidate == "PREREQUISITE_CLOSURE" and (not question or not has_note):
+                return None, ReasonCode.UNSUPPORTED_INTENT
+            if candidate == "NOTE_LOOKUP" and (not lookup or not has_note):
+                return None, ReasonCode.UNSUPPORTED_INTENT
+            if candidate == "GENERAL_SEARCH" and (not has_note or len(tokens) != 1):
+                return None, ReasonCode.UNSUPPORTED_INTENT
+        elif not question:
+            return None, ReasonCode.UNSUPPORTED_INTENT
+
+        if candidate == "PREREQUISITE_CLOSURE" and (has_alert or has_component or has_version or has_package):
+            return None, ReasonCode.AMBIGUOUS_INTENT
+        if candidate == "VERSION_FILTERED_SEARCH" and not (
+            (has_alert or has_component) and (has_version or has_package)
+        ):
+            return None, ReasonCode.MISSING_REQUIRED_ENTITY
+        return candidate, None
+
     def ground(self, query_text: str) -> GroundedEntities:
         """Return deterministic grounding; never invoke planning or compilation."""
 
         tokens = self._tokens(query_text)
         entities = GroundedEntities(raw_query=query_text, normalized_request=" ".join(tokens))
         consumed = self._collect_entities(tokens, entities)
-        failure: str | None = None
+        failure: ReasonCode | None = None
 
         # Unsupported intent takes precedence over token diagnostics.
         if any(token in self._unsupported_markers for token in tokens):
-            failure = self._reason("UNSUPPORTED_INTENT")
+            failure = ReasonCode.UNSUPPORTED_INTENT
         else:
             failure = self._mark_cued_unknowns(tokens, consumed, failure)
 
@@ -222,7 +363,7 @@ class SchemaLinker:
         for index, token in enumerate(tokens):
             if token.startswith("sp") and self._numeric_support(token) is None:
                 consumed.add(index)
-                failure = failure or self._reason("UNKNOWN_ENTITY")
+                failure = failure or ReasonCode.UNKNOWN_ENTITY
 
         for index, token in enumerate(tokens):
             if index in consumed or token in self._fillers:
@@ -230,7 +371,7 @@ class SchemaLinker:
             if token in self._lookup_verbs or token in self._question_words:
                 consumed.add(index)
                 continue
-            failure = failure or self._reason("UNKNOWN_TOKEN")
+            failure = failure or ReasonCode.UNKNOWN_TOKEN
 
         families = (
             entities.component_codes, entities.alert_codes, entities.product_versions,
@@ -238,40 +379,10 @@ class SchemaLinker:
             entities.priorities,
         )
         if failure is None and any(len(values) > 1 for values in families):
-            failure = self._reason("AMBIGUOUS_INPUT")
-
-        prerequisite = any(token in self._prerequisite_markers for token in tokens)
-        if failure is None and prerequisite:
-            if len(entities.note_numbers) != 1:
-                failure = self._reason("MISSING_REQUIRED_ENTITY")
-            elif entities.alert_codes or entities.component_codes or entities.product_versions or entities.support_packages:
-                failure = self._reason("AMBIGUOUS_INTENT")
-            else:
-                entities.intent = "PREREQUISITE_CLOSURE"
-        elif failure is None:
-            has_alert = len(entities.alert_codes) == 1
-            has_component = len(entities.component_codes) == 1
-            has_version = len(entities.product_versions) == 1
-            has_package = len(entities.support_packages) == 1
-            has_priority = len(entities.priorities) == 1
-            if has_version and has_package:
-                failure = self._reason("AMBIGUOUS_INPUT")
-            elif (has_version or has_package) and (has_alert or has_component):
-                entities.intent = "VERSION_FILTERED_SEARCH"
-            elif has_alert and not has_version and not has_package:
-                entities.intent = "ALERT_RESOLUTION"
-            elif has_component and not has_alert and not has_version and not has_package:
-                entities.intent = "COMPONENT_SEARCH"
-            elif len(entities.note_numbers) == 1 and any(
-                token in self._lookup_verbs for token in tokens
-            ):
-                entities.intent = "NOTE_LOOKUP"
-            elif len(entities.note_numbers) == 1 and not (
-                has_alert or has_component or has_version or has_package or has_priority
-            ):
-                entities.intent = "GENERAL_SEARCH"
-            else:
-                failure = self._reason("MISSING_REQUIRED_ENTITY")
+            failure = ReasonCode.AMBIGUOUS_INPUT
+        if failure is None:
+            entities.intent, template_failure = self._match_declared_template(tokens, entities)
+            failure = template_failure
 
         if failure is not None:
             entities.failure_class = failure
