@@ -146,3 +146,82 @@ def test_result_loader_accepts_a_schema_valid_result(tmp_path: Path) -> None:
     path = tmp_path / "result.json"
     path.write_bytes(canonical_json(result))
     assert load_and_validate_result(path) == result
+
+
+def test_result_loader_rejects_artifact_only_reason_code_per_query(tmp_path: Path) -> None:
+    result = {
+        "schema_version": "1.0.0",
+        "artifact_id": "artifact-1",
+        "generated_by": "tests",
+        "canonicalization": {
+            "encoding": "UTF-8",
+            "key_order": "lexicographic",
+            "metric_precision": 6,
+        },
+        "hash_manifest": {
+            "manifest_version": "1.0",
+            "entries": [],
+            "digest_sha256": "0" * 64,
+        },
+        "environment": {
+            "python_version": "3.12",
+            "platform_system": "Linux",
+            "platform_machine": "x86_64",
+            "pip_version": "25.2",
+            "lock_sha256": "0" * 64,
+            "packages": {},
+        },
+        "namespace_registry": {
+            **NAMESPACE_REGISTRY,
+            "legacy_uris_rejected": [
+                "http://data.sap.com/",
+                "http://ontology.sap.com/",
+                "https://sap.example/erp/",
+            ],
+        },
+        "validation": {"checks": [], "combined_graph": {}},
+        "corpus_runs": [],
+        "per_query": [
+            {
+                "schema_version": "1.0.0",
+                "corpus_id": "cifre-synthetic-aqr-v1",
+                "query_id": "Q01",
+                "condition": CONDITIONS[0],
+                "question": "synthetic question",
+                "normalized_request": "synthetic request",
+                "expected_status": "UNSUPPORTED",
+                "observed_status": "UNSUPPORTED",
+                "reason_code": "INVALID_DATASET",
+                "original_constraints": {},
+                "grounding": {},
+                "plan": None,
+                "sparql": None,
+                "attempts": 0,
+                "repair": {},
+                "relaxation": {},
+                "answer_scope": "none",
+                "relaxed_candidates": [],
+                "bindings": [],
+                "predicted_note_numbers": [],
+                "gold_note_numbers": [],
+                "metrics": {
+                    "applicable": False,
+                    "exact_set": None,
+                    "precision": None,
+                    "recall": None,
+                    "f1": None,
+                },
+                "provenance": {
+                    "dataset_id": "cifre-synthetic-support-ppms-v1",
+                    "source_kind": "synthetic_fixture",
+                    "official": False,
+                    "graph_sha256": "0" * 64,
+                    "citation": "synthetic fixture",
+                },
+            }
+        ],
+    }
+    path = tmp_path / "artifact-reason.json"
+    path.write_bytes(canonical_json(result))
+    with pytest.raises(jsonschema.ValidationError, match="INVALID_DATASET"):
+        load_and_validate_result(path)

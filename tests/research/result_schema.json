@@ -63,6 +63,28 @@
   },
   "$defs": {
     "status": {"enum": ["SUCCESS", "UNSUPPORTED", "SYNTAX_ERROR", "EXECUTION_ERROR", "EMPTY_RESULT"]},
+    "reason_code": {
+      "enum": [
+        "NONE",
+        "UNKNOWN_TOKEN",
+        "UNKNOWN_ENTITY",
+        "AMBIGUOUS_INPUT",
+        "AMBIGUOUS_INTENT",
+        "MULTIPLE_DISTINCT_ENTITIES",
+        "UNSUPPORTED_INTENT",
+        "MISSING_REQUIRED_ENTITY",
+        "UNBOUND_REQUIRED_PROJECTION",
+        "SPARQL_SYNTAX",
+        "SPARQL_EXECUTION",
+        "EMPTY_STRICT_RESULT",
+        "RELAX_SUPPORT_PACKAGE",
+        "WIDEN_COMPONENT",
+        "REPAIR_BUDGET_EXHAUSTED",
+        "PROVENANCE_MISSING",
+        "NO_OP_REPAIR",
+        "PREREQUISITE_DEPTH_EXCEEDED"
+      ]
+    },
     "metric": {
       "type": "object",
       "additionalProperties": false,
@@ -234,7 +256,7 @@
         "normalized_request": {"type": "string"},
         "expected_status": {"$ref": "#/$defs/status"},
         "observed_status": {"$ref": "#/$defs/status"},
-        "reason_code": {"type": "string"},
+        "reason_code": {"$ref": "#/$defs/reason_code"},
         "original_constraints": {"type": "object"},
         "grounding": {"oneOf": [{"type": "null"}, {"type": "object"}]},
         "plan": {"oneOf": [{"type": "null"}, {"type": "object"}]},
@@ -249,7 +271,14 @@
         "gold_note_numbers": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9]{7}$"}},
         "metrics": {"$ref": "#/$defs/per_query_metrics"},
         "provenance": {"$ref": "#/$defs/provenance"}
-      }
+      },
+      "allOf": [
+        {"if": {"properties": {"observed_status": {"const": "SUCCESS"}}}, "then": {"properties": {"reason_code": {"const": "NONE"}}}},
+        {"if": {"properties": {"observed_status": {"const": "UNSUPPORTED"}}}, "then": {"properties": {"reason_code": {"enum": ["UNKNOWN_TOKEN", "UNKNOWN_ENTITY", "AMBIGUOUS_INPUT", "AMBIGUOUS_INTENT", "MULTIPLE_DISTINCT_ENTITIES", "UNSUPPORTED_INTENT", "MISSING_REQUIRED_ENTITY"]}}}},
+        {"if": {"properties": {"observed_status": {"const": "SYNTAX_ERROR"}}}, "then": {"properties": {"reason_code": {"enum": ["UNBOUND_REQUIRED_PROJECTION", "SPARQL_SYNTAX", "NO_OP_REPAIR", "REPAIR_BUDGET_EXHAUSTED"]}}}},
+        {"if": {"properties": {"observed_status": {"const": "EXECUTION_ERROR"}}}, "then": {"properties": {"reason_code": {"enum": ["SPARQL_EXECUTION", "PROVENANCE_MISSING", "NO_OP_REPAIR", "REPAIR_BUDGET_EXHAUSTED"]}}}},
+        {"if": {"properties": {"observed_status": {"const": "EMPTY_RESULT"}}}, "then": {"properties": {"reason_code": {"enum": ["EMPTY_STRICT_RESULT", "RELAX_SUPPORT_PACKAGE", "WIDEN_COMPONENT", "PREREQUISITE_DEPTH_EXCEEDED"]}}}}
+      ]
     },
     "validation": {
       "type": "object",
