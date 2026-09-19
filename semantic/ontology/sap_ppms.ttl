@@ -1,0 +1,116 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ppms: <http://ontology.sap.com/ppms#> .
+
+<http://ontology.sap.com/ppms>
+    a owl:Ontology ;
+    rdfs:label "SAP Product and Product Version Management System (PPMS) Ontology"@en ;
+    rdfs:comment "Formal ontological model of SAP product lines, products, versions, software components, support packages, and patches."@en ;
+    owl:versionInfo "1.0.0" .
+
+### Classes
+
+ppms:ProductLine a owl:Class ;
+    rdfs:label "Product Line"@en ;
+    rdfs:comment "High-level family of SAP solutions (e.g., SAP S/4HANA, SAP NetWeaver, SAP BTP)."@en .
+
+ppms:Product a owl:Class ;
+    rdfs:label "Product"@en ;
+    rdfs:comment "Commercial software offering belonging to a Product Line (e.g., SAP S/4HANA Enterprise)."@en .
+
+ppms:ProductVersion a owl:Class ;
+    rdfs:label "Product Version"@en ;
+    rdfs:comment "Specific commercial release of a product (e.g., SAP S/4HANA 2023, SAP S/4HANA 2022)."@en .
+
+ppms:SoftwareComponent a owl:Class ;
+    rdfs:label "Software Component"@en ;
+    rdfs:comment "Technical software module or development entity (e.g., SAP_BASIS, S4CORE, SAP_APPL, SAP_UI)."@en .
+
+ppms:SoftwareComponentVersion a owl:Class ;
+    rdfs:label "Software Component Version"@en ;
+    rdfs:comment "Release-specific deliverable of a software component (e.g., SAP_BASIS 758, S4CORE 108)."@en .
+
+ppms:SupportPackage a owl:Class ;
+    rdfs:label "Support Package"@en ;
+    rdfs:comment "Maintenance release bundle for a software component version (e.g., SP00, SP01, SP02)."@en .
+
+ppms:PatchLevel a owl:Class ;
+    rdfs:label "Patch Level"@en ;
+    rdfs:comment "Individual hotfix or emergency patch applied to a Support Package."@en .
+
+### Object Properties
+
+ppms:belongsToProductLine a owl:ObjectProperty ;
+    rdfs:label "belongs to product line"@en ;
+    rdfs:domain ppms:Product ;
+    rdfs:range ppms:ProductLine .
+
+ppms:hasProductVersion a owl:ObjectProperty ;
+    rdfs:label "has product version"@en ;
+    rdfs:domain ppms:Product ;
+    rdfs:range ppms:ProductVersion .
+
+ppms:includesComponent a owl:ObjectProperty ;
+    rdfs:label "includes software component version"@en ;
+    rdfs:domain ppms:ProductVersion ;
+    rdfs:range ppms:SoftwareComponentVersion .
+
+ppms:isVersionOfComponent a owl:ObjectProperty ;
+    rdfs:label "is version of component"@en ;
+    rdfs:domain ppms:SoftwareComponentVersion ;
+    rdfs:range ppms:SoftwareComponent .
+
+ppms:hasSupportPackage a owl:ObjectProperty ;
+    rdfs:label "has support package"@en ;
+    rdfs:domain ppms:SoftwareComponentVersion ;
+    rdfs:range ppms:SupportPackage .
+
+ppms:hasPatchLevel a owl:ObjectProperty ;
+    rdfs:label "has patch level"@en ;
+    rdfs:domain ppms:SupportPackage ;
+    rdfs:range ppms:PatchLevel .
+
+ppms:dependsOnComponent a owl:ObjectProperty ;
+    rdfs:label "depends on component version"@en ;
+    rdfs:domain ppms:SoftwareComponentVersion ;
+    rdfs:range ppms:SoftwareComponentVersion .
+
+### Data Properties
+
+ppms:productLineCode a owl:DatatypeProperty ;
+    rdfs:domain ppms:ProductLine ;
+    rdfs:range xsd:string .
+
+ppms:productCode a owl:DatatypeProperty ;
+    rdfs:domain ppms:Product ;
+    rdfs:range xsd:string .
+
+ppms:versionCode a owl:DatatypeProperty ;
+    rdfs:domain ppms:ProductVersion ;
+    rdfs:range xsd:string .
+
+ppms:componentName a owl:DatatypeProperty ;
+    rdfs:domain ppms:SoftwareComponent ;
+    rdfs:range xsd:string .
+
+ppms:componentVersionString a owl:DatatypeProperty ;
+    rdfs:domain ppms:SoftwareComponentVersion ;
+    rdfs:range xsd:string .
+
+ppms:stackLevel a owl:DatatypeProperty ;
+    rdfs:domain ppms:SupportPackage ;
+    rdfs:range xsd:integer .
+
+ppms:spName a owl:DatatypeProperty ;
+    rdfs:domain ppms:SupportPackage ;
+    rdfs:range xsd:string .
+
+ppms:patchNumber a owl:DatatypeProperty ;
+    rdfs:domain ppms:PatchLevel ;
+    rdfs:range xsd:integer .
+
+ppms:releaseYear a owl:DatatypeProperty ;
+    rdfs:domain ppms:ProductVersion ;
+    rdfs:range xsd:integer .

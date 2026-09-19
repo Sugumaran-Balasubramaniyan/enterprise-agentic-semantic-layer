@@ -1,0 +1,141 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix sap:  <http://ontology.sap.com/support#> .
+@prefix ppms: <http://ontology.sap.com/ppms#> .
+
+<http://ontology.sap.com/support>
+    a owl:Ontology ;
+    rdfs:label "SAP Service and Support Knowledge Graph Ontology"@en ;
+    rdfs:comment "Multi-source ontology connecting SAP Notes, System Alerts, Application Components, SimCat taxonomies, and Documentation with PPMS."@en ;
+    owl:imports <http://ontology.sap.com/ppms> ;
+    owl:versionInfo "1.0.0" .
+
+### Classes
+
+sap:SAPNote a owl:Class ;
+    rdfs:label "SAP Note / KBA"@en ;
+    rdfs:comment "Official SAP technical support knowledge base article or code correction note."@en .
+
+sap:SystemAlert a owl:Class ;
+    rdfs:label "System Alert / Dump"@en ;
+    rdfs:comment "Runtime system telemetry event, ABAP short dump, or monitoring exception."@en .
+
+sap:ApplicationComponent a owl:Class ;
+    rdfs:label "Application Component"@en ;
+    rdfs:comment "Hierarchical functional area responsible for software artifacts (e.g., BC-DB, FI-GL)."@en .
+
+sap:SimCatCategory a owl:Class ;
+    rdfs:label "SimCat Similarity Category"@en ;
+    rdfs:comment "Problem classification taxonomy for clustering similar support issues."@en .
+
+sap:HelpDocumentation a owl:Class ;
+    rdfs:label "Help Documentation"@en ;
+    rdfs:comment "Official product documentation guide, configuration manual, or troubleshooting handbook."@en .
+
+### Object Properties
+
+sap:affectsComponent a owl:ObjectProperty ;
+    rdfs:label "affects application component"@en ;
+    rdfs:range sap:ApplicationComponent .
+
+sap:parentComponent a owl:ObjectProperty ;
+    rdfs:label "parent application component"@en ;
+    rdfs:domain sap:ApplicationComponent ;
+    rdfs:range sap:ApplicationComponent .
+
+sap:resolvesAlert a owl:ObjectProperty ;
+    rdfs:label "resolves system alert"@en ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range sap:SystemAlert .
+
+sap:validForComponentVersion a owl:ObjectProperty ;
+    rdfs:label "valid for software component version"@en ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range ppms:SoftwareComponentVersion .
+
+sap:validForProductVersion a owl:ObjectProperty ;
+    rdfs:label "valid for product version"@en ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range ppms:ProductVersion .
+
+sap:hasPrerequisiteNote a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:label "has prerequisite note"@en ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range sap:SAPNote .
+
+sap:hasSideEffectNote a owl:ObjectProperty ;
+    rdfs:label "has side effect note"@en ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range sap:SAPNote .
+
+sap:classifiedUnderSimCat a owl:ObjectProperty ;
+    rdfs:label "classified under SimCat category"@en ;
+    rdfs:range sap:SimCatCategory .
+
+sap:referencedDocumentation a owl:ObjectProperty ;
+    rdfs:label "references help documentation"@en ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range sap:HelpDocumentation .
+
+### Data Properties
+
+sap:noteNumber a owl:DatatypeProperty ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range xsd:string .
+
+sap:title a owl:DatatypeProperty ;
+    rdfs:range xsd:string .
+
+sap:symptom a owl:DatatypeProperty ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range xsd:string .
+
+sap:rootCause a owl:DatatypeProperty ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range xsd:string .
+
+sap:resolution a owl:DatatypeProperty ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range xsd:string .
+
+sap:priority a owl:DatatypeProperty ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range xsd:string .
+
+sap:alertCode a owl:DatatypeProperty ;
+    rdfs:domain sap:SystemAlert ;
+    rdfs:range xsd:string .
+
+sap:severity a owl:DatatypeProperty ;
+    rdfs:domain sap:SystemAlert ;
+    rdfs:range xsd:string .
+
+sap:systemId a owl:DatatypeProperty ;
+    rdfs:domain sap:SystemAlert ;
+    rdfs:range xsd:string .
+
+sap:componentCode a owl:DatatypeProperty ;
+    rdfs:domain sap:ApplicationComponent ;
+    rdfs:range xsd:string .
+
+sap:componentDescription a owl:DatatypeProperty ;
+    rdfs:domain sap:ApplicationComponent ;
+    rdfs:range xsd:string .
+
+sap:categoryName a owl:DatatypeProperty ;
+    rdfs:domain sap:SimCatCategory ;
+    rdfs:range xsd:string .
+
+sap:docUri a owl:DatatypeProperty ;
+    rdfs:domain sap:HelpDocumentation ;
+    rdfs:range xsd:anyURI .
+
+sap:minSupportPackage a owl:DatatypeProperty ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range xsd:integer .
+
+sap:maxSupportPackage a owl:DatatypeProperty ;
+    rdfs:domain sap:SAPNote ;
+    rdfs:range xsd:integer .

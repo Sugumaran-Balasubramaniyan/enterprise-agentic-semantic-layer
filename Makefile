@@ -4,7 +4,7 @@ VENV_PYTHON := $(VENV)/bin/python
 # for a fresh checkout.  A caller may still override PYTHON explicitly.
 PYTHON ?= $(if $(wildcard $(VENV_PYTHON)),$(VENV_PYTHON),python3)
 
-.PHONY: setup test lint validate-semantic check-yaml check-mappings-quality check-golden check-compiler demo evaluate run-api
+.PHONY: setup test lint validate-semantic check-yaml check-mappings-quality check-golden check-compiler demo evaluate run-api kg-build kg-validate research-benchmark research-demo
 setup:
 	$(PYTHON) -m venv $(VENV)
 	$(VENV_PYTHON) -m pip install -e '.[dev]'
@@ -28,3 +28,12 @@ evaluate:
 	$(PYTHON) -m semantic_layer.evaluation
 run-api:
 	$(PYTHON) -m uvicorn semantic_layer.api:app --reload
+kg-build:
+	$(PYTHON) -m semantic_layer.kg.sap_dataset_generator
+kg-validate:
+	$(PYTHON) -m pytest tests/semantic/test_sap_kg.py -v
+research-benchmark:
+	$(PYTHON) -m semantic_layer.research
+research-demo:
+	$(PYTHON) -m semantic_layer.demo_sap
+

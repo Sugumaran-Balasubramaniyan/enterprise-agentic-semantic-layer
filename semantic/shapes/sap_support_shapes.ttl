@@ -1,0 +1,91 @@
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix sap:   <http://ontology.sap.com/support#> .
+@prefix ppms:  <http://ontology.sap.com/ppms#> .
+
+sap:SAPNoteShape a sh:NodeShape ;
+    sh:targetClass sap:SAPNote ;
+    sh:property [
+        sh:path sap:noteNumber ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every SAP Note must have exactly one unique noteNumber."@en ;
+    ] ;
+    sh:property [
+        sh:path sap:title ;
+        sh:or (
+            [ sh:datatype xsd:string ]
+            [ sh:datatype rdf:langString ]
+        ) ;
+        sh:minCount 1 ;
+        sh:message "Every SAP Note must have a title."@en ;
+    ] ;
+    sh:property [
+        sh:path sap:priority ;
+        sh:in ( "Very High"^^xsd:string "High"^^xsd:string "Medium"^^xsd:string "Low"^^xsd:string ) ;
+        sh:minCount 1 ;
+        sh:message "Priority must be Very High, High, Medium, or Low."@en ;
+    ] ;
+    sh:property [
+        sh:path sap:affectsComponent ;
+        sh:class sap:ApplicationComponent ;
+        sh:minCount 1 ;
+        sh:message "Every SAP Note must affect at least one ApplicationComponent."@en ;
+    ] ;
+    sh:property [
+        sh:path sap:validForComponentVersion ;
+        sh:class ppms:SoftwareComponentVersion ;
+        sh:minCount 1 ;
+        sh:message "Every SAP Note must specify valid software component versions."@en ;
+    ] .
+
+sap:SystemAlertShape a sh:NodeShape ;
+    sh:targetClass sap:SystemAlert ;
+    sh:property [
+        sh:path sap:alertCode ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Every System Alert must have an alert code (e.g. dump code)."@en ;
+    ] ;
+    sh:property [
+        sh:path sap:severity ;
+        sh:in ( "CRITICAL"^^xsd:string "ERROR"^^xsd:string "WARNING"^^xsd:string "INFO"^^xsd:string ) ;
+        sh:minCount 1 ;
+        sh:message "Alert severity must be CRITICAL, ERROR, WARNING, or INFO."@en ;
+    ] ;
+    sh:property [
+        sh:path sap:affectsComponent ;
+        sh:class sap:ApplicationComponent ;
+        sh:minCount 1 ;
+        sh:message "Every alert must be associated with an ApplicationComponent."@en ;
+    ] .
+
+sap:ApplicationComponentShape a sh:NodeShape ;
+    sh:targetClass sap:ApplicationComponent ;
+    sh:property [
+        sh:path sap:componentCode ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "ApplicationComponent must have a unique component code (e.g., BC-DB)."@en ;
+    ] .
+
+sap:ProductVersionShape a sh:NodeShape ;
+    sh:targetClass ppms:ProductVersion ;
+    sh:property [
+        sh:path ppms:versionCode ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "ProductVersion must have a versionCode."@en ;
+    ] ;
+    sh:property [
+        sh:path ppms:includesComponent ;
+        sh:class ppms:SoftwareComponentVersion ;
+        sh:minCount 1 ;
+        sh:message "ProductVersion must include at least one SoftwareComponentVersion."@en ;
+    ] .
