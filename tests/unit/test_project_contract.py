@@ -23,6 +23,9 @@ def test_baseline_inventory_names_current_evidence() -> None:
         "http://ontology.sap.com/",
         "http://data.sap.com/",
         "https://sap.example/erp/",
+        "https://help.sap.com/",
+        "100% GROUNDED RETRIEVAL (0% HALLUCINATION)",
+        "100.0% Execution Accuracy (40/40), 0.0% Hallucination",
     }
     required_strings.update(f"Q{index:02d}" for index in range(1, 41))
 

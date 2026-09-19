@@ -109,10 +109,19 @@ Observed in `semantic/ontology/sap_erp.ttl`,
 `semantic/ontology/sample-graph-valid.ttl`,
 `semantic/ontology/sample-graph-invalid.ttl`,
 `semantic/shapes/sap_erp_shapes.ttl`, `semantic/taxonomy/sap_products.ttl`,
-`tests/semantic/test_shacl.py`, and `tests/unit/test_project_contract.py`.
+`tests/semantic/test_shacl.py`.
 
-The approved specification and plan also quote all three families as control
-text. Those documents are evidence about the migration, not source assets;
+### `https://help.sap.com/`
+
+Observed strictly at branch-start in `semantic/data/sap_support_graph.ttl`
+and `src/semantic_layer/kg/sap_dataset_generator.py`. This is a separate
+official-looking documentation-host namespace and is not covered by any of the
+three namespace families above.
+
+The approved specification and plan also quote the three legacy families above
+as control text. This fourth family is present in branch-start source assets,
+not in the approved control documents. Those documents are evidence about the
+migration, not source assets;
 their quoted occurrences are intentionally allowlisted for later claim scans.
 
 ## Unsupported claim inventory for later tasks
@@ -164,6 +173,12 @@ not endorse any of them.
   one-shot, VSR, and zero-hallucination comparisons.
 - `docs/research/cifre_phd_proposal.md` describes LLM-powered AQR-Reflect,
   Vector RAG failures, and the same unsupported empirical superiority.
+- `src/semantic_layer/demo_sap.py:88` prints the explicit result claim
+  `100% GROUNDED RETRIEVAL (0% HALLUCINATION)` despite the deterministic,
+  synthetic demo path and no groundedness annotation protocol.
+- `docs/verification-report.md:17` reports the explicit benchmark claim
+  `100.0% Execution Accuracy (40/40), 0.0% Hallucination`; this is historical
+  documentation text, not an independently reproduced result artifact.
 - `src/semantic_layer/research/benchmark_runner.py` exposes the fake Vector
   RAG branch, `hallucinated_queries`, VSR, and comparative output fields.
 - `tests/research/benchmark_dataset.yaml` and its comments call the corpus
