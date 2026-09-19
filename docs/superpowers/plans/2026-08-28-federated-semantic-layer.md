@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Keep every runnable path local; do not require paid cloud accounts or an LLM key.
-- Use `GlobalSure Insurance Group`; never use AXA data or claim real cloud execution.
+- Use `GlobalSure Insurance Group`; never use proprietary enterprise data or claim real cloud execution.
 - Write production behavior test-first and verify its red/green cycle.
 - Use typed Pydantic v2 contracts; never accept arbitrary SQL from an agent.
 - Prefer certified data products and fail closed on authorization or unsafe quality state.

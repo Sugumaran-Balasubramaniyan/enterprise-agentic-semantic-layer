@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Build a locally runnable reference implementation for **GlobalSure Insurance Group**, a fictional federated insurer operating in France, the United Kingdom, and Germany. The repository demonstrates a central principle: the semantic layer is the governed, machine-readable contract between business concepts, certified data products, and AI agents. It does not use AXA data or require paid cloud accounts.
+Build a locally runnable reference implementation for **GlobalSure Insurance Group**, a fictional federated insurer operating in France, the United Kingdom, and Germany. The repository demonstrates a central principle: the semantic layer is the governed, machine-readable contract between business concepts, certified data products, and AI agents. It uses synthetic data and does not require paid cloud accounts.
 
 ## Scope and Success Definition
 
@@ -130,7 +130,7 @@ Semantic versioning is explicit. Patch changes correct metadata; minor changes a
 
 ## Non-Goals and Honesty Boundaries
 
-- No real Databricks, Snowflake, Fabric, or AXA connection is claimed or required.
+- No real Databricks, Snowflake, Fabric, or proprietary cloud connection is claimed or required.
 - No benchmark figures are fabricated; only locally measured evaluation output is reported.
 - No secrets, credentials, or production data are included.
 - A Streamlit UI is optional and only considered after the API, tests, and demo are verified.

@@ -17,7 +17,7 @@ The curated demo files in `data/curated/` implement these schemas locally.
 `data/raw/` also contains deliberately invalid records (blank IDs, negative
 amounts, future dates, and an unknown status) for later quality-check demos.
 The generated values are fictional and use EUR for a reproducible local run;
-they are not production or AXA data.
+they are synthetic demonstration data.
 
 ## Governed metrics
 
