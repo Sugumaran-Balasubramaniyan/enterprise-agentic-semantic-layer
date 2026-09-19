@@ -34,13 +34,13 @@ def test_query_planner_and_compiler() -> None:
     planner = QueryPlanner()
     compiler = TextToSPARQLEngine()
 
-    query = "Which note resolves DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB?"
+    query = "Which note resolves alert DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB?"
     entities = linker.ground_or_abstain(query)
     plan = planner.plan(entities)
     sparql = compiler.compile(plan)
 
-    assert "PREFIX sap: <http://ontology.sap.com/support#>" in sparql
-    assert "PREFIX ppms: <http://ontology.sap.com/ppms#>" in sparql
-    assert "SELECT DISTINCT ?note ?title ?noteNumber" in sparql
+    assert "PREFIX cifsup: <https://example.org/cifre-kg/support#>" in sparql
+    assert "PREFIX cifppms: <https://example.org/cifre-kg/ppms#>" in sparql
+    assert "SELECT DISTINCT ?note ?noteNumber ?title" in sparql
     assert "DBSQL_NO_MORE_CONNECTION" in sparql
     assert "BC-DB-HDB" in sparql

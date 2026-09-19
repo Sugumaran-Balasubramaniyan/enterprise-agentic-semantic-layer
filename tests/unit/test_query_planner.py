@@ -23,10 +23,10 @@ def test_primary_question_produces_typed_governed_plan() -> None:
 
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
 
-    assert plan.root_entity == "sap:BusinessPartner"
+    assert plan.root_entity == "ciferp:BusinessPartner"
     assert [predicate.metric_id for predicate in plan.metric_predicates] == [
-        "sap:PostingCount",
-        "sap:TotalDebitLossEur",
+        "ciferp:PostingCount",
+        "ciferp:TotalDebitLossEur",
     ]
     assert [predicate.operator for predicate in plan.metric_predicates] == [">=", ">"]
     assert [predicate.value for predicate in plan.metric_predicates] == [3, 20000]
@@ -34,9 +34,9 @@ def test_primary_question_produces_typed_governed_plan() -> None:
     assert plan.time_context.window == "last_12_months"
     assert plan.caller.role == "ClaimsAnalystFR"
     assert [(path.source, path.target) for path in plan.relationships] == [
-        ("sap:BusinessPartner", "sap:SalesOrder"),
-        ("sap:BusinessPartner", "sap:FinancialPosting"),
-        ("sap:FinancialPosting", "sap:SalesOrder"),
+        ("ciferp:BusinessPartner", "ciferp:SalesOrder"),
+        ("ciferp:BusinessPartner", "ciferp:FinancialPosting"),
+        ("ciferp:FinancialPosting", "ciferp:SalesOrder"),
     ]
 
 
@@ -51,23 +51,23 @@ def test_active_policy_question_uses_current_year_and_never_carries_raw_sql() ->
         registry=registry,
     )
 
-    assert plan.metric_predicates[0].metric_id == "sap:ActiveSalesOrderCount"
+    assert plan.metric_predicates[0].metric_id == "ciferp:ActiveSalesOrderCount"
     assert plan.selected_products == ["BusinessPartners", "SalesOrders"]
     assert plan.time_context.window == "current_year"
     with pytest.raises(ValidationError):
-        SemanticQueryPlan.model_validate({"root_entity": "sap:BusinessPartner", "sql": "SELECT 1"})
+        SemanticQueryPlan.model_validate({"root_entity": "ciferp:BusinessPartner", "sql": "SELECT 1"})
 
 
 @pytest.mark.parametrize(
     "field, value",
     [
-        ("root_entity", "sap:BusinessPartner; SELECT partner_id FROM business_partners"),
-        ("projected_dimensions", ["sap:BusinessPartner", "SELECT partner_id FROM business_partners"]),
+        ("root_entity", "ciferp:BusinessPartner; SELECT partner_id FROM business_partners"),
+        ("projected_dimensions", ["ciferp:BusinessPartner", "SELECT partner_id FROM business_partners"]),
         (
             "filters",
             [
                 {
-                    "concept_id": "sap:CompanyCode",
+                    "concept_id": "ciferp:CompanyCode",
                     "operator": "=",
                     "value": "FR' OR 1=1 --",
                 }
@@ -77,7 +77,7 @@ def test_active_policy_question_uses_current_year_and_never_carries_raw_sql() ->
             "metric_predicates",
             [
                 {
-                    "metric_id": "sap:PostingCount; DELETE FROM acdoca",
+                    "metric_id": "ciferp:PostingCount; DELETE FROM acdoca",
                     "operator": ">=",
                     "value": 3,
                 }
@@ -89,11 +89,11 @@ def test_semantic_query_plan_rejects_sql_shaped_values_everywhere(field: str, va
     """Removing recursive SQL validation must admit an executable payload."""
 
     plan = {
-        "root_entity": "sap:BusinessPartner",
-        "projected_dimensions": ["sap:BusinessPartner"],
-        "filters": [{"concept_id": "sap:CompanyCode", "operator": "=", "value": "FR"}],
+        "root_entity": "ciferp:BusinessPartner",
+        "projected_dimensions": ["ciferp:BusinessPartner"],
+        "filters": [{"concept_id": "ciferp:CompanyCode", "operator": "=", "value": "FR"}],
         "metric_predicates": [
-            {"metric_id": "sap:PostingCount", "operator": ">=", "value": 3}
+            {"metric_id": "ciferp:PostingCount", "operator": ">=", "value": 3}
         ],
         "caller": {"role": "ClaimsAnalystFR", "country": "FR"},
     }
@@ -117,7 +117,7 @@ def test_semantic_query_plan_rejects_executable_text_in_remaining_plan_channels(
     """Relaxing the plan enums must reopen an executable SQL text channel."""
 
     plan = {
-        "root_entity": "sap:BusinessPartner",
+        "root_entity": "ciferp:BusinessPartner",
         "caller": {"role": "ClaimsAnalystFR", "country": "FR"},
     }
     plan[field] = value
@@ -141,9 +141,9 @@ def test_planner_uses_mapping_normalization_instead_of_product_name_literals() -
     """Hard-coding MotorInsurance must hide a broken local mapping asset."""
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
-    registry.mappings["DatabricksFranceMapping"].normalization["products"]["MTR"] = "sap:FinancialPosting"
+    registry.mappings["DatabricksFranceMapping"].normalization["products"]["MTR"] = "ciferp:FinancialPosting"
 
-    with pytest.raises(ValueError, match="sap:ProductAutomotive"):
+    with pytest.raises(ValueError, match="ciferp:ProductAutomotive"):
         build_plan(PRIMARY_QUESTION.replace("motor-insurance", "MTR"), "ClaimsAnalystFR", registry)
 
 
@@ -151,7 +151,7 @@ def test_planner_rejects_an_asset_metric_with_an_uncertified_source_product() ->
     """Bypassing metric source-product validation must select a non-governed product."""
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
-    registry.metrics["sap:PostingCount"].source_products = ["UncertifiedClaims"]
+    registry.metrics["ciferp:PostingCount"].source_products = ["UncertifiedClaims"]
 
     with pytest.raises(ValueError, match="UncertifiedClaims"):
         build_plan(PRIMARY_QUESTION, "ClaimsAnalystFR", registry)
