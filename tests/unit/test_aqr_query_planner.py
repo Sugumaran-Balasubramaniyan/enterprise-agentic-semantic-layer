@@ -87,7 +87,7 @@ def test_prerequisite_traversal_evidence_detects_cycle() -> None:
     assert evidence.depth_limit == MAX_PREREQUISITE_DEPTH
     assert evidence.truncated is False
     assert evidence.status is Status.SUCCESS
-    assert evidence.reason is ReasonCode.NONE
+    assert evidence.reason is None
 
 
 def test_prerequisite_traversal_evidence_truncates_depth17_chain() -> None:

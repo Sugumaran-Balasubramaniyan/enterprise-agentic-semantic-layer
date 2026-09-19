@@ -176,7 +176,7 @@ def evaluate_prerequisite_traversal(
         reason=(
             ReasonCode.PREREQUISITE_DEPTH_EXCEEDED
             if truncated
-            else ReasonCode.NONE
+            else None
         ),
     )
 
