@@ -7,13 +7,20 @@ the neutral synthetic vocabulary and never invents a URI or predicate.
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field
 from typing import ClassVar
 
+from rdflib import Graph, URIRef
+
 from semantic_layer.reasoning.schema_linker import GroundedEntities
+from semantic_layer.research.contracts import ReasonCode, Status
 
 MAX_PREREQUISITE_DEPTH = 16
 _PREREQUISITE_PREDICATE = "cifsup:hasPrerequisiteNote"
+_PREREQUISITE_PREDICATE_IRI = URIRef(
+    "https://example.org/cifre-kg/support#hasPrerequisiteNote"
+)
 
 
 def _property_path(predicate: str, depth: int) -> str:
@@ -27,7 +34,151 @@ PREREQUISITE_CLOSURE = "(" + "|".join(
     for depth in range(1, MAX_PREREQUISITE_DEPTH + 1)
 ) + ")"
 PREREQUISITE_DEPTH_EXCEEDED = "PREREQUISITE_DEPTH_EXCEEDED"
-PREREQUISITE_DEPTH_MARKER = f"[{PREREQUISITE_DEPTH_EXCEEDED}]"
+
+
+@dataclass(frozen=True)
+class PrerequisiteTraversalEvidence:
+    """Deterministic evidence for a bounded prerequisite graph traversal."""
+
+    cycle_detected: bool
+    cycle_edges: list[tuple[str, str]]
+    reachable_unique: list[str]
+    target_excluded: bool
+    depth_limit: int
+    truncated: bool
+    status: Status
+    reason: ReasonCode | None
+
+
+def _node_sort_key(node: object) -> str:
+    """Return a stable ordering key for an RDF node."""
+
+    return str(node)
+
+
+def _evidence_identifier(node: object) -> str:
+    """Use the final URI component in compact, reproducible evidence rows."""
+
+    value = str(node)
+    separator = max(value.rfind("/"), value.rfind("#"))
+    return value[separator + 1 :] if separator >= 0 else value
+
+
+def _prerequisite_neighbors(graph: Graph, node: URIRef) -> list[object]:
+    """Return outgoing prerequisite nodes in deterministic order."""
+
+    return sorted(
+        graph.objects(node, _PREREQUISITE_PREDICATE_IRI),
+        key=_node_sort_key,
+    )
+
+
+def _detect_prerequisite_cycles(
+    graph: Graph,
+    target: URIRef,
+) -> list[tuple[object, object]]:
+    """Return each deterministic back-edge cycle path reachable from target."""
+
+    visited: set[object] = {target}
+    active_nodes: list[object] = [target]
+    active_positions: dict[object, int] = {target: 0}
+    edge_path: list[tuple[object, object]] = []
+    stack: list[tuple[object, list[object], int]] = [
+        (target, _prerequisite_neighbors(graph, target), 0)
+    ]
+    cycle_edges: list[tuple[object, object]] = []
+    cycle_edge_set: set[tuple[object, object]] = set()
+
+    while stack:
+        node, neighbors, index = stack[-1]
+        if index == len(neighbors):
+            stack.pop()
+            active_positions.pop(node)
+            active_nodes.pop()
+            if edge_path:
+                edge_path.pop()
+            continue
+
+        neighbor = neighbors[index]
+        stack[-1] = (node, neighbors, index + 1)
+        if neighbor in active_positions:
+            cycle = edge_path[active_positions[neighbor] :] + [(node, neighbor)]
+            for edge in cycle:
+                if edge not in cycle_edge_set:
+                    cycle_edge_set.add(edge)
+                    cycle_edges.append(edge)
+            continue
+        if neighbor in visited:
+            continue
+
+        visited.add(neighbor)
+        active_positions[neighbor] = len(active_nodes)
+        active_nodes.append(neighbor)
+        edge_path.append((node, neighbor))
+        stack.append((neighbor, _prerequisite_neighbors(graph, neighbor), 0))
+
+    return cycle_edges
+
+
+def evaluate_prerequisite_traversal(
+    graph: Graph,
+    target: str | URIRef,
+    *,
+    depth_limit: int = MAX_PREREQUISITE_DEPTH,
+) -> PrerequisiteTraversalEvidence:
+    """Evaluate prerequisite reachability and emit typed cycle/depth evidence.
+
+    Reachability is discovered with a visited-node breadth-first traversal
+    before applying the depth bound. This keeps cycles from consuming the
+    bounded depth budget while still making an acyclic hop beyond the limit
+    an explicit, fail-closed ``EMPTY_RESULT``.
+    """
+
+    if not isinstance(depth_limit, int) or isinstance(depth_limit, bool) or depth_limit < 0:
+        raise ValueError("depth_limit must be a non-negative integer")
+
+    target_node = target if isinstance(target, URIRef) else URIRef(target)
+    distances: dict[object, int] = {target_node: 0}
+    discovery_order: list[object] = []
+    frontier = deque([target_node])
+
+    while frontier:
+        node = frontier.popleft()
+        for neighbor in _prerequisite_neighbors(graph, node):
+            if neighbor in distances:
+                continue
+            distances[neighbor] = distances[node] + 1
+            discovery_order.append(neighbor)
+            frontier.append(neighbor)
+
+    truncated = any(
+        node != target_node and distance > depth_limit
+        for node, distance in distances.items()
+    )
+    reachable_unique = [
+        _evidence_identifier(node)
+        for node in discovery_order
+        if node != target_node and distances[node] <= depth_limit
+    ]
+    cycle_edges = [
+        (_evidence_identifier(subject), _evidence_identifier(object_))
+        for subject, object_ in _detect_prerequisite_cycles(graph, target_node)
+    ]
+
+    return PrerequisiteTraversalEvidence(
+        cycle_detected=bool(cycle_edges),
+        cycle_edges=cycle_edges,
+        reachable_unique=reachable_unique,
+        target_excluded=target_node not in discovery_order,
+        depth_limit=depth_limit,
+        truncated=truncated,
+        status=Status.EMPTY_RESULT if truncated else Status.SUCCESS,
+        reason=(
+            ReasonCode.PREREQUISITE_DEPTH_EXCEEDED
+            if truncated
+            else ReasonCode.NONE
+        ),
+    )
 
 
 def _unique_sorted(values: list[str]) -> list[str]:
@@ -114,6 +265,21 @@ class QueryPlanner:
     )
 
     @staticmethod
+    def evaluate_prerequisite_traversal(
+        graph: Graph,
+        target: str | URIRef,
+        *,
+        depth_limit: int = MAX_PREREQUISITE_DEPTH,
+    ) -> PrerequisiteTraversalEvidence:
+        """Expose traversal evidence through the planner's public surface."""
+
+        return evaluate_prerequisite_traversal(
+            graph,
+            target,
+            depth_limit=depth_limit,
+        )
+
+    @staticmethod
     def _literal(value: str) -> str:
         """Render a canonical xsd:string literal for a finite entity value."""
 
@@ -150,13 +316,11 @@ class QueryPlanner:
     def _prerequisite_plan(self, entities: GroundedEntities) -> LogicalQueryPlan:
         """Plan bounded transitive prerequisites for exactly one target note.
 
-        The finite union gives RDFLib a cycle-safe upper bound. A metadata
-        marker is carried in ``filters`` and rendered as a SPARQL comment by
-        the compiler; the graph-algorithm validation task turns a reachable
-        seventeenth edge into ``EMPTY_RESULT`` with the corresponding reason.
-        It is deliberately not a ``NOT EXISTS`` query predicate because a
-        cycle can revisit a node at hop 17 without exceeding the acyclic depth
-        contract.
+        The finite union gives RDFLib a cycle-safe upper bound. Runtime graph
+        evidence is produced by :func:`evaluate_prerequisite_traversal`; it
+        is deliberately not represented as a decorative SPARQL filter because
+        a cycle can revisit a node at hop 17 without exceeding the acyclic
+        depth contract.
         """
 
         patterns = [
@@ -166,7 +330,7 @@ class QueryPlanner:
             TraversalPattern("?note", "cifsup:noteNumber", "?noteNumber"),
             TraversalPattern("?note", "cifsup:title", "?title"),
         ]
-        filters = ["?note != ?targetNote", PREREQUISITE_DEPTH_MARKER]
+        filters = ["?note != ?targetNote"]
         if entities.note_numbers:
             patterns.append(self._note_number_pattern("?targetNote", entities.note_numbers[0]))
 

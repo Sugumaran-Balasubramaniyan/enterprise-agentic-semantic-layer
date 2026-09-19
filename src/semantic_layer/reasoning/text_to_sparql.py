@@ -110,12 +110,6 @@ class TextToSPARQLEngine:
 
         filter_lines: list[str] = []
         for expression in self._deduplicate(plan.filters):
-            # The planner carries the depth-17 evidence as a non-executable
-            # marker. It must be visible in the artifact but must not change
-            # cycle semantics by adding an unbounded/depth guard predicate.
-            if expression.startswith("[") and expression.endswith("]"):
-                filter_lines.append(f"    # {expression[1:-1]}")
-                continue
             filter_lines.append(f"    FILTER ({expression})")
 
         body_lines = pattern_lines + filter_lines

@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+from rdflib import Graph, Namespace
 
 from semantic_layer.reasoning.query_planner import (
     MAX_PREREQUISITE_DEPTH,
     LogicalQueryPlan,
     QueryPlanner,
     TraversalPattern,
+    evaluate_prerequisite_traversal,
 )
 from semantic_layer.reasoning.schema_linker import GroundedEntities, SchemaLinker
 from semantic_layer.reasoning.text_to_sparql import TextToSPARQLEngine
+from semantic_layer.research.contracts import ReasonCode, Status
+
+ROOT = Path(__file__).resolve().parents[2]
+CIFDATA = Namespace("https://example.org/cifre-kg/data/")
 
 
 def _ground(query: str) -> GroundedEntities:
@@ -56,10 +64,51 @@ def test_prerequisite_cycle_and_depth_contract() -> None:
     )
     assert all("+" not in path for path in paths)
     assert any("?note != ?targetNote" in item for item in plan.filters)
-    assert any("PREREQUISITE_DEPTH_EXCEEDED" in item for item in plan.filters)
-    assert "PREREQUISITE_DEPTH_EXCEEDED" in query
+    assert all("PREREQUISITE_DEPTH_EXCEEDED" not in item for item in plan.filters)
+    assert "PREREQUISITE_DEPTH_EXCEEDED" not in query
     assert "cifsup:hasPrerequisiteNote+" not in query
     assert "?prereqTitle" not in query
+
+
+def test_prerequisite_traversal_evidence_detects_cycle() -> None:
+    """A cycle is reported without repeating the target or consuming depth."""
+
+    graph = Graph().parse(
+        ROOT / "semantic/data/support-prerequisite-cycle.ttl", format="turtle"
+    )
+    evidence = evaluate_prerequisite_traversal(
+        graph, CIFDATA["support/note/A"]
+    )
+
+    assert evidence.cycle_detected is True
+    assert evidence.cycle_edges == [("A", "B"), ("B", "C"), ("C", "A")]
+    assert evidence.reachable_unique == ["B", "C"]
+    assert evidence.target_excluded is True
+    assert evidence.depth_limit == MAX_PREREQUISITE_DEPTH
+    assert evidence.truncated is False
+    assert evidence.status is Status.SUCCESS
+    assert evidence.reason is ReasonCode.NONE
+
+
+def test_prerequisite_traversal_evidence_truncates_depth17_chain() -> None:
+    """An acyclic seventeenth hop is excluded and fails closed."""
+
+    graph = Graph().parse(
+        ROOT / "semantic/data/support-prerequisite-depth17.ttl", format="turtle"
+    )
+    evidence = evaluate_prerequisite_traversal(
+        graph, CIFDATA["support/note/N0"]
+    )
+
+    assert evidence.cycle_detected is False
+    assert evidence.cycle_edges == []
+    assert evidence.reachable_unique == [f"N{i}" for i in range(1, 17)]
+    assert evidence.target_excluded is True
+    assert evidence.depth_limit == MAX_PREREQUISITE_DEPTH
+    assert evidence.truncated is True
+    assert evidence.status is Status.EMPTY_RESULT
+    assert evidence.reason is ReasonCode.PREREQUISITE_DEPTH_EXCEEDED
+    assert "N17" not in evidence.reachable_unique
 
 
 def test_all_projected_variables_have_patterns() -> None:
