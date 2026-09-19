@@ -194,6 +194,7 @@ planner, compiler, and test references must migrate to these exact IRIs:
 | `ciferp` | `https://example.org/cifre-kg/erp#` | Synthetic ERP OWL classes/properties currently represented by the `sap:` ERP namespace |
 | `cifskos` | `https://example.org/cifre-kg/vocabulary#` | Synthetic SKOS concept schemes and concepts |
 | `cifmeta` | `https://example.org/cifre-kg/meta#` | Synthetic-source, provenance, crosswalk, and result metadata predicates |
+| `cifmetaid` | `https://example.org/cifre-kg/id/meta/` | Synthetic metadata instance resources |
 
 `example.org` is used as a reserved documentation namespace. These IRIs are
 not SAP IRIs and must be labelled as synthetic in ontology metadata. The
@@ -254,9 +255,10 @@ Keep the federated semantic layer's ERP ontology under `ciferp:` and its
 product taxonomy under `cifskos:`. `cifskos:ProductAutomotive` is a
 `skos:Concept`; `ciferp:ProductAutomotive` is an OWL class only if the ERP
 ontology needs that class. They must not share an IRI merely because the
-labels match. Use the explicit reviewed mapping
-`ciferp:canonicalConcept` when a class is linked to a taxonomy concept. The
-mapping is not an implicit `rdf:type` assertion.
+labels match. When a class is linked to a taxonomy concept, use the explicit
+reviewed `cifmeta:CrosswalkEntry` mapping resource under the `cifmetaid:`
+instance namespace, as defined in Section 21. The mapping is not an implicit
+`rdf:type` assertion.
 
 Tests must assert both that SKOS scheme structure is valid and that a SKOS
 concept is not accidentally used as an OWL class/type. This preserves the
@@ -390,9 +392,9 @@ the first migration. Change metadata and labels as follows:
   the original 40-query controlled corpus.
 
 Do not delete the legacy expected answer. For every changed gold expectation,
-record `legacy_expected_notes`, `gold_note_numbers`, a `migration_reason`, the graph
-query/policy used to derive the new set, and reviewer sign-off in the dataset
-metadata or migration manifest. Gold sets are justified by the current graph
+record the before and after sets, a `migration_reason`, the graph query/policy
+used to derive the new set, and reviewer sign-off in the checked-in migration
+manifest defined in Section 27. Gold sets are justified by the current graph
 and declared semantics: exact note identity, direct versus transitive
 prerequisite scope, hierarchy policy, version policy, and strict versus
 relaxed constraints. A changed gold value is not a regression failure when
@@ -842,7 +844,7 @@ templates:
     sequence: [question_word, "filler*", component_code, "filler*", "product_version?", "support_package?", "priority?"]
   - id: version_filtered_search
     intent: VERSION_FILTERED_SEARCH
-    sequence: [question_word, "filler*", "alert_code|component_code", "filler*", "product_version|support_package", "filler*", "priority?"]
+    sequence: [question_word, "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "product_version|support_package", "filler*", "priority?"]
   - id: prerequisite_closure
     intent: PREREQUISITE_CLOSURE
     sequence: [question_word, "filler*", prerequisite_marker, "filler*", note_number]
@@ -859,7 +861,10 @@ unsupported_intent_marker: [explain, recommend, summarize]
 one slot; `|` consumes exactly one alternative. The sequence is token-based,
 not a permissive regular expression. The parser rejects a sequence that binds
 an optional slot before its required anchor or binds two alternatives from the
-same family.
+same family. In `VERSION_FILTERED_SEARCH`, an alert anchor may be followed by
+one component qualifier and one version/package qualifier; a component anchor
+does not consume a second component slot. Therefore alert+component+version
+is accepted with the alert as anchor and component as qualifier.
 
 The entity slots are exactly the linker vocabulary sets already declared in
 `schema_linker.py`: `alert_code`, `component_code`, `product_version`,
@@ -900,10 +905,11 @@ The grammar fixtures must include these exact cases:
 | --- | --- | --- |
 | `Retrieve the title and details for SAP Note 3012445.` | `NOTE_LOOKUP` / `SUCCESS` after execution | `note_number=[3012445]` |
 | `Which SAP note resolves alert TIME_OUT in component MM-PUR-PO?` | `ALERT_RESOLUTION` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]` |
+| `Find notes for TIME_OUT in component MM-PUR-PO on S/4HANA 2023.` | `VERSION_FILTERED_SEARCH` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]`, `product_version=[S4HANA_2023]` |
 | `What are the prerequisite notes required for SAP Note 3109922?` | `PREREQUISITE_CLOSURE` / `SUCCESS` after execution | `note_number=[3109922]` |
 | `Find notes valid for S/4HANA 2023.` | `UNSUPPORTED` / `UNSUPPORTED` | no anchored alert/component |
 | `Find notes for TIME_OUT and DBSQL_NO_MORE_CONNECTION.` | `UNSUPPORTED` / `UNSUPPORTED` | two distinct `alert_code` values |
-| `Find notes for UNKNOWN_ALERT.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_ENTITY` |
+| `Find notes for alert UNKNOWN_ALERT.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_ENTITY` |
 | `Find notes for TIME_OUT in component BC-DB-HDB for an Oracle system.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_TOKEN=oracle/system` |
 
 The fixture expected status is the status after execution for supported
@@ -1058,6 +1064,7 @@ tests/research/grounding_grammar.yaml
 tests/research/benchmark_dataset_legacy.yaml
 tests/research/benchmark_dataset_v1.yaml
 tests/research/benchmark_dataset_v2.yaml
+tests/research/benchmark_migration_manifest_v1.yaml
 tests/research/result_schema.json
 constraints/py312.txt
 Makefile
@@ -1218,7 +1225,10 @@ namespace_registry:
   cifsup: https://example.org/cifre-kg/support#
   cifppms: https://example.org/cifre-kg/ppms#
   cifdata: https://example.org/cifre-kg/data/
+  ciferp: https://example.org/cifre-kg/erp#
+  cifskos: https://example.org/cifre-kg/vocabulary#
   cifmeta: https://example.org/cifre-kg/meta#
+  cifmetaid: https://example.org/cifre-kg/id/meta/
 synthetic_label_policy:
   official_help_documentation: forbidden
   official_note: forbidden
@@ -1226,7 +1236,7 @@ synthetic_label_policy:
 ```
 
 The RDF graph contains a metadata resource under
-`https://example.org/cifre-kg/meta#dataset-cifre-synthetic-support-ppms-v1`
+`https://example.org/cifre-kg/id/meta/dataset-cifre-synthetic-support-ppms-v1`
 with `cifmeta:sourceKind "synthetic_fixture"`,
 `cifmeta:official false`, `cifmeta:datasetId`, `cifmeta:generatedBy`, and
 `cifmeta:graphPath`. Runtime result provenance must copy `dataset_id`,
@@ -1260,7 +1270,7 @@ PPMS instances use
 ERP instances use
 `https://example.org/cifre-kg/data/erp/{partner,order,doc,product,risk,coverage,status,loss}/`;
 and metadata resources use
-`https://example.org/cifre-kg/meta/`. The RDF namespace IRIs in Section 5.1
+`https://example.org/cifre-kg/id/meta/`. The RDF namespace IRIs in Section 5.1
 are the only class/property bases. No other HTTP(S) IRI is valid for a
 synthetic domain resource except W3C vocabulary IRIs (`rdf`, `rdfs`, `owl`,
 `xsd`, `sh`, and `skos`).
@@ -1268,16 +1278,16 @@ synthetic domain resource except W3C vocabulary IRIs (`rdf`, `rdfs`, `owl`,
 The explicit ERP-to-SKOS crosswalk is a separate resource with this schema:
 
 ```turtle
-cifmeta:crosswalk-v1 a cifmeta:SyntheticCrosswalk ;
-    cifmeta:crosswalkVersion "1.0"^^xsd:string ;
-    cifmeta:mapsToConcept cifskos:ProductAutomotive .
-
-ciferp:ProductAutomotive cifmeta:mapsToConcept cifskos:ProductAutomotive .
+cifmetaid:crosswalk-entry-product-automotive a cifmeta:CrosswalkEntry ;
+    cifmeta:sourceResource ciferp:ProductAutomotive ;
+    cifmeta:targetConcept cifskos:ProductAutomotive ;
+    cifmeta:crosswalkVersion "1.0"^^xsd:string .
 ```
 
-`cifmeta:mapsToConcept` has domain `ciferp:Product` and range
-`skos:Concept`; it never asserts that the SKOS concept is an OWL class and
-never replaces `rdf:type`.
+`cifmeta:sourceResource` and `cifmeta:targetConcept` have domain
+`cifmeta:CrosswalkEntry`; their ranges are `ciferp:Product` and
+`skos:Concept`, respectively. This metadata entry never asserts that the SKOS
+concept is an OWL class and never replaces `rdf:type`.
 
 The implementation and claim-contract tests scan all tracked runtime,
 semantic-asset, test, README, proposal, metadata, and result files and reject
@@ -1301,6 +1311,7 @@ are fixed. Each check runs RDFLib/pySHACL with `inference: "rdfs"`,
 | `ERP_VALID` | `semantic/ontology/sample-graph-valid.ttl` | `semantic/shapes/sap_erp_shapes.ttl` | `rdfs` | true | Valid synthetic ERP fixture |
 | `ERP_INVALID` | `semantic/ontology/sample-graph-invalid.ttl` | `semantic/shapes/sap_erp_shapes.ttl` | `rdfs` | false | Missing required fields and negative amount |
 | `COMBINED_VALID` | union of `semantic/data/sap_support_graph.ttl` and `semantic/ontology/sample-graph-valid.ttl` | union of both shape graphs | `rdfs` | true | Cross-domain load with separate namespaces |
+| `PREREQUISITE_CYCLE_DEPTH` | `semantic/data/support-prerequisite-cycle.ttl` and `semantic/data/support-prerequisite-depth17.ttl` | not applicable | algorithm | algorithm check | Cycle/depth traversal contract |
 
 `SUPPORT_INVALID` is a new committed fixture and must carry the same
 `cifmeta:sourceKind "synthetic_fixture"` metadata as the valid fixture.
@@ -1314,6 +1325,23 @@ inference string, `conforms`, violation count, and synthetic dataset ID. A
 valid graph with a missing provenance triple fails the provenance contract
 before SHACL; a deliberately invalid graph with the expected nonconformance
 passes the negative-control test.
+
+`COMBINED_VALID` is the canonical combined graph construction. The support,
+ERP, and combined rows are projections of that same ordered graph load; no
+second graph loader or alternate union is permitted.
+
+`PREREQUISITE_CYCLE_DEPTH` is a named graph-algorithm check in the same
+validation report, not an unrecorded benchmark side test. It first performs
+cycle detection with a visited-node set, then evaluates the depth bound. For
+the three-node cycle `A -> B -> C -> A`, the exact output is
+`cycle_detected=true`, `cycle_edges=[[A,B],[B,C],[C,A]]`,
+`reachable_unique=[B,C]`, `target_excluded=true`, and `status=SUCCESS`. For
+the acyclic depth-17 fixture `N0 -> N1 -> ... -> N17`, the exact output is
+`cycle_detected=false`, `reachable_unique=[N1,...,N16]`,
+`depth_limit=16`, `truncated=true`, and `status=EMPTY_RESULT` with reason
+`PREREQUISITE_DEPTH_EXCEEDED`; `N17` is not returned. Unique nodes are
+computed before depth evaluation, so cycles cannot consume depth indefinitely.
+These outputs are required in the validation report and reproducibility artifact.
 
 ## 23. Corpus versions and reflection metadata
 
@@ -1488,8 +1516,8 @@ in the historical input. `Q01` through `Q24` preserve their historical gold
 sets and expected status `SUCCESS`. For prerequisite closure, `Q25`, `Q28`,
 and `Q31` have gold `["3012445", "3098110"]`; `Q26` and `Q30` have
 `["3012445"]`; `Q27`, `Q29`, and `Q32` have `["3185002"]`. `Q33` through
-`Q40` have expected status `EMPTY_RESULT`, empty strict gold sets, and retain
-their historical answers in `legacy_expected_notes` only; their
+`Q40` have expected status `EMPTY_RESULT` and empty strict gold sets; their
+historical answers appear only in the migration manifest; their
 `reflection_reason` is `STRICT_EMPTY_SEMANTIC_RELAXATION`.
 
 V2 adds these exact records; it does not copy YAML bytes from v1 because the
@@ -1510,10 +1538,10 @@ normalized schema adds required fields:
 | Q51 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes resolving TIME_OUT on S/4HANA 2022 in component SD-SLS.` |
 | Q52 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for CALL_FUNCTION_NOT_FOUND in component SD-SLS.` |
 
-Q43 and Q44 are unknown entities, not unknown tokens, because `UNKNOWN_ALERT`
-matches the alert-code shape and `ZZ-UNKNOWN` matches the component-code
-shape. Q41 and Q42 are unknown tokens because their words are outside the
-grammar filler set and do not match an entity-slot shape. Q49-Q52 are valid
+Q43 and Q44 are unknown entities, not unknown tokens, because the explicit
+`alert` and `component` cues select their finite lexicons and the values are
+absent. Q41 and Q42 are unknown tokens because their words are outside the
+grammar filler set and are not preceded by an entity cue. Q49-Q52 are valid
 grammar requests whose strict graph constraints return no bindings. Syntax and
 execution failures are not corpus records: they are deterministic mocked
 executor tests at `tests/research/test_failure_state_machine.py`, which supply
@@ -1532,14 +1560,13 @@ category: single_hop_alert
 question: "..."
 expected_status: SUCCESS
 gold_note_numbers: ["3345100"]
-legacy_expected_notes: null
 reflection_reason: NONE
 strict_constraints: true
 gold_policy: exact_set
 ```
 
-`legacy_expected_notes` is a sorted string array for Q33-Q40 and `null` for
-all other records. `gold_note_numbers` is always a sorted unique string array;
+The legacy before-values live only in the migration manifest defined in
+Section 27. `gold_note_numbers` is always a sorted unique string array;
 unsupported and empty records use `[]`. `tier` is an integer 1-5 for Q01-Q40
 and `0` for Q41-Q52. `strict_constraints` is always true in v2. No normalized
 record has an omitted field or the legacy `expected_notes` field.
@@ -1565,12 +1592,12 @@ Intent precedence is exactly:
 
 Two distinct values in any entity family produce `AMBIGUOUS_INPUT`. An
 `unsupported_intent_marker` produces `UNSUPPORTED_INTENT` before token
-classification. A token outside `filler_tokens`, an entity-slot token, or
-punctuation rules is an `UNKNOWN_TOKEN` unless it matches one of these slot
-shapes, in which case it is an `UNKNOWN_ENTITY`: alert shape
-`[A-Z][A-Z0-9_]{2,}`, component shape
-`[A-Z]{2,}(?:-[A-Z0-9]+)+`, support-package shape `SP[0-9]{1,2}`, product
-version shape `S/4HANA [0-9]{4}`, or note-number shape `[0-9]{7}`. This
+classification. Classification is lexicon- and cue-based, never regex-based:
+after the explicit cue `alert`, `component`, `SP`, `S/4HANA`, or `note`, the
+next token is looked up in that exact finite lexicon; a missing lookup is
+`UNKNOWN_ENTITY`. A token outside `filler_tokens` and outside a cued entity
+slot is `UNKNOWN_TOKEN`. Thus `ORACLE` and `SYSTEM` are unknown tokens unless
+they are part of a complete known identifier in a lexicon. This
 classification happens before intent precedence and is recorded in
 `grounding.failure_class`.
 
@@ -1578,6 +1605,11 @@ The filler vocabulary includes `and` and `an`; the grammar therefore accepts
 the v2 wording `TIME_OUT and DBSQL_NO_MORE_CONNECTION` long enough to classify
 it as `AMBIGUOUS_INPUT`, while `an unlicensed Oracle system` is rejected as
 `UNKNOWN_TOKEN`.
+
+`FI` and `MM` are both entries in the committed component lexicon. Q46 is
+therefore an ambiguity between two known component values, not an unknown
+entity or token; the parser must preserve both values in its diagnostic before
+abstaining.
 
 ### 26.4 Complete result artifact schema
 
@@ -1592,20 +1624,29 @@ required fields:
   "canonicalization": {"encoding": "UTF-8", "key_order": "lexicographic", "metric_precision": 6},
   "hash_manifest": {"manifest_version": "1.0", "entries": [], "digest_sha256": "..."},
   "environment": {"python_version": "3.12.0", "platform_system": "Linux", "platform_machine": "x86_64", "pip_version": "25.2", "lock_sha256": "...", "packages": {}},
-  "namespace_registry": {},
-  "validation": {"checks": [], "combined_graph_sha256": "..."},
+  "namespace_registry": {
+    "cifsup": "https://example.org/cifre-kg/support#",
+    "cifppms": "https://example.org/cifre-kg/ppms#",
+    "cifdata": "https://example.org/cifre-kg/data/",
+    "ciferp": "https://example.org/cifre-kg/erp#",
+    "cifskos": "https://example.org/cifre-kg/vocabulary#",
+    "cifmeta": "https://example.org/cifre-kg/meta#",
+    "cifmetaid": "https://example.org/cifre-kg/id/meta/",
+    "legacy_uris_rejected": ["http://data.sap.com/", "http://ontology.sap.com/", "https://sap.example/erp/"]
+  },
+  "validation": {"checks": [], "combined_graph": {"data_paths": [], "shape_paths": [], "construction_order": [], "combined_graph_sha256": "...", "combined_shapes_sha256": "...", "inference": "rdfs", "conforms": true}},
   "corpus_runs": [],
   "per_query": []
 }
 ```
 
-`corpus_runs` is an array of objects with required fields
-`corpus_id`, `version`, `path`, `dataset_sha256`, `query_count`, `query_ids`,
-`conditions`, `aggregate`, and `result_ids`. `query_ids` and `result_ids` are
-sorted arrays. `conditions` is the fixed two-element array from Section 17.
-`aggregate` contains status counts, `applicable_count`,
-`not_applicable_count`, exact-set count, and six-decimal-string macro/micro
-metrics. `result_ids` references `per_query` objects by the exact string
+`corpus_runs` is an array of objects with exactly these required fields and
+types: `corpus_id`, `version`, `path`, and `dataset_sha256` are strings;
+`query_count` is a non-negative integer; `query_ids` and `result_ids` are
+sorted, unique string arrays; `conditions` is the fixed two-element string
+array `["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]`;
+and `aggregate` is the object specified below. `result_ids` references
+`per_query` objects by the exact string
 `<corpus_id>:<condition>:<query_id>`. `per_query` is the complete array of
 records, sorted by `(corpus_id, condition, query_id)`.
 
@@ -1627,6 +1668,76 @@ Ledger `attempt_index` is zero-based (`0` initial, `1..3` repairs), so
 `attempts = 0` or `1 + max(attempt_index)` for records with execution
 attempts. `bindings` includes the required `note` IRI, `noteNumber`, and
 `title` fields; optional fields are explicit JSON `null`.
+
+`namespace_registry` is required and has exactly these string-valued namespace
+keys:
+`cifsup`, `cifppms`, `cifdata`, `ciferp`, `cifskos`, `cifmeta`, and
+`cifmetaid`. Its values are the exact IRIs in Sections 5.1 and 20. The object
+also contains `legacy_uris_rejected`, a sorted array of the three forbidden
+URI families.
+
+`validation` is required with `checks` (an array of objects containing string
+`check_id`, ordered string-array `data_paths`, ordered string-array
+`shape_paths`, `inference`, `expected_conforms`, `observed_conforms`, aligned
+string-array `data_sha256`, aligned string-array `shape_sha256`, string
+`provenance_dataset_id`, and `result`). `inference` is `rdfs` for SHACL rows
+and `algorithm` for `PREREQUISITE_CYCLE_DEPTH`; that algorithm row has an empty
+`shape_paths` and `shape_sha256` array. `combined_graph` is an object containing ordered
+`data_paths`, ordered `shape_paths`, `construction_order`,
+`combined_graph_sha256`, `combined_shapes_sha256`, `inference`, and
+`conforms`). `result` is the enum `PASS`, `EXPECTED_NONCONFORMANT`, or
+`FAIL`; expected nonconformance is a passing negative control.
+
+`expected_conforms` and `observed_conforms` are booleans for SHACL rows and
+JSON `null` for `PREREQUISITE_CYCLE_DEPTH`. The algorithm row has an empty
+`shape_paths` array and additionally requires `algorithm_cases`, an array of
+exactly two objects with `fixture`, `cycle_detected`, `cycle_edges`,
+`reachable_unique`, `target_excluded`, `depth_limit`, `truncated`, `status`,
+and nullable `reason` fields. The cycle case has fixture
+`support-prerequisite-cycle.ttl`, `cycle_detected: true`, edges
+`[["A", "B"], ["B", "C"], ["C", "A"]]`, `reachable_unique: ["B", "C"]`,
+`target_excluded: true`, `depth_limit: 16`, `truncated: false`, `status:
+"SUCCESS"`, and `reason: null`. The depth case has fixture
+`support-prerequisite-depth17.ttl`, `cycle_detected: false`,
+`cycle_edges: []`, `reachable_unique: ["N1", "N2", "N3", "N4", "N5",
+"N6", "N7", "N8", "N9", "N10", "N11", "N12", "N13", "N14", "N15",
+"N16"]`, `target_excluded: true`, `depth_limit: 16`, `truncated: true`,
+`status: "EMPTY_RESULT"`, and
+`reason: "PREREQUISITE_DEPTH_EXCEEDED"`.
+
+Every `aggregate` has exactly these required keys and types:
+
+```json
+{
+  "query_count": 52,
+  "status_counts": {"SUCCESS": 32, "UNSUPPORTED": 8, "SYNTAX_ERROR": 0, "EXECUTION_ERROR": 0, "EMPTY_RESULT": 12},
+  "status_accuracy": {"value": "1.000000", "numerator": 52, "denominator": 52},
+  "answer_metrics": {
+    "applicable_count": 32,
+    "not_applicable_count": 20,
+    "exact_set": {"value": "0.937500", "numerator": 30, "denominator": 32},
+    "precision": {"value": "0.968750", "numerator": "31.000000", "denominator": "32.000000"},
+    "recall": {"value": "0.937500", "numerator": "30.000000", "denominator": "32.000000"},
+    "f1": {"value": "0.950000", "numerator": "30.400000", "denominator": "32.000000"}
+  },
+  "operational_metrics": {
+    "syntax_success_rate": {"value": "1.000000", "numerator": 52, "denominator": 52},
+    "execution_success_rate": {"value": "0.846154", "numerator": 44, "denominator": 52},
+    "recovery_attempt_rate": {"value": "0.153846", "numerator": 8, "denominator": 52},
+    "recovery_success_rate": {"value": "0.500000", "numerator": 4, "denominator": 8},
+    "strict_empty_rate": {"value": "0.230769", "numerator": 12, "denominator": 52},
+    "unsupported_rejection_rate": {"value": "1.000000", "numerator": 8, "denominator": 8}
+  }
+}
+```
+
+The numeric values above are schema examples, not claimed results; the runner
+must compute them. Every metric object has integer or six-decimal-string
+`numerator`, `denominator`, and nullable six-decimal-string `value`; `value`
+is JSON `null` exactly when its denominator is zero. `status_counts` has all
+five status enum keys, including zero values. The sole authoritative schema is
+`tests/research/result_schema.json`; all examples and implementations must
+validate against it.
 
 ### 26.5 Complete status/reason pairs and repair state machine
 
@@ -1688,13 +1799,24 @@ src/semantic_layer/**/*.py
 tests/**/*.py
 tests/**/*.yaml
 tests/**/*.json
+examples/**/*
+README.md
+docs/**/*.md
+docs/**/*.json
+docs/**/*.sql
+mappings/**/*.yaml
+data_products/**/*.yaml
+results/**/*.json
+results/**/*.sql
 ```
 
 This includes both valid/invalid graph fixtures, `src/semantic_layer/semantic_validation.py`,
 `src/semantic_layer/validation.py`, all current AQR consumers, generator and
 loader code, integration/unit/semantic/vocabulary/documentation tests, and
-the migration/failure scripts. Exclude `.git/`, `.venv/`, `results/`, and
-untracked files. The sorted manifest is the complete research-reproduce input;
+the migration/failure scripts. Exclude `.git/`, `.venv/`,
+`results/latest_benchmark.json`, and untracked files. Other tracked result
+JSON/SQL consumers are included. The sorted manifest is the complete
+research-reproduce input;
 each path has its byte SHA-256 and length, and the digest uses the
 `path\\0sha256\\0byte_length\\n` records specified in Section 17.1.
 
@@ -1748,12 +1870,18 @@ tests/semantic/**/*.py
 tests/research/**/*.py
 tests/research/**/*.yaml
 tests/research/**/*.json
+tests/research/benchmark_migration_manifest_v1.yaml
 tests/golden/**/*.py
 tests/golden/**/*.yaml
+examples/**/*
 mappings/**/*.yaml
 data_products/**/*.yaml
 README.md
 docs/**/*.md
+docs/**/*.json
+docs/**/*.sql
+results/**/*.json
+results/**/*.sql
 results/latest_benchmark.json
 ```
 
@@ -1764,13 +1892,22 @@ integration/unit/semantic/vocabulary/documentation tests, and every current
 consumer discovered by the repository globs. The implementation must update
 all references in this set or the namespace/claim contract fails.
 
+Claim scans also traverse every tracked `examples/**` file, `README.md`,
+`docs/**/*.md`, `docs/**/*.json`, `docs/**/*.sql`, `mappings/**/*.yaml`,
+`data_products/**/*.yaml`, `results/**/*.json`, and `results/**/*.sql`.
+Generated query-plan JSON and SQL documentation is therefore included whether
+it is stored under `docs/`, `examples/`, or a checked-in result directory; no
+generated semantic identifier consumer is outside the scan. The only excluded
+result path is the self-generated `results/latest_benchmark.json` artifact
+while its own hash manifest is being computed.
+
 ### 26.8 Crosswalk RDF correction
 
-The earlier direct `cifmeta:mapsToConcept` example is superseded by a
-mapping-entry model so the RDF domain is coherent. The only permitted form is:
+The only permitted crosswalk form is a mapping-entry model with a coherent RDF
+domain:
 
 ```turtle
-cifmeta:crosswalk-entry-product-automotive a cifmeta:CrosswalkEntry ;
+cifmetaid:crosswalk-entry-product-automotive a cifmeta:CrosswalkEntry ;
     cifmeta:sourceResource ciferp:ProductAutomotive ;
     cifmeta:targetConcept cifskos:ProductAutomotive ;
     cifmeta:crosswalkVersion "1.0"^^xsd:string .
@@ -1783,3 +1920,62 @@ cifmeta:crosswalk-entry-product-automotive a cifmeta:CrosswalkEntry ;
 the closed metadata vocabulary. No `ciferp` resource is used as the subject
 of a predicate whose declared domain is `cifmeta:CrosswalkEntry`, and no SKOS
 concept is assigned an OWL class type.
+
+## 27. Checked-in legacy-gold migration manifest
+
+The exact migration manifest is
+`tests/research/benchmark_migration_manifest_v1.yaml`. It is generated and
+validated by `scripts/migrate_benchmark_v1.py` and is an input to
+`results/latest_benchmark.json`. Its schema is:
+
+```yaml
+schema_version: "1.0"
+source_path: tests/research/benchmark_dataset.yaml
+archival_path: tests/research/benchmark_dataset_legacy.yaml
+normalized_path: tests/research/benchmark_dataset_v1.yaml
+record_ids: [Q01, Q02, Q03, Q04, Q05, Q06, Q07, Q08, Q09, Q10,
+  Q11, Q12, Q13, Q14, Q15, Q16, Q17, Q18, Q19, Q20,
+  Q21, Q22, Q23, Q24, Q25, Q26, Q27, Q28, Q29, Q30,
+  Q31, Q32, Q33, Q34, Q35, Q36, Q37, Q38, Q39, Q40]
+changes:
+  - change_id: normalized_schema_v1
+    record_ids: [Q01, Q02, Q03, Q04, Q05, Q06, Q07, Q08, Q09, Q10,
+      Q11, Q12, Q13, Q14, Q15, Q16, Q17, Q18, Q19, Q20,
+      Q21, Q22, Q23, Q24, Q25, Q26, Q27, Q28, Q29, Q30,
+      Q31, Q32, Q33, Q34, Q35, Q36, Q37, Q38, Q39, Q40]
+    before: {field: expected_notes, type: legacy_yaml}
+    after: {field: gold_note_numbers, type: sorted_unique_string_array}
+    reason: SCHEMA_NORMALIZATION
+    policy_citation: Section 26.2
+records: []
+review:
+  reviewer_id: repository-maintainer
+  signoff_required: true
+  signed_off: true
+```
+
+`records` is required to contain exactly 40 entries in Q01-Q40 order. Each
+entry has `id`, `category_before`, `category_after`, `gold_before`,
+`gold_after`, `status_before`, `status_after`, `schema_before`,
+`schema_after`, `reason`, `policy_citation`, `reviewer_id`, and `signed_off`.
+The script rejects a missing entry, duplicate ID, changed category without a
+reason, or any unsigned record. Every entry uses
+`reason: SCHEMA_NORMALIZATION` for the field rename and the following exact
+additional reasons where semantics change:
+
+| IDs | `gold_before` | `gold_after` | `status_before` | `status_after` | Reason | Policy citation |
+| --- | --- | --- | --- | --- | --- | --- |
+| Q01-Q24 | historical `expected_notes` converted to sorted strings | same note set | `SUCCESS` | `SUCCESS` | `SCHEMA_NORMALIZATION` | Sections 26.1-26.2 |
+| Q25, Q28, Q31 | `[3098110]` | `[3012445, 3098110]` | `SUCCESS` | `SUCCESS` | `PREREQUISITE_CLOSURE_EXPANSION` | Sections 6.3 and 26.1 |
+| Q26, Q30 | `[3012445]` | `[3012445]` | `SUCCESS` | `SUCCESS` | `PREREQUISITE_CLOSURE_NORMALIZATION` | Sections 6.3 and 26.1 |
+| Q27, Q29, Q32 | `[3185002]` | `[3185002]` | `SUCCESS` | `SUCCESS` | `PREREQUISITE_CLOSURE_NORMALIZATION` | Sections 6.3 and 26.1 |
+| Q33-Q40 | historical `expected_notes` | `[]` | `SUCCESS` | `EMPTY_RESULT` | `STRICT_CONSTRAINT_STATUS_CORRECTION` | Sections 7.1, 18.1, and 26.1 |
+
+For Q01-Q24, `gold_before` is the exact array read from the archived YAML;
+the table's “same note set” means only type/order normalization. For Q33-Q40
+the before array is preserved in the manifest, never copied into normalized
+records or strict result scoring. `schema_before` and `schema_after` are
+objects containing the complete field-name sets and their types, so the
+manifest explains the schema change on every record, including unchanged
+gold/status records. The `policy_citation` must name one of the exact section
+references above. The reviewer fields are required evidence, not prose.
