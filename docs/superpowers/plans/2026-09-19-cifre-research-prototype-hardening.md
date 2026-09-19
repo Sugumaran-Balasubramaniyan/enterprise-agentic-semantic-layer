@@ -22,7 +22,7 @@
 - Strict answer metrics use exact set equality only when expected and observed status are both `SUCCESS` and status-correct; relaxed candidates never contribute to strict predicted sets.
 - v1 is exactly Q01-Q40 in `cifre-synthetic-aqr-v1`; v2 is exactly Q01-Q52 in `cifre-synthetic-aqr-v2`; legacy `tests/research/benchmark_dataset.yaml` remains historical input and is never evaluated.
 - `results/latest_benchmark.json` is canonical UTF-8, lexicographically keyed, six-decimal `Decimal` metrics, no timestamp in hashed content, and contains exactly v1/v2 corpus runs and the two measured conditions.
-- `make PYTHON=.venv/bin/python research-verify` is the final post-publication gate: after all code, docs, claim, proposal, and report files are committed, it generates the canonical artifact, checks graph isomorphism, runs all five SHACL matrix rows plus the prerequisite algorithm row, runs both corpora/conditions, validates JSON/claims, runs pytest/Ruff, and fails non-zero on drift or stale hashes. Earlier tasks may run only focused asset checks or write temporary artifacts outside `results/`.
+- `make PYTHON=.venv/bin/python research-verify` is the final post-publication gate: after all code, docs, claim, proposal, and report files are final, it generates the canonical artifact, checks graph isomorphism, runs all five SHACL matrix rows plus the prerequisite algorithm row, runs both corpora/conditions, validates JSON/claims, runs pytest/Ruff, and fails non-zero on drift or stale hashes. Earlier tasks may run only focused asset checks or write temporary artifacts outside `results/`.
 - Implementers use `apply_patch`, preserve unrelated work, commit only their task files, and do not push or mutate GitHub metadata/remotes/releases/topics.
 
 ## Review Focus
@@ -44,7 +44,7 @@ T1 baseline
        -> T4 grammar/grounding ----------─┼-> T5 AQR planner/SPARQL contract
                                          └-> T6 repair/result consumers
 T5 + T6 -> T7 corpus/migration manifest -> T8 benchmark + temporary artifact
-T3 + T8 -> T9 asset validation/repro helper/CI wiring (no final gate)
+T3 + T8 -> T9 asset validation/repro helper (local only, no CI)
 T9 -> T10 code/examples/mappings/data-product claim pass
 T10 -> T11 README/public docs/package/secondary positioning
 T11 -> T12 proposal/interview brief/verification report
@@ -99,7 +99,7 @@ Safe waves are: Wave 0 `{T1}`; Wave 1 `{T2}`; Wave 2 `{T3, T4}`; Wave 3 `{T5}`; 
 - Consumes: `NAMESPACE_REGISTRY` from Task 2 and `SAPKnowledgeGraph`/`build_sap_support_graph` current APIs.
 - Produces: `NamespaceRegistry`-backed constants `CIFSUP`, `CIFPPMS`, `CIFDATA`, `CIFERP`, `CIFSKOS`, `CIFMETA`, `CIFMETAID`; `build_sap_support_graph(ontology_paths: list[str | Path] | None = None) -> Graph` emitting only neutral IRIs; `SAPKnowledgeGraph.validate_shacl(shapes_path: str | Path, *, scope: str = "support") -> ValidationReport`; and synthetic metadata/crosswalk triples with disjoint OWL/SKOS resources.
 
-- [ ] **Step 1: Add failing namespace/data tests.** Assert every tracked synthetic RDF/YAML resource IRI is under an approved base, no file except the design spec contains forbidden families, graph metadata has `cifmeta:sourceKind "synthetic_fixture"` and `cifmeta:official false`, human labels are English `rdf:langString`, and `cifskos:ProductAutomotive` is a `skos:Concept` but not an OWL class/type.
+- [ ] **Step 1: Add failing namespace/data tests.** Assert every tracked synthetic RDF/YAML resource IRI is under an approved base, and only these three control documents may contain forbidden legacy URI families: `docs/superpowers/specs/2026-09-19-cifre-research-prototype-hardening-design.md`, `docs/superpowers/plans/2026-09-19-cifre-research-prototype-hardening.md`, and `docs/research/cifre-hardening-baseline.md`; every other scanned file must be clean. Also assert graph metadata has `cifmeta:sourceKind "synthetic_fixture"` and `cifmeta:official false`, human labels are English `rdf:langString`, and `cifskos:ProductAutomotive` is a `skos:Concept` but not an OWL class/type.
 - [ ] **Step 2: Verify failure before migration.** Run `pytest tests/semantic/test_namespace_contract.py tests/semantic/test_asset_datatypes.py -q`; expected: failures for old namespace bindings/IRIs, absent provenance, old `sh:or` datatype workaround, and SKOS/OWL collisions.
 - [ ] **Step 3: Migrate constants and neutral identifiers.** Replace `PPMS`/`SAP` with the neutral registry; map instance bases exactly to `data/support`, `data/ppms`, `data/erp`; remove `help.sap.com`; split ERP OWL `ciferp:` from SKOS `cifskos:`; add `cifmetaid:crosswalk-entry-product-automotive` with the exact `CrosswalkEntry` shape; update direct generator/loader/SPARQL/test identifiers without aliases. Run `pytest tests/semantic/test_namespace_contract.py -q`; expected: PASS.
 - [ ] **Step 4: Correct semantic datatypes and fixtures.** Change human-readable ranges/shapes to `rdf:langString` with `sh:languageIn ("en")`, keep machine fields `xsd:string`/numeric, add the invalid support graph with provenance, and add exact A→B→C→A and N0→…→N17 fixtures. Run `pytest tests/semantic/test_asset_datatypes.py tests/semantic/test_shacl.py -q`; expected: PASS.
@@ -191,25 +191,38 @@ Safe waves are: Wave 0 `{T1}`; Wave 1 `{T2}`; Wave 2 `{T3, T4}`; Wave 3 `{T5}`; 
 - [ ] **Step 2: Verify failure and remove fake comparisons.** Run `pytest tests/research/test_benchmark_metrics.py -q`; expected: current `ParadigmMetrics` lacks status gating and still exposes Vector RAG/hallucination. The new test must also assert `vector_rag`, `hallucination`, `VSR`, and superiority fields are absent.
 - [ ] **Step 3: Implement and pass metric scoring.** Implement `score_query`, `aggregate_metrics`, `validate_result_id_references`, and `build_hash_manifest`; use `Decimal` half-even six-place strings, status gating, empty-set edge rules, exact composite IDs, and the exact Spec §26.6 path expansion. Run `pytest tests/research/test_benchmark_metrics.py -q`; expected: PASS.
 - [ ] **Step 4: Implement and pass the two-condition runner.** Evaluate every corpus record under `deterministic_no_reflection_ablation` and `deterministic_bounded_repair`, derive per-query records matching Spec §17, preserve strict-vs-relaxed fields, and place every aggregate under `corpus_run.aggregate.by_condition[condition_id]`; include environment/lock/namespace/validation metadata and forbid NaN/None/timestamps in hashed content. Run `pytest tests/research/test_result_artifact.py -q`; expected: PASS against an in-memory result.
-- [ ] **Step 5: Verify temporary artifact only.** Run `mkdir -p tmp && PYTHONPATH=src .venv/bin/python -m semantic_layer.research --output tmp/cifre-benchmark-result.json`, then `pytest tests/research/test_benchmark_metrics.py tests/research/test_result_artifact.py -q`; expected PASS with a schema-valid temporary object containing exactly two corpus runs and 52 v2 records per condition. Do not create or stage `results/latest_benchmark.json` in this task.
+- [ ] **Step 5: Verify temporary artifact only.** Run this self-cleaning block, then confirm the temporary path is gone before reporting the focused result:
+
+  ```bash
+  cifre_tmp_dir="$(mktemp -d)"
+  trap 'rm -rf -- "$cifre_tmp_dir"' EXIT
+  PYTHONPATH=src .venv/bin/python -m semantic_layer.research \
+    --output "$cifre_tmp_dir/cifre-benchmark-result.json"
+  pytest tests/research/test_benchmark_metrics.py \
+    tests/research/test_result_artifact.py -q
+  rm -rf -- "$cifre_tmp_dir"
+  trap - EXIT
+  ```
+
+  Expect PASS with a schema-valid temporary object containing exactly two corpus runs and 52 v2 records per condition. Do not create or stage `results/latest_benchmark.json` in this task.
 - [ ] **Step 6: Commit and review.** `git add src/semantic_layer/research/benchmark_runner.py src/semantic_layer/research/__main__.py tests/research/test_benchmark_metrics.py tests/research/test_result_artifact.py && git commit -m "feat: add deterministic CIFRE benchmark metrics"`. Review checks no fake paradigm, no pooled conditions, exact composite result-ID validation, and no checked-in canonical result before publication is final.
 
-### Task 9: Add canonical validation/reproducibility target, parity, and CI
+### Task 9: Add asset validation and reproducibility helpers
 
 **Files:**
-- Modify: `Makefile:7-38`, `.github/workflows/ci.yml:5-20`, `src/semantic_layer/validation.py`, `src/semantic_layer/semantic_validation.py`
+- Modify: `src/semantic_layer/validation.py`, `src/semantic_layer/semantic_validation.py`
 - Create: `scripts/research_verify.py`, `tests/research/test_reproducibility.py`
 
 **Interfaces:**
 - Consumes: Tasks 2–8 registry, validation report, runner, corpora, graph fixtures, and lock.
-- Produces: `run_research_verify(root: Path, python: str, *, mode: Literal["assets", "final"]) -> VerificationReport` with `run_asset_verification(root: Path, python: str) -> VerificationReport` as the focused wrapper; graph parity function `assert_graph_isomorphic(generated: Graph, checked_in: Graph) -> None`; five SHACL matrix checks `SUPPORT_VALID`, `SUPPORT_INVALID`, `ERP_VALID`, `ERP_INVALID`, `COMBINED_VALID`; `PREREQUISITE_CYCLE_DEPTH` algorithm evidence; and the final-mode Make target `research-verify` wired for T13. T9 does not claim full research verification, full claim success, or a committed result artifact.
+- Produces: `run_research_verify(root: Path, python: str, *, mode: Literal["assets", "final"]) -> VerificationReport` with `run_asset_verification(root: Path, python: str) -> VerificationReport` as the focused wrapper; graph parity function `assert_graph_isomorphic(generated: Graph, checked_in: Graph) -> None`; five SHACL matrix checks `SUPPORT_VALID`, `SUPPORT_INVALID`, `ERP_VALID`, `ERP_INVALID`, `COMBINED_VALID`; and `PREREQUISITE_CYCLE_DEPTH` algorithm evidence. T9 supplies the reusable final-mode function but does not modify `Makefile`, `.github/workflows/ci.yml`, claim gates, or the canonical artifact; T13 owns that wiring and gate.
 
 - [ ] **Step 1: Write failing reproducibility tests.** Monkeypatch a generated graph with one triple changed and assert `assert_graph_isomorphic` fails; mutate a namespaced fixture/hash and assert `run_research_verify` returns non-zero; assert the validation report contains exact paths/hashes/inference/results and cycle/depth outputs from Spec §22.
 - [ ] **Step 2: Verify failures.** Run `pytest tests/research/test_reproducibility.py -q`; expected: missing helper/target and current validation API lacks scope, hash, parity, and algorithm evidence.
 - [ ] **Step 3: Implement temporary generation and validation.** Generate into `TemporaryDirectory`, load generated/checked-in graphs, compare RDFLib graph isomorphism (not Turtle bytes), construct combined graph in the exact five-path order and shapes order, run pySHACL with `inference="rdfs", abort_on_first=False, advanced=False, js=False, meta_shacl=False`, and record expected nonconformance as passing negative control.
-- [ ] **Step 4: Implement asset-only mode and final-mode wiring.** Add `--assets-only` to `scripts/research_verify.py`; make asset mode run generation/parity, all matrix checks, and validation reports without benchmark output, claim tests, full pytest, or Ruff. Wire `research-verify` to the final sequence that T13 will invoke, and add CI job `research-verify`; if post-install execution exceeds 120 seconds, split into `research-verify-assets` and `research-verify-benchmark` without removing checks.
-- [ ] **Step 5: Verify only asset success and deliberate failure.** Run `PYTHONPATH=src .venv/bin/python scripts/research_verify.py --assets-only`; expected: zero exit and validation evidence, with no `results/latest_benchmark.json`. In a temporary copy mutate one fixture byte and rerun; expected: non-zero parity/hash failure without source replacement. Do not run the full Make target yet.
-- [ ] **Step 6: Commit and review.** `git add Makefile .github/workflows/ci.yml src/semantic_layer/validation.py src/semantic_layer/semantic_validation.py scripts/research_verify.py tests/research/test_reproducibility.py && git commit -m "ci: add CIFRE asset verification boundary"`. Review confirms lock installation, no silent fixture mutation, all asset checks, and that the final gate remains deferred to T13.
+- [ ] **Step 4: Implement asset-only mode.** Add `--assets-only` to `scripts/research_verify.py`; make asset mode run generation/parity, all matrix checks, and validation reports without benchmark output, claim tests, full pytest, Ruff, Makefile changes, or CI changes. Leave final target/CI ownership entirely to T13.
+- [ ] **Step 5: Verify only asset success and deliberate failure.** Run `PYTHONPATH=src .venv/bin/python scripts/research_verify.py --assets-only`; expected: zero exit and validation evidence, with no `results/latest_benchmark.json`. In a temporary copy mutate one fixture byte and rerun; expected: non-zero parity/hash failure without source replacement. Do not run the final Make target or CI wiring yet.
+- [ ] **Step 6: Commit and review.** `git add src/semantic_layer/validation.py src/semantic_layer/semantic_validation.py scripts/research_verify.py tests/research/test_reproducibility.py && git commit -m "feat: add CIFRE asset verification boundary"`. Review confirms no Makefile/CI mutation, no silent fixture mutation, all asset checks, and that the final gate remains deferred to T13.
 
 ### Task 10: Sanitize non-publication code, examples, mappings, and data-product claims
 
@@ -220,9 +233,9 @@ Safe waves are: Wave 0 `{T1}`; Wave 1 `{T2}`; Wave 2 `{T3, T4}`; Wave 3 `{T5}`; 
 
 **Interfaces:**
 - Consumes: Task 3 neutral identifiers, Task 8 condition names, and Task 9 asset-validation output.
-- Produces: `scan_claim_surfaces(paths: Sequence[Path]) -> list[str]` that rejects SAP ownership/publication/certification, production/cloud/partnership, fake Vector RAG, hallucination guarantee, and solved-PhD language; all adapters/examples/mappings/data products explicitly say `repository-maintained synthetic contract`, `illustrative mapping`, or `unexecuted simulation` where applicable. This task does not edit README or Markdown docs; T11 owns those exact files.
+- Produces: `scan_claim_surfaces(paths: Sequence[Path]) -> list[str]` that rejects SAP ownership/publication/certification, production/cloud/partnership, fake Vector RAG, hallucination guarantee, and solved-PhD language; all adapters/examples/mappings/data products explicitly say `repository-maintained synthetic contract`, `illustrative mapping`, or `unexecuted simulation` where applicable. The legacy-URI control allowlist is exactly `docs/superpowers/specs/2026-09-19-cifre-research-prototype-hardening-design.md`, `docs/superpowers/plans/2026-09-19-cifre-research-prototype-hardening.md`, and `docs/research/cifre-hardening-baseline.md`; every other scanned file must be clean. This task does not edit README or Markdown docs; T11 owns those exact files.
 
-- [ ] **Step 1: Write the failing scan test.** Add `test_code_examples_mappings_and_data_products_have_supported_claims`; pass the exact file list above to `scan_claim_surfaces` and assert it reports current ownership/platform/certification claims while excluding only the design spec and preserving neutral namespace identifiers.
+- [ ] **Step 1: Write the failing scan test.** Add `test_code_examples_mappings_and_data_products_have_supported_claims`; pass the exact file list above to `scan_claim_surfaces` and assert it reports current ownership/platform/certification claims while excluding only the three named control documents and preserving neutral namespace identifiers. Add a fixture assertion that any forbidden legacy URI in a non-control file is reported.
 - [ ] **Step 2: Verify failure.** Run `pytest tests/unit/test_claim_scan.py -q`; expected: failures identify unsupported text in adapters, demos, generated SQL/plan examples, mappings, and data-product YAML.
 - [ ] **Step 3: Correct Python docstrings and demos.** Reword the listed source files so local DuckDB/FastAPI/adapter behavior is described as local or simulated; update `src/semantic_layer/demo_sap.py` claim wording after T6’s API change while preserving its typed consumer edits.
 - [ ] **Step 4: Correct examples, mappings, and data products.** Update any remaining namespace literals in the exact listed consumers, then label Databricks/Snowflake/Fabric outputs as unexecuted simulations, replace ownership/certification language with the exact supported phrases, and preserve the namespace changes already committed by T3.
@@ -265,26 +278,79 @@ Safe waves are: Wave 0 `{T1}`; Wave 1 `{T2}`; Wave 2 `{T3, T4}`; Wave 3 `{T5}`; 
 
 **Files:**
 - Create/replace only: `results/latest_benchmark.json`
-- Modify after T12: `docs/research/cifre-interview-brief.md`, `docs/verification-report.md`, `tests/unit/test_final_readiness.py`
+- Modify after T12: `docs/research/cifre-interview-brief.md`, `docs/verification-report.md`, `Makefile:7-38`, `.github/workflows/ci.yml:5-20`, `tests/unit/test_final_readiness.py`
 - Test: `tests/unit/test_final_readiness.py`
 
 **Interfaces:**
-- Consumes: all prior task commits, the complete Spec §26.6 manifest, final public docs, proposal, interview brief, verification report, lock, migration manifest, and Task 9 final-mode `research-verify` wiring. The claim scan is the union of the exact T3, T10, T11, and T12 file lists plus `README.md`, and excludes only the design spec and this internal plan as control documents that quote forbidden strings normatively.
+- Consumes: all prior task commits, the complete Spec §26.6 manifest, final public docs, proposal, interview brief, verification report, lock, migration manifest, and Task 9’s reusable final-mode verifier. The claim scan is the union of the exact T3, T10, T11, and T12 file lists plus `README.md`, and excludes only these three control documents that quote forbidden strings normatively: `docs/superpowers/specs/2026-09-19-cifre-research-prototype-hardening-design.md`, `docs/superpowers/plans/2026-09-19-cifre-research-prototype-hardening.md`, and `docs/research/cifre-hardening-baseline.md`.
 - Produces: `finalize_research_artifact(root: Path) -> Path`, which calls `write_result_artifact` only after the final manifest is built; final exact metrics/hashes in the interview brief and verification report sourced from a temporary run; a clean branch with no forbidden claims/secrets/legacy IRIs/placeholder markers, valid Markdown/Mermaid/links/YAML/JSON/Turtle, and a result artifact whose `hash_manifest` matches every final input byte.
 
-- [ ] **Step 1: Write failing final-gate tests.** Add `test_final_artifact_hash_covers_final_publication_files` and `test_final_claim_and_secret_scan_is_clean`; assert the manifest includes every final README/docs/research/examples/source/semantic/data-product/mapping file, excludes only the design spec, `.git`, `.venv`, untracked files, and the artifact itself, and rejects a changed publication byte, forbidden legacy URI, unsupported claim, credential pattern, or placeholder marker.
-- [ ] **Step 2: Run the final tests before artifact generation.** Run `pytest tests/unit/test_final_readiness.py -q`; expected: missing canonical result and failures for stale/missing manifest references. Do not create the canonical artifact during this failing run.
-- [ ] **Step 3: Run final scans and format checks.** Run `rg -n -i 'help\.sap\.com|http://ontology\.sap\.com|http://data\.sap\.com|https://sap\.example/erp/' --glob '!docs/superpowers/specs/2026-09-19-cifre-research-prototype-hardening-design.md' .`, `gitleaks detect --source . --no-banner --redact`, the repository placeholder-marker scan, JSON/YAML/Turtle parsers, and Markdown/Mermaid/link tests; expected: zero matches/errors outside the documented spec exception.
-- [ ] **Step 4: Generate a temporary final metrics run.** Run `mkdir -p tmp && PYTHONPATH=src .venv/bin/python -m semantic_layer.research --output tmp/final-cifre-metrics.json`; expected: schema-valid v1/v2/two-condition data used only as evidence for documentation. Do not write `results/latest_benchmark.json` yet.
-- [ ] **Step 5: Fill final documentation from the temporary evidence.** Copy exact aggregate metrics, corpus/graph/lock hashes, command, and known limitations from `tmp/final-cifre-metrics.json` into `docs/research/cifre-interview-brief.md` and `docs/verification-report.md`; record the pre-commit source revision used for the run, not a guessed future commit. Run `pytest tests/unit/test_final_readiness.py -q`; expected: docs contain no invented values and claim/secret/format checks pass.
-- [ ] **Step 6: Generate and verify the canonical result after every publication file is final.** Run `PYTHONPATH=src .venv/bin/python -m semantic_layer.research --output results/latest_benchmark.json`, then `make PYTHON=.venv/bin/python research-verify`, `pytest -q`, and `.venv/bin/python -m ruff check .`; expected: all exit 0, exactly two corpus runs/two conditions, complete per-query records, final code/docs hashes, expected negative controls, full claim scan, and report/artifact agreement. This is the first successful full post-publication gate and full research-verify/claim/pytest gate.
-- [ ] **Step 7: Commit canonical artifact and final docs, then audit.** `git add results/latest_benchmark.json docs/research/cifre-interview-brief.md docs/verification-report.md tests/unit/test_final_readiness.py && git commit -m "chore: record final CIFRE benchmark artifact"`; rerun the read-only `make PYTHON=.venv/bin/python research-verify`, `git status --short`, `git diff --check`, and `git log --oneline --decorate -20`. A fresh reviewer verifies no external GitHub state changed and signs the branch; do not push.
+- [ ] **Step 1: Write failing final-gate tests.** Add `test_final_hash_manifest_covers_complete_spec_26_6_scope` and `test_final_claim_and_secret_scan_is_clean`. The manifest test must expand exactly this ordered Spec §26.6 list, sort the complete paths bytewise, remove duplicates, keep only tracked files, and exclude `.git/`, `.venv/`, `results/latest_benchmark.json`, and the artifact itself:
+
+  ```python
+  spec_26_6_globs = [
+      ".github/workflows/ci.yml", "Makefile", "pyproject.toml", "constraints/py312.txt",
+      "scripts/**/*.py", "semantic/**/*.ttl", "semantic/**/*.yaml", "semantic/**/*.json",
+      "src/semantic_layer/**/*.py", "data/**/*.py", "tests/**/*.py", "tests/**/*.yaml",
+      "tests/**/*.json", "examples/**/*", "README.md", "docs/**/*.md", "docs/**/*.json",
+      "docs/**/*.sql", "mappings/**/*.yaml", "data_products/**/*.yaml", "results/**/*.json",
+      "results/**/*.sql",
+  ]
+  tracked_paths = set(subprocess.check_output(
+      ["git", "ls-files", "-z"], cwd=root
+  ).decode().split("\0"))
+  expected_paths = sorted({
+      path.as_posix()
+      for pattern in spec_26_6_globs
+      for path in root.glob(pattern)
+      if path.is_file() and path.as_posix() in tracked_paths
+      and path.as_posix() != "results/latest_benchmark.json"
+      and ".git/" not in f"{path.as_posix()}/" and ".venv/" not in f"{path.as_posix()}/"
+  })
+  assert artifact["hash_manifest"]["paths"] == expected_paths
+  for relative in (".github/workflows/ci.yml", "constraints/py312.txt",
+                   "scripts/research_verify.py", "tests/unit/test_final_readiness.py",
+                   "src/semantic_layer/research/benchmark_runner.py",
+                   "docs/verification-report.md",
+                   "mappings/databricks/france.yaml"):
+      mutated = copy_repo_and_change_one_byte(root, relative)
+      assert build_hash_manifest(mutated) != artifact["hash_manifest"]
+  ```
+
+  The claim/secret test must assert that the three control documents are the only legacy-URI exceptions and that unsupported claims, credential patterns, and placeholder markers fail closed.
+- [ ] **Step 2: Run only pre-artifact documentation, claim, secret, and format checks.** Run the focused publication/handoff tests, then run this legacy-URI scan with exactly the three control exclusions:
+
+  ```bash
+  rg -n -i 'help\.sap\.com|http://ontology\.sap\.com|http://data\.sap\.com|https://sap\.example/erp/' . \
+    --glob '!docs/superpowers/specs/2026-09-19-cifre-research-prototype-hardening-design.md' \
+    --glob '!docs/superpowers/plans/2026-09-19-cifre-research-prototype-hardening.md' \
+    --glob '!docs/research/cifre-hardening-baseline.md'
+  ```
+
+  Also run `gitleaks detect --source . --no-banner --redact`, the repository placeholder-marker scan, JSON/YAML/Turtle parsers, and Markdown/Mermaid/link tests; expected: zero matches/errors elsewhere. Do not run final readiness or result-artifact tests, and do not create `results/latest_benchmark.json`.
+- [ ] **Step 3: Add final Makefile/CI wiring and verify only static target configuration.** Add the `research-verify` target and CI invocation, then run only the static Makefile/YAML assertions from `tests/unit/test_final_readiness.py` (for example, `pytest tests/unit/test_final_readiness.py -q -k 'make_target or ci_workflow'`). Do not run the final readiness or artifact tests before the canonical artifact exists.
+- [ ] **Step 4: Generate temporary final metrics with automatic cleanup.** Run:
+
+  ```bash
+  cifre_tmp_dir="$(mktemp -d)"
+  trap 'rm -rf -- "$cifre_tmp_dir"' EXIT
+  PYTHONPATH=src .venv/bin/python -m semantic_layer.research \
+    --output "$cifre_tmp_dir/final-cifre-metrics.json"
+  ```
+
+  Expect schema-valid v1/v2/two-condition data used only as documentation evidence; do not write `results/latest_benchmark.json`.
+- [ ] **Step 5: Fill final documentation from temporary evidence.** Copy exact aggregate metrics, corpus/graph/lock hashes, command, and known limitations from `"$cifre_tmp_dir/final-cifre-metrics.json"` into `docs/research/cifre-interview-brief.md` and `docs/verification-report.md`; record the pre-commit source revision used for the run, not a guessed future commit. Use the focused documentation test only, with no final artifact assertion yet.
+- [ ] **Step 6: Remove temporary evidence before canonical generation.** Run `rm -rf -- "$cifre_tmp_dir"` followed by `trap - EXIT`; verify `test ! -e "$cifre_tmp_dir"` and `git status --short` show no temporary output. This cleanup is required before status/diff audit and canonical generation.
+- [ ] **Step 7: Generate the canonical artifact only after every publication file is final.** Run `PYTHONPATH=src .venv/bin/python -m semantic_layer.research --output results/latest_benchmark.json`; then run `pytest tests/unit/test_final_readiness.py tests/research/test_result_artifact.py -q`. Expected: canonical UTF-8 result, exact two corpus runs/two conditions, complete per-query records, and a complete Spec §26.6 hash manifest.
+- [ ] **Step 8: Run the final readiness and full verification gate.** Run `make PYTHON=.venv/bin/python research-verify`, `pytest -q`, and `.venv/bin/python -m ruff check .`; expected: all exit 0, final code/docs hashes, expected negative controls, full claim scan, and report/artifact agreement. This is the first successful post-publication gate.
+- [ ] **Step 9: Commit the canonical artifact and final docs, then audit.** `git add results/latest_benchmark.json docs/research/cifre-interview-brief.md docs/verification-report.md Makefile .github/workflows/ci.yml tests/unit/test_final_readiness.py && git commit -m "chore: record final CIFRE benchmark artifact"`.
+- [ ] **Step 10: Run the final read-only audit.** Rerun `make PYTHON=.venv/bin/python research-verify`, `git status --short`, `git diff --check`, and `git log --oneline --decorate -20`; confirm no temporary directory remains, no untracked artifact is omitted, and no external GitHub state changed. A fresh reviewer signs the branch; do not push.
 
 ## Plan Self-Review
 
-- **Spec coverage:** T1 baseline inventory; T2 lock/provenance/root schema; T3 namespace migration, SKOS/OWL split, datatypes, fixtures; T4 exact grammar/abstention; T5 dedicated AQR planner/closure/projection contract; T6 statuses/repair/relaxation/provenance plus `demo_sap.py` and integration consumer; T7 historical/v1/v2 migration manifest and exact fields/enums; T8 exact/status-gated metrics, composite result-ID validator, and temporary artifact only; T9 parity/SHACL/asset checks/CI wiring; T10 complete non-publication code/examples/mappings/data-product claim surface; T11 exact README/docs/ADR/package and federated-secondary positioning; T12 proposal/interview/report; T13 final scans, canonical result generation, full research-verify/claim/pytest/lint gate.
+- **Spec coverage:** T1 baseline inventory; T2 lock/provenance/root schema; T3 namespace migration, SKOS/OWL split, datatypes, fixtures; T4 exact grammar/abstention; T5 dedicated AQR planner/closure/projection contract; T6 statuses/repair/relaxation/provenance plus `demo_sap.py` and integration consumer; T7 historical/v1/v2 migration manifest and exact fields/enums; T8 exact/status-gated metrics, composite result-ID validator, and temporary artifact only; T9 parity/SHACL/asset helpers; T10 complete non-publication code/examples/mappings/data-product claim surface; T11 exact README/docs/ADR/package and federated-secondary positioning; T12 proposal/interview/report; T13 final CI wiring, scans, canonical result generation, full research-verify/claim/pytest/lint gate.
 - **Placeholder scan:** Every implementation behavior in this plan names a path, interface, focused test, command, and expected outcome; the final audit explicitly scans placeholder markers and secrets.
 - **Type consistency:** `NAMESPACE_REGISTRY`, `Status`, `ReasonCode`, `GroundedEntities`, `LogicalQueryPlan`, `ReasoningResult`, `BenchmarkRunner`, and `VerificationReport` are introduced before consumers; condition/status/reason names match the spec tables and result schema.
-- **Shared-file sequencing:** `tests/unit/test_documentation_contract.py` is split between T11 publication tests and T12 handoff tests; `tests/unit/test_claim_scan.py` is T10; `tests/unit/test_aqr_query_planner.py` is T5; `Makefile`/CI/validation helpers are T9; `pyproject.toml` dependency declaration is T2 and description T11; `data_products/*.yaml` namespace edits are T3 then claim edits T10; `results/latest_benchmark.json` is temporary in T8 and generated/committed only by T13 after T12; no parallel wave edits these files.
-- **Ownership mapping:** T3 owns every listed synthetic TTL/YAML and generator/loader consumer; T4 owns grammar/linker; T5 owns planner/compiler and the dedicated planner test; T6 owns repair plus `demo_sap.py` typed consumers; T7 owns migration script/corpora/manifest; T8 owns runner/metrics/schema consumers but no canonical result; T9 owns asset validation/CI; T10 owns the exact non-publication source/example/mapping/data-product list; T11 owns the exact README/public-doc/ADR/package list; T12 owns proposal/technical-design/interview/report; T13 owns final scans and canonical result. No task uses a broad staging command.
+- **Shared-file sequencing:** `tests/unit/test_documentation_contract.py` is split between T11 publication tests and T12 handoff tests; `tests/unit/test_claim_scan.py` is T10; `tests/unit/test_aqr_query_planner.py` is T5; asset validation helpers are T9, while `Makefile`/CI final wiring is T13; `pyproject.toml` dependency declaration is T2 and description T11; `data_products/*.yaml` namespace edits are T3 then claim edits T10; `results/latest_benchmark.json` is temporary in T8 and generated/committed only by T13 after T12; no parallel wave edits these files.
+- **Ownership mapping:** T3 owns every listed synthetic TTL/YAML and generator/loader consumer; T4 owns grammar/linker; T5 owns planner/compiler and the dedicated planner test; T6 owns repair plus `demo_sap.py` typed consumers; T7 owns migration script/corpora/manifest; T8 owns runner/metrics/schema consumers but no canonical result; T9 owns local asset validation only; T10 owns the exact non-publication source/example/mapping/data-product list; T11 owns the exact README/public-doc/ADR/package list; T12 owns proposal/technical-design/interview/report; T13 owns final Makefile/CI wiring, final scans, and canonical result. No task uses a broad staging command.
 - **Feasibility:** Each task has bite-sized failing-test/minimal-pass/verification/commit steps and an independent review gate. T3/T4 are the only parallel wave and have disjoint implementation/test files. Full `research-verify`, full claim scan, canonical artifact hash, and full pytest are explicitly deferred to T13 after all docs and claims are final.
