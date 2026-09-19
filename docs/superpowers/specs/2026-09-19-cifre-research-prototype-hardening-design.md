@@ -444,6 +444,12 @@ accuracy, syntax-success rate, execution-success rate, strict empty-result
 rate, unsupported rejection rate, and recovery-attempt/recovery-success rates.
 Define both-empty precision/recall/F1 as 1.0, and one-empty/one-nonempty as
 0.0, in the metric contract. Report metrics by tier/category and overall.
+The aggregate dimension is always two-level: `corpus_id` selects the corpus
+run and `condition_id` selects one of the two measured conditions. Status
+counts, metrics, tier slices, and category slices are never pooled across
+conditions or corpora; they live under
+the matching `corpus_run` object's
+`aggregate.by_condition[condition_id]`.
 
 Do not report VSR, hallucination percentage, or comparative superiority in
 the redesigned result. “Binding-derived” is a property of the answer path,
@@ -838,7 +844,9 @@ templates:
     sequence: [lookup_verb, "filler*", note_number]
   - id: alert_resolution
     intent: ALERT_RESOLUTION
-    sequence: [question_word, "filler*", alert_code, "filler*", "component_code?", "product_version?", "support_package?", "priority?"]
+    sequences:
+      - [question_word, "filler*", alert_code, "filler*", "component_code?", "product_version?", "support_package?", "priority?"]
+      - [question_word, "filler*", component_code, "filler*", alert_code, "filler*", "product_version?", "support_package?", "priority?"]
   - id: component_search
     intent: COMPONENT_SEARCH
     sequence: [question_word, "filler*", component_code, "filler*", "product_version?", "support_package?", "priority?"]
@@ -848,6 +856,7 @@ templates:
       - [question_word, "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "product_version|support_package", "filler*", "priority?"]
       - [question_word, "filler*", "alert_code", "filler*", "product_version|support_package", "filler*", "component_code?", "filler*", "priority?"]
       - [question_word, "filler*", "product_version|support_package", "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "priority?"]
+      - [question_word, "filler*", component_code, "filler*", alert_code, "filler*", "product_version|support_package", "filler*", "priority?"]
   - id: prerequisite_closure
     intent: PREREQUISITE_CLOSURE
     sequence: [question_word, "filler*", prerequisite_marker, "filler*", note_number]
@@ -868,10 +877,12 @@ same family. In `VERSION_FILTERED_SEARCH`, an alert anchor may be followed by
 one component qualifier and one version/package qualifier; a component anchor
 does not consume a second component slot. Therefore alert+component+version is
 accepted with the alert as anchor and component as qualifier. The second
-alternative accepts alert+version+component and the third accepts
-version+alert+component, so the combined anchors may appear in either order
-around the version qualifier. A component anchor never consumes a second
-component slot.
+alternative accepts alert+version+component, the third accepts
+version+alert+component, and the fourth accepts component+alert+version or
+component+alert+support-package. The alert remains the anchor and the
+component remains its qualifier, so combined anchors may appear in either
+order around the version/package qualifier. A component anchor never consumes
+a second component slot.
 
 The entity slots are exactly the linker vocabulary sets already declared in
 `schema_linker.py`: `alert_code`, `component_code`, `product_version`,
@@ -918,7 +929,9 @@ The grammar fixtures must include these exact cases:
 | --- | --- | --- |
 | `Retrieve the title and details for SAP Note 3012445.` | `NOTE_LOOKUP` / `SUCCESS` after execution | `note_number=[3012445]` |
 | `Which SAP note resolves alert TIME_OUT in component MM-PUR-PO?` | `ALERT_RESOLUTION` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]` |
+| `Find notes in component MM-PUR-PO for alert TIME_OUT.` | `ALERT_RESOLUTION` / `SUCCESS` after execution | `component_code=[MM-PUR-PO]`, `alert_code=[TIME_OUT]` |
 | `Find notes for alert TIME_OUT in component MM-PUR-PO on S/4HANA 2023.` | `VERSION_FILTERED_SEARCH` / `SUCCESS` after execution | `alert_code=[TIME_OUT]`, `component_code=[MM-PUR-PO]`, `product_version=[S4HANA_2023]` |
+| `Find notes in component SD-SLS for alert TIME_OUT on S/4HANA 2022.` | `VERSION_FILTERED_SEARCH` / `EMPTY_RESULT` after execution | `component_code=[SD-SLS]`, `alert_code=[TIME_OUT]`, `product_version=[S4HANA_2022]` |
 | `Find notes resolving alert TIME_OUT on S/4HANA 2022 in component SD-SLS.` | `VERSION_FILTERED_SEARCH` / `EMPTY_RESULT` after execution | `alert_code=[TIME_OUT]`, `product_version=[S4HANA_2022]`, `component_code=[SD-SLS]` |
 | `What are the prerequisite notes required for SAP Note 3109922?` | `PREREQUISITE_CLOSURE` / `SUCCESS` after execution | `note_number=[3109922]` |
 | `Find notes valid for S/4HANA 2023.` | `UNSUPPORTED` / `UNSUPPORTED` | no anchored alert/component |
@@ -1741,7 +1754,17 @@ and nullable `reason` fields. The cycle case has fixture
 `status: "EMPTY_RESULT"`, and
 `reason: "PREREQUISITE_DEPTH_EXCEEDED"`.
 
-Every `aggregate` has exactly these required keys and types:
+The condition dimension is authoritative: each `corpus_runs[]` entry is one
+`corpus_id`, and its `aggregate` has exactly `condition_ids` and
+`by_condition`. `condition_ids` and the `by_condition` object must contain
+exactly `deterministic_no_reflection_ablation` and
+`deterministic_bounded_repair`; no status, metric, tier, or category result is
+allowed outside `aggregate.by_condition[condition_id]`. Every value under
+`by_condition` is a `condition_aggregate` with exactly these required keys and
+types:
+
+The enclosing `aggregate` instance is therefore
+`{"condition_ids": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"], "by_condition": {"deterministic_no_reflection_ablation": <condition_aggregate>, "deterministic_bounded_repair": <condition_aggregate>}}`; the JSON block below is the exact repeated `condition_aggregate` value for each required condition.
 
 ```json
 {
@@ -1866,7 +1889,7 @@ when they are referenced by this exact `$id`):
       }
     },
     "validation": {"$ref": "#/$defs/validation"},
-    "corpus_runs": {"type": "array", "items": {"$ref": "#/$defs/corpus_run"}},
+    "corpus_runs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/corpus_run"}},
     "per_query": {"type": "array", "items": {"$ref": "#/$defs/per_query"}, "uniqueItems": true}
   },
   "$defs": {
@@ -1922,7 +1945,7 @@ when they are referenced by this exact `$id`):
         "optional_binding_rate": {"$ref": "#/$defs/metric"}
       }
     },
-    "aggregate": {
+    "condition_aggregate": {
       "type": "object",
       "additionalProperties": false,
       "required": ["query_count", "status_counts", "status_accuracy", "answer_metrics", "operational_metrics"],
@@ -1959,6 +1982,23 @@ when they are referenced by this exact `$id`):
             "strict_empty_rate": {"$ref": "#/$defs/metric"},
             "unsupported_rejection_rate": {"$ref": "#/$defs/metric"},
             "optional_binding_rate": {"$ref": "#/$defs/metric"}
+          }
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_ids", "by_condition"],
+      "properties": {
+        "condition_ids": {"const": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]},
+        "by_condition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"],
+          "properties": {
+            "deterministic_no_reflection_ablation": {"$ref": "#/$defs/condition_aggregate"},
+            "deterministic_bounded_repair": {"$ref": "#/$defs/condition_aggregate"}
           }
         }
       }
