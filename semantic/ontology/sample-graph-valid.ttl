@@ -1,32 +1,40 @@
-@prefix sap: <https://sap.example/erp/> .
+@prefix ciferp: <https://example.org/cifre-kg/erp#> .
+@prefix cifdata: <https://example.org/cifre-kg/data/> .
+@prefix cifmeta: <https://example.org/cifre-kg/meta#> .
+@prefix cifmetaid: <https://example.org/cifre-kg/id/meta/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-sap:SampleGraphValid a owl:Ontology ; owl:versionInfo "1.0.0" .
-sap:partner-FR-001 a sap:BusinessPartner ;
-    sap:partnerId "FR_001" ;
-    sap:countryCode "FR" ;
-    sap:hasSalesOrder sap:order-FR-001 ;
-    sap:hasFinancialPosting sap:doc-FR-001 .
-sap:order-FR-001 a sap:SalesOrder ;
-    sap:salesOrderId "FR_SO_001" ;
-    sap:countryCode "FR" ;
-    sap:hasProduct sap:ProductAutomotive ;
-    sap:orderStatus "RELEASED" ;
-    sap:coversRisk sap:risk-FR-001 ;
-    sap:hasCoverage sap:coverage-FR-001 ;
-    sap:generatesBilling sap:billing-FR-001 .
-sap:ProductAutomotive a sap:ProductAutomotive, sap:Product .
-sap:risk-FR-001 a sap:Risk .
-sap:coverage-FR-001 a sap:Coverage .
-sap:billing-FR-001 a sap:BillingDocument .
-sap:doc-FR-001 a sap:FinancialPosting ;
-    sap:journalEntryId "FR_DOC_001" ;
-    sap:postingDate "2026-06-01"^^xsd:date ;
-    sap:postingStatus "POSTED" ;
-    sap:referencesSalesOrder sap:order-FR-001 ;
-    sap:amountInCompanyCurrency "25000.00"^^xsd:decimal ;
-    sap:hasPostingStatus sap:status-posted ;
-    sap:hasFinancialLoss sap:loss-FR-001 .
-sap:status-posted a sap:PostingStatus ; sap:statusValue "POSTED" .
-sap:loss-FR-001 a sap:FinancialLoss ; sap:amountValue "25000.00"^^xsd:decimal .
+<https://example.org/cifre-kg/data/erp/sample-graph-valid> a owl:Ontology ; owl:versionInfo "1.0.0" .
+<https://example.org/cifre-kg/data/erp/dataset-sample-valid> a cifmeta:SyntheticDataset ;
+    cifmeta:datasetId "cifre-synthetic-erp-valid" ;
+    cifmeta:sourceKind "synthetic_fixture" ;
+    cifmeta:official false .
+
+<https://example.org/cifre-kg/data/erp/partner-FR-001> a ciferp:BusinessPartner ;
+    ciferp:partnerId "FR_001"^^xsd:string ;
+    ciferp:countryCode "FR"^^xsd:string ;
+    ciferp:hasSalesOrder <https://example.org/cifre-kg/data/erp/order-FR-001> ;
+    ciferp:hasFinancialPosting <https://example.org/cifre-kg/data/erp/doc-FR-001> .
+<https://example.org/cifre-kg/data/erp/order-FR-001> a ciferp:SalesOrder ;
+    ciferp:salesOrderId "FR_SO_001"^^xsd:string ;
+    ciferp:countryCode "FR"^^xsd:string ;
+    ciferp:hasProduct <https://example.org/cifre-kg/data/erp/product-automotive> ;
+    ciferp:orderStatus "RELEASED"^^xsd:string ;
+    ciferp:coversRisk <https://example.org/cifre-kg/data/erp/risk-FR-001> ;
+    ciferp:hasCoverage <https://example.org/cifre-kg/data/erp/coverage-FR-001> ;
+    ciferp:generatesBilling <https://example.org/cifre-kg/data/erp/billing-FR-001> .
+<https://example.org/cifre-kg/data/erp/product-automotive> a ciferp:Product .
+<https://example.org/cifre-kg/data/erp/risk-FR-001> a ciferp:Risk .
+<https://example.org/cifre-kg/data/erp/coverage-FR-001> a ciferp:Coverage .
+<https://example.org/cifre-kg/data/erp/billing-FR-001> a ciferp:BillingDocument .
+<https://example.org/cifre-kg/data/erp/doc-FR-001> a ciferp:FinancialPosting ;
+    ciferp:journalEntryId "FR_DOC_001"^^xsd:string ;
+    ciferp:postingDate "2026-06-01"^^xsd:date ;
+    ciferp:postingStatus "POSTED"^^xsd:string ;
+    ciferp:referencesSalesOrder <https://example.org/cifre-kg/data/erp/order-FR-001> ;
+    ciferp:amountInCompanyCurrency "25000.00"^^xsd:decimal ;
+    ciferp:hasPostingStatus <https://example.org/cifre-kg/data/erp/status-posted> ;
+    ciferp:hasFinancialLoss <https://example.org/cifre-kg/data/erp/loss-FR-001> .
+<https://example.org/cifre-kg/data/erp/status-posted> a ciferp:PostingStatus ; ciferp:statusValue "POSTED"^^xsd:string .
+<https://example.org/cifre-kg/data/erp/loss-FR-001> a ciferp:FinancialLoss ; ciferp:amountValue "25000.00"^^xsd:decimal .

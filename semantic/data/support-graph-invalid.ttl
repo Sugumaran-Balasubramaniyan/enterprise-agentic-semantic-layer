@@ -1,0 +1,18 @@
+@prefix cifsup: <https://example.org/cifre-kg/support#> .
+@prefix cifdata: <https://example.org/cifre-kg/data/> .
+@prefix cifmeta: <https://example.org/cifre-kg/meta#> .
+@prefix cifmetaid: <https://example.org/cifre-kg/id/meta/> .
+@prefix cifppms: <https://example.org/cifre-kg/ppms#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
+    cifmeta:datasetId "cifre-synthetic-support-ppms-v1" ;
+    cifmeta:sourceKind "synthetic_fixture" ;
+    cifmeta:official false .
+
+<https://example.org/cifre-kg/data/support/note/INVALID> a cifsup:SAPNote ;
+    cifsup:noteNumber "INVALID"^^xsd:string ;
+    cifsup:title "Invalid title datatype"^^xsd:string ;
+    cifsup:priority "High"^^xsd:string ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SYNTHETIC_1> .
+<https://example.org/cifre-kg/data/ppms/compversion/SYNTHETIC_1> a cifppms:SoftwareComponentVersion .

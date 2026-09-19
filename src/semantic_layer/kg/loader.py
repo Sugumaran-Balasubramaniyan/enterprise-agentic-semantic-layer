@@ -7,6 +7,7 @@ SHACL validation with pyshacl.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -17,8 +18,40 @@ from rdflib.plugins.sparql.processor import SPARQLResult
 
 logger = logging.getLogger(__name__)
 
-PPMS = Namespace("http://ontology.sap.com/ppms#")
-SAP = Namespace("http://ontology.sap.com/support#")
+_NAMESPACE_REGISTRY = {
+    "cifsup": "https://example.org/cifre-kg/support#",
+    "cifppms": "https://example.org/cifre-kg/ppms#",
+    "cifdata": "https://example.org/cifre-kg/data/",
+    "ciferp": "https://example.org/cifre-kg/erp#",
+    "cifskos": "https://example.org/cifre-kg/vocabulary#",
+    "cifmeta": "https://example.org/cifre-kg/meta#",
+    "cifmetaid": "https://example.org/cifre-kg/id/meta/",
+}
+
+CIFSUP = Namespace(_NAMESPACE_REGISTRY["cifsup"])
+CIFPPMS = Namespace(_NAMESPACE_REGISTRY["cifppms"])
+CIFDATA = Namespace(_NAMESPACE_REGISTRY["cifdata"])
+CIFERP = Namespace(_NAMESPACE_REGISTRY["ciferp"])
+CIFSKOS = Namespace(_NAMESPACE_REGISTRY["cifskos"])
+CIFMETA = Namespace(_NAMESPACE_REGISTRY["cifmeta"])
+CIFMETAID = Namespace(_NAMESPACE_REGISTRY["cifmetaid"])
+
+
+@dataclass(frozen=True)
+class ValidationReport:
+    """Structured SHACL result with an explicit validation scope."""
+
+    conforms: bool
+    report_text: str
+    shapes_path: Path
+    scope: str = "support"
+    inference: str = "rdfs"
+
+    def __iter__(self):
+        """Retain the historical ``conforms, report`` unpacking API."""
+
+        yield self.conforms
+        yield self.report_text
 
 
 class SAPKnowledgeGraph:
@@ -30,8 +63,13 @@ class SAPKnowledgeGraph:
 
     def _bind_standard_namespaces(self) -> None:
         """Bind common prefixes for clean serialization and SPARQL parsing."""
-        self.graph.bind("ppms", PPMS)
-        self.graph.bind("sap", SAP)
+        self.graph.bind("cifsup", CIFSUP)
+        self.graph.bind("cifppms", CIFPPMS)
+        self.graph.bind("cifdata", CIFDATA)
+        self.graph.bind("ciferp", CIFERP)
+        self.graph.bind("cifskos", CIFSKOS)
+        self.graph.bind("cifmeta", CIFMETA)
+        self.graph.bind("cifmetaid", CIFMETAID)
         self.graph.bind("rdf", rdflib.RDF)
         self.graph.bind("rdfs", rdflib.RDFS)
         self.graph.bind("owl", rdflib.OWL)
@@ -52,11 +90,16 @@ class SAPKnowledgeGraph:
             self.load_file(path)
         return len(self.graph)
 
-    def validate_shacl(self, shapes_path: str | Path) -> tuple[bool, str]:
+    def validate_shacl(
+        self, shapes_path: str | Path, *, scope: str = "support"
+    ) -> ValidationReport:
         """Validate current graph against W3C SHACL shapes.
 
-        Returns (conforms: bool, results_text: str).
+        Returns a structured report and preserves tuple unpacking for callers
+        written against the original loader API.
         """
+        if scope not in {"support", "erp", "combined"}:
+            raise ValueError("scope must be one of: support, erp, combined")
         shapes_p = Path(shapes_path)
         if not shapes_p.exists():
             raise FileNotFoundError(f"SHACL shapes file not found: {shapes_p}")
@@ -74,7 +117,12 @@ class SAPKnowledgeGraph:
             js=False,
             debug=False,
         )
-        return bool(conforms), str(results_text)
+        return ValidationReport(
+            conforms=bool(conforms),
+            report_text=str(results_text),
+            shapes_path=shapes_p,
+            scope=scope,
+        )
 
     def query_sparql(self, sparql_query: str) -> list[dict[str, Any]]:
         """Execute a SPARQL 1.1 SELECT query and return list of variable bindings."""
@@ -107,8 +155,13 @@ class SAPKnowledgeGraph:
     def _ensure_prefixes(self, query: str) -> str:
         """Inject standard prefixes if missing from the query."""
         prefixes = [
-            "PREFIX ppms: <http://ontology.sap.com/ppms#>",
-            "PREFIX sap: <http://ontology.sap.com/support#>",
+            f"PREFIX cifsup: <{CIFSUP}>",
+            f"PREFIX cifppms: <{CIFPPMS}>",
+            f"PREFIX cifdata: <{CIFDATA}>",
+            f"PREFIX ciferp: <{CIFERP}>",
+            f"PREFIX cifskos: <{CIFSKOS}>",
+            f"PREFIX cifmeta: <{CIFMETA}>",
+            f"PREFIX cifmetaid: <{CIFMETAID}>",
             "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
             "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
             "PREFIX owl: <http://www.w3.org/2002/07/owl#>",

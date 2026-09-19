@@ -1,0 +1,6 @@
+@prefix cifsup: <https://example.org/cifre-kg/support#> .
+@prefix cifdata: <https://example.org/cifre-kg/data/> .
+
+<https://example.org/cifre-kg/data/support/note/A> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/B> .
+<https://example.org/cifre-kg/data/support/note/B> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/C> .
+<https://example.org/cifre-kg/data/support/note/C> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/A> .

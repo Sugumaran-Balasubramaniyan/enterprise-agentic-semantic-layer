@@ -1,91 +1,55 @@
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix sh:    <http://www.w3.org/ns/shacl#> .
-@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
-@prefix sap:   <http://ontology.sap.com/support#> .
-@prefix ppms:  <http://ontology.sap.com/ppms#> .
+@prefix cifsup: <https://example.org/cifre-kg/support#> .
+@prefix cifppms: <https://example.org/cifre-kg/ppms#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-sap:SAPNoteShape a sh:NodeShape ;
-    sh:targetClass sap:SAPNote ;
-    sh:property [
-        sh:path sap:noteNumber ;
-        sh:datatype xsd:string ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:message "Every SAP Note must have exactly one unique noteNumber."@en ;
-    ] ;
-    sh:property [
-        sh:path sap:title ;
-        sh:or (
-            [ sh:datatype xsd:string ]
-            [ sh:datatype rdf:langString ]
-        ) ;
-        sh:minCount 1 ;
-        sh:message "Every SAP Note must have a title."@en ;
-    ] ;
-    sh:property [
-        sh:path sap:priority ;
-        sh:in ( "Very High"^^xsd:string "High"^^xsd:string "Medium"^^xsd:string "Low"^^xsd:string ) ;
-        sh:minCount 1 ;
-        sh:message "Priority must be Very High, High, Medium, or Low."@en ;
-    ] ;
-    sh:property [
-        sh:path sap:affectsComponent ;
-        sh:class sap:ApplicationComponent ;
-        sh:minCount 1 ;
-        sh:message "Every SAP Note must affect at least one ApplicationComponent."@en ;
-    ] ;
-    sh:property [
-        sh:path sap:validForComponentVersion ;
-        sh:class ppms:SoftwareComponentVersion ;
-        sh:minCount 1 ;
-        sh:message "Every SAP Note must specify valid software component versions."@en ;
-    ] .
+cifsup:SupportShapes a sh:NodeShape ; owl:versionInfo "1.0.0" .
 
-sap:SystemAlertShape a sh:NodeShape ;
-    sh:targetClass sap:SystemAlert ;
+cifsup:SAPNoteShape a sh:NodeShape ;
+    sh:targetClass cifsup:SAPNote ;
     sh:property [
-        sh:path sap:alertCode ;
-        sh:datatype xsd:string ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:message "Every System Alert must have an alert code (e.g. dump code)."@en ;
+        sh:path cifsup:noteNumber ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "Every synthetic support note has exactly one note number."@en
     ] ;
     sh:property [
-        sh:path sap:severity ;
-        sh:in ( "CRITICAL"^^xsd:string "ERROR"^^xsd:string "WARNING"^^xsd:string "INFO"^^xsd:string ) ;
-        sh:minCount 1 ;
-        sh:message "Alert severity must be CRITICAL, ERROR, WARNING, or INFO."@en ;
+        sh:path cifsup:title ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ; sh:minCount 1 ;
+        sh:message "Every synthetic support note has an English title."@en
     ] ;
     sh:property [
-        sh:path sap:affectsComponent ;
-        sh:class sap:ApplicationComponent ;
-        sh:minCount 1 ;
-        sh:message "Every alert must be associated with an ApplicationComponent."@en ;
-    ] .
+        sh:path cifsup:priority ; sh:in ( "Very High"^^xsd:string "High"^^xsd:string "Medium"^^xsd:string "Low"^^xsd:string ) ; sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path cifsup:affectsComponent ; sh:class cifsup:ApplicationComponent ; sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path cifsup:validForComponentVersion ; sh:class cifppms:SoftwareComponentVersion ; sh:minCount 1
+    ] ;
+    sh:property [ sh:path cifsup:symptom ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] ;
+    sh:property [ sh:path cifsup:rootCause ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] ;
+    sh:property [ sh:path cifsup:resolution ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] .
 
-sap:ApplicationComponentShape a sh:NodeShape ;
-    sh:targetClass sap:ApplicationComponent ;
-    sh:property [
-        sh:path sap:componentCode ;
-        sh:datatype xsd:string ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:message "ApplicationComponent must have a unique component code (e.g., BC-DB)."@en ;
-    ] .
+cifsup:SystemAlertShape a sh:NodeShape ;
+    sh:targetClass cifsup:SystemAlert ;
+    sh:property [ sh:path cifsup:alertCode ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path cifsup:severity ; sh:in ( "CRITICAL"^^xsd:string "ERROR"^^xsd:string "WARNING"^^xsd:string "INFO"^^xsd:string ) ; sh:minCount 1 ] ;
+    sh:property [ sh:path cifsup:affectsComponent ; sh:class cifsup:ApplicationComponent ; sh:minCount 1 ] .
 
-sap:ProductVersionShape a sh:NodeShape ;
-    sh:targetClass ppms:ProductVersion ;
-    sh:property [
-        sh:path ppms:versionCode ;
-        sh:datatype xsd:string ;
-        sh:minCount 1 ;
-        sh:maxCount 1 ;
-        sh:message "ProductVersion must have a versionCode."@en ;
-    ] ;
-    sh:property [
-        sh:path ppms:includesComponent ;
-        sh:class ppms:SoftwareComponentVersion ;
-        sh:minCount 1 ;
-        sh:message "ProductVersion must include at least one SoftwareComponentVersion."@en ;
-    ] .
+cifsup:ApplicationComponentShape a sh:NodeShape ;
+    sh:targetClass cifsup:ApplicationComponent ;
+    sh:property [ sh:path cifsup:componentCode ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path cifsup:componentDescription ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ] .
+
+cifsup:SimCatCategoryShape a sh:NodeShape ;
+    sh:targetClass cifsup:SimCatCategory ;
+    sh:property [ sh:path cifsup:categoryName ; sh:datatype rdf:langString ; sh:languageIn ( "en" ) ; sh:minCount 1 ] .
+
+cifsup:HelpDocumentationShape a sh:NodeShape ;
+    sh:targetClass cifsup:HelpDocumentation ;
+    sh:property [ sh:path cifsup:docUri ; sh:datatype xsd:anyURI ; sh:minCount 1 ; sh:maxCount 1 ] .
+
+cifppms:ProductVersionShape a sh:NodeShape ;
+    sh:targetClass cifppms:ProductVersion ;
+    sh:property [ sh:path cifppms:versionCode ; sh:datatype xsd:string ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path cifppms:includesComponent ; sh:class cifppms:SoftwareComponentVersion ; sh:minCount 1 ] .

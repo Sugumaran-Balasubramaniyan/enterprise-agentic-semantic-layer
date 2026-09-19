@@ -7,8 +7,8 @@ from rdflib import RDF, XSD, Literal, Namespace, URIRef
 
 from semantic_layer.kg.loader import SAPKnowledgeGraph
 
-SAP = Namespace("http://ontology.sap.com/support#")
-PPMS = Namespace("http://ontology.sap.com/ppms#")
+SAP = Namespace("https://example.org/cifre-kg/support#")
+PPMS = Namespace("https://example.org/cifre-kg/ppms#")
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def test_shacl_catches_invalid_note() -> None:
     ])
 
     # Inject invalid note: missing affectsComponent and invalid priority
-    bad_note = URIRef("http://data.sap.com/support/note/BAD_NOTE")
+    bad_note = URIRef("https://example.org/cifre-kg/data/support/note/BAD_NOTE")
     kg.graph.add((bad_note, RDF.type, SAP.SAPNote))
     kg.graph.add((bad_note, SAP.noteNumber, Literal("9999999", datatype=XSD.string)))
     kg.graph.add((bad_note, SAP.title, Literal("Invalid Note Without Component", lang="en")))
@@ -58,8 +58,8 @@ def test_sparql_query_execution(sap_kg: SAPKnowledgeGraph) -> None:
     """Test standard SPARQL 1.1 query execution."""
     sparql = """
     SELECT ?note ?num WHERE {
-        ?note rdf:type sap:SAPNote .
-        ?note sap:noteNumber ?num .
+            ?note rdf:type cifsup:SAPNote .
+            ?note cifsup:noteNumber ?num .
     } LIMIT 5
     """
     rows = sap_kg.query_sparql(sparql)

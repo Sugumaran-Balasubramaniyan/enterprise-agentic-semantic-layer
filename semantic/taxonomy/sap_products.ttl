@@ -1,28 +1,28 @@
-@prefix sap: <https://sap.example/erp/> .
+@prefix cifskos: <https://example.org/cifre-kg/vocabulary#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 
-sap:ProductScheme a skos:ConceptScheme ;
+cifskos:ProductScheme a skos:ConceptScheme ;
     owl:versionInfo "1.0.0" ;
-    skos:prefLabel "SAP S/4HANA Material and Product Taxonomy"@en ;
-    skos:hasTopConcept sap:Product .
+    skos:prefLabel "Synthetic product taxonomy"@en ;
+    skos:hasTopConcept cifskos:Product .
 
-sap:Product a skos:Concept ;
+cifskos:Product a skos:Concept ;
     skos:prefLabel "Product"@en ;
-    skos:definition "A governed category of products and materials in SAP S/4HANA."@en ;
-    skos:topConceptOf sap:ProductScheme ;
-    skos:narrower sap:ProductAutomotive, sap:ProductCommercial .
+    skos:definition "A synthetic governed category of products and materials."@en ;
+    skos:topConceptOf cifskos:ProductScheme ;
+    skos:narrower cifskos:ProductAutomotive, cifskos:ProductCommercial .
 
-sap:ProductAutomotive a skos:Concept ;
+cifskos:ProductAutomotive a skos:Concept ;
     skos:prefLabel "Automotive Product"@en ;
     skos:altLabel "Motor Insurance"@en, "Car Insurance"@en, "Auto Insurance"@en, "Motor cover"@en, "Automotive"@en ;
-    skos:broader sap:Product ;
-    skos:inScheme sap:ProductScheme ;
-    skos:definition "Material group and products for automotive components and vehicles."@en .
+    skos:broader cifskos:Product ;
+    skos:inScheme cifskos:ProductScheme ;
+    skos:definition "Synthetic material group for automotive components and vehicles."@en .
 
-sap:ProductCommercial a skos:Concept ;
+cifskos:ProductCommercial a skos:Concept ;
     skos:prefLabel "Commercial Product"@en ;
     skos:altLabel "Home Insurance"@en, "House Insurance"@en, "Commercial Equipment"@en, "Home cover"@en ;
-    skos:broader sap:Product ;
-    skos:inScheme sap:ProductScheme ;
-    skos:definition "Material group for commercial, industrial, and facility products."@en .
+    skos:broader cifskos:Product ;
+    skos:inScheme cifskos:ProductScheme ;
+    skos:definition "Synthetic material group for commercial, industrial, and facility products."@en .
