@@ -1,0 +1,6 @@
+billing_doc_id,sales_order_id,partner_id,country,product,billing_date,billed_amount_eur
+FR_BIL_001,FR_SO_001,FR_001,FR,sap:ProductAutomotive,2026-08-08,1350.00
+FR_BIL_002,FR_SO_003,FR_002,FR,sap:ProductAutomotive,2026-08-08,1490.00
+UK_BIL_001,UK_SO_001,UK_001,GB,sap:ProductAutomotive,2026-08-08,1120.00
+DE_BIL_001,DE_SO_001,DE_001,DE,sap:ProductAutomotive,2026-08-08,980.00
+RAW_NEGATIVE,FR_SO_001,FR_001,FR,sap:ProductAutomotive,2026-08-08,-25.00

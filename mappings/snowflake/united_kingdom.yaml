@@ -1,60 +1,56 @@
 id: SnowflakeUnitedKingdomMapping
 version: "1.0.0"
-owner: GlobalSure United Kingdom Data Office
+owner: SAP United Kingdom Data Office
 platform: Snowflake
 location: GB
 data_products:
-  - Customer360
-  - PolicyMaster
-  - ClaimsAnalytics
-  - PremiumAnalytics
+  - BusinessPartners
+  - SalesOrders
+  - ACDOCAFinancials
+  - BillingAnalytics
 source:
-  database: GLOBALSURE_UK
+  database: SAP_ERP_UK
   schemas:
-    customers: INSURANCE_CUSTOMER
-    policies: INSURANCE_POLICY
-    claims: INSURANCE_CLAIM
-    premiums: INSURANCE_PREMIUM
+    business_partners: ERP_BUSINESS_PARTNER
+    sales_orders: ERP_SALES_ORDER
+    acdoca_financials: ERP_ACDOCA_FINANCIALS
+    billing_documents: ERP_BILLING_DOCUMENT
 fields:
-  customer_id: {physical_name: CUSTOMER_KEY, concept: insurance:Customer, pii: true}
-  customer_name: {physical_name: CUSTOMER_NAME, concept: insurance:Customer, pii: true}
-  email: {physical_name: EMAIL_ADDRESS, concept: insurance:Customer, pii: true}
-  policy_id: {physical_name: POLICY_KEY, concept: insurance:Policy, pii: false}
-  policy_status: {physical_name: POLICY_STATUS, concept: insurance:Policy, canonical_subset: insurance:ActivePolicy, pii: false}
-  effective_date: {physical_name: EFFECTIVE_DATE, concept: insurance:Policy, pii: false}
-  expiry_date: {physical_name: EXPIRY_DATE, concept: insurance:Policy, pii: false}
-  annual_premium_eur: {physical_name: ANNUAL_PREMIUM_EUR, concept: insurance:Premium, pii: false}
-  claim_id: {physical_name: CLAIM_KEY, concept: insurance:Claim, pii: false}
-  country: {physical_name: MARKET_CODE, concept: insurance:Country, pii: false}
-  product: {physical_name: LINE_OF_BUSINESS, concept: insurance:InsuranceProduct, pii: false}
-  status: {physical_name: CLAIM_STATUS, concept: insurance:ClaimStatus, pii: false}
-  claim_date: {physical_name: DATE_OF_LOSS, concept: insurance:Claim, pii: false}
-  incurred_loss_eur: {physical_name: INCURRED_LOSS_EUR, concept: insurance:IncurredLoss, pii: false}
-  premium_id: {physical_name: PREMIUM_KEY, concept: insurance:Premium, pii: false}
-  premium_date: {physical_name: PREMIUM_DATE, concept: insurance:Premium, pii: false}
-  premium_eur: {physical_name: PREMIUM_EUR, concept: insurance:Premium, pii: false}
+  partner_id: {physical_name: PARTNER_KEY, concept: sap:BusinessPartner, pii: true}
+  partner_name: {physical_name: PARTNER_NAME, concept: sap:BusinessPartner, pii: true}
+  email: {physical_name: EMAIL_ADDRESS, concept: sap:BusinessPartner, pii: true}
+  sales_order_id: {physical_name: SALES_ORDER_KEY, concept: sap:SalesOrder, pii: false}
+  order_status: {physical_name: ORDER_STATUS, concept: sap:SalesOrder, canonical_subset: sap:ActiveSalesOrder, pii: false}
+  effective_date: {physical_name: EFFECTIVE_DATE, concept: sap:SalesOrder, pii: false}
+  expiry_date: {physical_name: EXPIRY_DATE, concept: sap:SalesOrder, pii: false}
+  net_value_eur: {physical_name: NET_VALUE_EUR, concept: sap:BillingDocument, pii: false}
+  journal_entry_id: {physical_name: JOURNAL_ENTRY_KEY, concept: sap:FinancialPosting, pii: false}
+  country: {physical_name: MARKET_CODE, concept: sap:CompanyCode, pii: false}
+  product: {physical_name: MATERIAL_GROUP, concept: sap:Product, pii: false}
+  posting_status: {physical_name: POSTING_STATUS, concept: sap:PostingStatus, pii: false}
+  posting_date: {physical_name: POSTING_DATE, concept: sap:FinancialPosting, pii: false}
+  amount_in_company_currency_eur: {physical_name: DEBIT_LOSS_EUR, concept: sap:FinancialLoss, pii: false}
+  billing_doc_id: {physical_name: BILLING_DOC_KEY, concept: sap:BillingDocument, pii: false}
+  billing_date: {physical_name: BILLING_DATE, concept: sap:BillingDocument, pii: false}
+  billed_amount_eur: {physical_name: BILLED_AMOUNT_EUR, concept: sap:BillingDocument, pii: false}
 normalization:
   products:
-    AUTO: insurance:MotorInsurance
-    CAR: insurance:MotorInsurance
-    insurance:MotorInsurance: insurance:MotorInsurance
-    HOME: insurance:HomeInsurance
+    AUTO: sap:ProductAutomotive
+    CAR: sap:ProductAutomotive
+    sap:ProductAutomotive: sap:ProductAutomotive
+    HOME: sap:ProductCommercial
   statuses:
-    OPEN: OPEN
-    PENDING: PENDING
-    SETTLED: SETTLED
-    CANCELLED: CANCELLED
+    POSTED: POSTED
+    CLEARED: CLEARED
+    REVERSED: REVERSED
     DUPLICATE: DUPLICATE
-    OPENED: OPEN
-    CLOSED: SETTLED
-  policy_statuses:
-    IN_FORCE: ACTIVE
-    LAPSED: LAPSED
+  order_statuses:
+    IN_FORCE: RELEASED
+    RELEASED: RELEASED
+    CLOSED: CLOSED
     CANCELLED: CANCELLED
-    EXPIRED: LAPSED
-    ACTIVE: ACTIVE
 lineage:
   physical_sources:
-    - snowflake://GLOBALSURE_UK.INSURANCE_CLAIM
-    - snowflake://GLOBALSURE_UK.INSURANCE_POLICY
-  semantic_target: Group insurance vocabulary 1.0.0
+    - snowflake://SAP_ERP_UK.ERP_ACDOCA_FINANCIALS
+    - snowflake://SAP_ERP_UK.ERP_SALES_ORDER
+  semantic_target: SAP ERP vocabulary 1.0.0

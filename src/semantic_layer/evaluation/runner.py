@@ -238,15 +238,28 @@ def load_golden_cases(path: Path | str) -> list[GoldenCase]:
             )
         if has_answer:
             answer = deterministic["answer"]
-            if not isinstance(answer, list) or any(
-                not isinstance(row, dict)
-                or set(row) != {"customer_id", "country", "claim_count", "total_incurred_loss_eur"}
-                or not isinstance(row["customer_id"], str)
-                or not isinstance(row["country"], str)
-                or not isinstance(row["claim_count"], int)
-                or not isinstance(row["total_incurred_loss_eur"], (int, float))
-                for row in answer
-            ):
+
+            def _valid_row(row: Any) -> bool:
+                if not isinstance(row, dict):
+                    return False
+                keys = set(row)
+                if keys == {"partner_id", "country", "posting_count", "total_debit_loss_eur"}:
+                    return (
+                        isinstance(row["partner_id"], str)
+                        and isinstance(row["country"], str)
+                        and isinstance(row["posting_count"], int)
+                        and isinstance(row["total_debit_loss_eur"], (int, float))
+                    )
+                if keys == {"customer_id", "country", "claim_count", "total_incurred_loss_eur"}:
+                    return (
+                        isinstance(row["customer_id"], str)
+                        and isinstance(row["country"], str)
+                        and isinstance(row["claim_count"], int)
+                        and isinstance(row["total_incurred_loss_eur"], (int, float))
+                    )
+                return False
+
+            if not isinstance(answer, list) or any(not _valid_row(row) for row in answer):
                 raise TypeError(f"golden question {identifier} deterministic answer must be typed rows")
         else:
             constraints = deterministic["answer_constraints"]

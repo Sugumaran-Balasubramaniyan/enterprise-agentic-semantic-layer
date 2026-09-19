@@ -81,7 +81,7 @@ links to the asset or test that makes it reviewable.
 | Reader | Start here | Then inspect | What to establish |
 | --- | --- | --- | --- |
 | AI lead | [architecture](docs/architecture.md), [agent architecture](docs/agent-architecture.md), and [golden evaluation corpus](tests/golden/questions.yaml) | `src/semantic_layer/agents/`, `src/semantic_layer/query_planner/`, and [evaluation tests](tests/golden/test_evaluation.py) | Agents select governed business intent; they do not invent joins, metrics, or SQL. |
-| Enterprise or data architect | [semantic layer](docs/semantic-layer.md), [federated semantics](docs/federated-semantics.md), and [ADRs](docs/decisions/) | [Business vocabulary](semantic/vocabulary/insurance.yaml), [Insurance ontology](semantic/ontology/insurance.ttl), and [Certified data-product contracts](data_products/) | Group meaning is stable while local entities retain their own physical platforms and extensions. |
+| Enterprise or data architect | [semantic layer](docs/semantic-layer.md), [federated semantics](docs/federated-semantics.md), and [ADRs](docs/decisions/) | [Business vocabulary](semantic/vocabulary/sap_erp.yaml), [ERP ontology](semantic/ontology/sap_erp.ttl), and [Certified data-product contracts](data_products/) | Group meaning is stable while local entities retain their own physical platforms and extensions. |
 | Platform engineer | [production deployment and operating model](#production-deployment-and-operating-model) and [mappings](mappings/) | `src/semantic_layer/compiler/`, `src/semantic_layer/adapters/`, and [CI workflow](.github/workflows/ci.yml) | The semantic plan/compiler boundary is where a real platform adapter, identity, and native security controls connect. |
 | Governance, security, or privacy reviewer | [governance](docs/governance.md), [data-product contracts](data_products/), and [operational failure matrix](#operational-failure-and-action-matrix) | `src/semantic_layer/governance/`, `src/semantic_layer/quality/`, `src/semantic_layer/provenance/`, and [security/control tests](tests/unit/test_execution_controls_security.py) | Access, quality, certified-product selection, and provenance are enforced before an answer is returned. |
 | Future contributor | [ownership and review workflow](#ownership-contribution-and-review-workflow), [semantic versioning](#semantic-versioning-compatibility-and-deprecation), and [onboarding a country or domain](#onboarding-a-country-or-domain) | [semantic tests](tests/semantic/), [golden tests](tests/golden/), and [ADR-002](docs/decisions/ADR-002-semantic-assets-in-git.md) | A semantic change is a versioned, reviewed, tested contract change rather than an untracked configuration edit. |
@@ -106,7 +106,7 @@ the valid graph as conforming and the invalid fixture as an expected failure.
 
 This section is the operational contract for a clean checkout. It is intended
 to be sufficient for a developer, CI runner, or platform team to reproduce the
-local reference environment without access to GlobalSure systems.
+local reference environment without access to external SAP systems.
 
 ### Prerequisites and support matrix
 
@@ -277,19 +277,19 @@ concepts.
 
 | Dataset | Grain | Required key | Important join keys | Core fields |
 | --- | --- | --- | --- | --- |
-| `customers.csv` | One row per customer | `customer_id` | `customer_id` joins to policies and claims | `customer_name`, `country`, `email` |
-| `policies.csv` | One row per policy | `policy_id` | `customer_id` → customer; `policy_id` → claims/premiums | `country`, `product`, `policy_status`, `effective_date`, `expiry_date`, `annual_premium_eur` |
-| `claims.csv` | One row per claim | `claim_id` | `policy_id` → policy; `customer_id` → customer | `country`, `product`, `status`, `claim_date`, `incurred_loss_eur` |
-| `premiums.csv` | One row per premium posting | `premium_id` | `policy_id` → policy; `customer_id` → customer | `country`, `product`, `premium_date`, `premium_eur` |
+| `business_partners.csv` | One row per partner | `partner_id` | `partner_id` joins to sales orders and postings | `partner_name`, `country`, `email` |
+| `sales_orders.csv` | One row per sales order | `sales_order_id` | `partner_id` → partner; `sales_order_id` → postings/billing | `country`, `product`, `order_status`, `order_date`, `delivery_date`, `net_amount_eur` |
+| `acdoca_financials.csv` | One row per financial posting | `journal_entry_id` | `sales_order_id` → sales order; `partner_id` → partner | `country`, `product`, `posting_status`, `posting_date`, `amount_in_company_currency_eur` |
+| `billing_documents.csv` | One row per billing doc | `billing_doc_id` | `sales_order_id` → sales order; `partner_id` → partner | `country`, `product`, `billing_date`, `billed_amount_eur` |
 
 The principal relationship path is
-`customers.customer_id → policies.customer_id → claims.policy_id`.
-`claims.customer_id` is retained as a denormalized consistency check, not a
-replacement for validating the policy relationship. Premiums are independently
-aggregated for `ClaimsRatio`; joining claims directly to premium postings can
+`business_partners.partner_id → sales_orders.partner_id → acdoca_financials.sales_order_id`.
+`acdoca_financials.partner_id` is retained as a denormalized consistency check, not a
+replacement for validating the sales order relationship. Billing documents are independently
+aggregated for `CostRevenueRatio`; joining postings directly to billing documents can
 fan out totals and is therefore prohibited by the metric/compiler contract.
 The product code is normalized through the checked-in platform mapping before
-it is compared with the canonical `insurance:MotorInsurance` concept.
+it is compared with the canonical `sap:ProductAutomotive` concept.
 
 ### Running data and semantic checks together
 
@@ -325,8 +325,8 @@ In the `RESULT` section, the deterministic answer is:
 
 ```json
 [
-  {"customer_id": "FR_001", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 24000.0},
-  {"customer_id": "FR_002", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 25000.0}
+  {"country": "FR", "partner_id": "FR_001", "posting_count": 3, "total_debit_loss_eur": 24000.0},
+  {"country": "FR", "partner_id": "FR_002", "posting_count": 3, "total_debit_loss_eur": 25000.0}
 ]
 ```
 
@@ -349,7 +349,7 @@ deliberately runtime values rather than copied fixtures.
 The [Example index](examples/README.md) contains concrete route, request, and
 response pairs for both a successful resolution and a fail-closed authorization
 decision. It also links the
-[Checked-in primary plan](examples/generated_query_plans/primary_claims_plan.json)
+[Checked-in primary plan](examples/generated_query_plans/primary_erp_plan.json)
 and [Generated SQL artifacts](examples/generated_sql/README.md), with execution
 status stated beside each artifact.
 
@@ -490,32 +490,32 @@ Governed metrics are defined in `semantic/metrics/metrics.yaml`:
 
 | Metric | Meaning |
 | --- | --- |
-| `ClaimCount` | Count of qualifying claims |
-| `TotalIncurredLoss` | Sum of qualifying incurred loss |
-| `AverageClaimAmount` | Average qualifying claim amount |
-| `ActivePolicyCount` | Policies satisfying the ActivePolicy rule |
-| `ClaimsRatio` | Discovery-only contract for separately aggregated loss divided by earned premium; no local compiler/execution path |
+| `PostingCount` | Count of qualifying financial postings |
+| `TotalDebitLossEur` | Sum of qualifying debit/financial loss in EUR |
+| `AveragePostingAmountEur` | Average qualifying financial loss per posting |
+| `ActiveSalesOrderCount` | Sales orders satisfying the ActiveSalesOrder rule |
+| `CostRevenueRatio` | Discovery-only contract for separately aggregated loss divided by billed revenue; no local compiler/execution path |
 
-`QualifyingClaim` excludes `CANCELLED` and `DUPLICATE`. This is a versioned
+`QualifyingPosting` excludes `REVERSED` and `DUPLICATE`. This is a versioned
 semantic rule, not an instruction for an LLM to invent.
 
 ## Federation: one meaning, different implementations
 
-GlobalSure’s Group model owns canonical labels, relationships, interoperability
-rules, and governance. Country domains own local products, physical schemas,
+SAP's enterprise architecture model owns canonical labels, relationships, interoperability
+rules, and governance. Regional operating entities own local products, physical schemas,
 mappings, extensions, and regulatory rules.
 
-| Country | Platform example | Local motor codes | Canonical value |
+| Country | Platform example | Local automotive codes | Canonical value |
 | --- | --- | --- | --- |
-| France | Databricks | `MOTOR`, `MTR` | `insurance:MotorInsurance` |
-| UK | Snowflake | `AUTO`, `CAR` | `insurance:MotorInsurance` |
-| Germany | Microsoft Fabric | `MotorInsurance` | `insurance:MotorInsurance` |
+| France | Databricks | `MOTOR`, `MTR` | `sap:ProductAutomotive` |
+| UK | Snowflake | `AUTO`, `CAR` | `sap:ProductAutomotive` |
+| Germany | Microsoft Fabric | `MotorInsurance` | `sap:ProductAutomotive` |
 
-The same Group plan can compile against different physical columns and code
+The same enterprise plan can compile against different physical columns and code
 systems without making the agent rediscover joins.
 
 The active mappings also normalize `HOME` or `HomeInsurance` to the governed
-`insurance:HomeInsurance` concept. Registry construction rejects any product
+`sap:ProductEnterprise` concept. Registry construction rejects any product
 normalization target that is absent from the canonical vocabulary, and runtime
 normalization continues to fail closed for an unknown local value.
 
@@ -527,8 +527,8 @@ purpose, product classification, and PII access are checked before final
 planning and execution. The request-body role is a simulator, not production
 identity authentication.
 
-ClaimsRatio is discovery-only in this local reference. It resolves to the
-`ClaimsAnalytics` and `PremiumAnalytics` sources plus the customer and policy
+CostRevenueRatio is discovery-only in this local reference. It resolves to the
+`ACDOCAFinancials` and `BillingAnalytics` sources plus the business partner and sales order
 products needed by the reviewed discovery plan, but no simulated role is
 authorized for that complete product set; discovery authorization returns
 `PRODUCT_DENIED`. The local DuckDB compiler does not compile or execute this
@@ -588,7 +588,7 @@ It documents the exact local commands, outputs, limitations, and
 security-scan interpretation; it is the source of truth for what was actually
 verified rather than a claim of cloud-platform execution.
 
-The latest full local matrix reported `208 passed` with the existing third-party
+The latest full local matrix reported `218 passed` with the existing third-party
 FastAPI/Starlette `TestClient` deprecation warning. It also reported:
 
 - lint: Ruff passed;
@@ -626,7 +626,7 @@ make evaluate
 make PYTHON=.venv/bin/python demo
 ```
 
-The verified local run reports 208 passing tests, 31/31 golden cases, and
+The verified local run reports 218 passing tests, 31/31 golden cases, and
 10/10 discovery-only cases. The single warning is a third-party FastAPI/
 Starlette `TestClient` deprecation notice, not a project failure.
 
@@ -726,11 +726,11 @@ documentation correction.
 
 | Contract | Authoritative asset | Primary executable evidence | Change implications |
 | --- | --- | --- | --- |
-| Canonical terms, owners, classifications, synonyms, and allowed values | [Business vocabulary](semantic/vocabulary/insurance.yaml) | [Vocabulary tests](tests/semantic/test_vocabulary.py) | Version affected concepts; assess resolver, product, mapping, and access impact. |
-| Product hierarchy and alternate labels | [Product taxonomy](semantic/taxonomy/insurance-products.ttl) | [Ontology/taxonomy tests](tests/semantic/test_shacl.py) | Preserve SKOS hierarchy and map local labels only to governed concepts. |
-| Class and relationship meaning | [Insurance ontology](semantic/ontology/insurance.ttl) | [Ontology/SHACL tests](tests/semantic/test_shacl.py) | Confirm domains, ranges, subclass semantics, graph fixtures, and planner relationship paths. |
-| Graph validity constraints | [SHACL shapes](semantic/shapes/insurance-shapes.ttl) | [SHACL validation tests](tests/semantic/test_shacl.py) | Add valid and invalid fixtures whenever a mandatory property or constraint changes. |
-| Inclusion/exclusion and lifecycle logic | [Business rules](semantic/rules/claims.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [ActivePolicy regression](tests/semantic/test_active_policy_regression.py) | Treat as a metric behavior change where a rule feeds a metric. |
+| Canonical terms, owners, classifications, synonyms, and allowed values | [Business vocabulary](semantic/vocabulary/sap_erp.yaml) | [Vocabulary tests](tests/semantic/test_vocabulary.py) | Version affected concepts; assess resolver, product, mapping, and access impact. |
+| Product hierarchy and alternate labels | [Product taxonomy](semantic/taxonomy/sap_products.ttl) | [Ontology/taxonomy tests](tests/semantic/test_shacl.py) | Preserve SKOS hierarchy and map local labels only to governed concepts. |
+| Class and relationship meaning | [ERP ontology](semantic/ontology/sap_erp.ttl) | [Ontology/SHACL tests](tests/semantic/test_shacl.py) | Confirm domains, ranges, subclass semantics, graph fixtures, and planner relationship paths. |
+| Graph validity constraints | [SHACL shapes](semantic/shapes/sap_erp_shapes.ttl) | [SHACL validation tests](tests/semantic/test_shacl.py) | Add valid and invalid fixtures whenever a mandatory property or constraint changes. |
+| Inclusion/exclusion and lifecycle logic | [Business rules](semantic/rules/financial_postings.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [ActivePolicy regression](tests/semantic/test_active_policy_regression.py) | Treat as a metric behavior change where a rule feeds a metric. |
 | Metric formulas, dependencies, and aggregation grain | [Metric definitions](semantic/metrics/metrics.yaml) | [Metric/rule tests](tests/semantic/test_metric_rules.py) and [compiler tests](tests/unit/test_compiler.py) | Preserve independent aggregation for ratios; update golden expectations. |
 | Certified source contract, quality, lineage, and PII | [Certified data-product contracts](data_products/) | [Registry tests](tests/unit/test_registry.py) and [quality tests](tests/unit/test_quality.py) | Re-certify after schema, SLA, classification, or grain changes. |
 | Local physical fields, values, and source lineage | [Federated mappings](mappings/) — [France](mappings/databricks/france.yaml), [UK](mappings/snowflake/united_kingdom.yaml), [Germany](mappings/fabric/germany.yaml) | [Mapping tests](tests/semantic/test_mappings.py) and [resolver tests](tests/unit/test_resolver.py) | Mapping changes require country owner approval and certified-product compatibility evidence. |
@@ -823,7 +823,7 @@ can distinguish Group semantic design from local implementation.
 | Stage | Deliverable | Accountable owner | Evidence and exit condition |
 | --- | --- | --- | --- |
 | 0. Scope and discovery | A baseline and target-state assessment: priority use cases, regulations/residency, source inventory, local terms/codes, consumers, data quality, and operating owners | Local entity sponsor with Group semantic owner | Agreed scope, named semantic owner/data-product owner/platform owner, and documented non-goals. |
-| 1. Canonical alignment | Concept crosswalk and gap decision against [Business vocabulary](semantic/vocabulary/insurance.yaml), [Product taxonomy](semantic/taxonomy/insurance-products.ttl), and [Insurance ontology](semantic/ontology/insurance.ttl) | Group semantic owner and local entity semantic owner | Every local term is mapped to a canonical ID, proposed for governed extension, or explicitly rejected. |
+| 1. Canonical alignment | Concept crosswalk and gap decision against [Business vocabulary](semantic/vocabulary/sap_erp.yaml), [Product taxonomy](semantic/taxonomy/sap_products.ttl), and [ERP ontology](semantic/ontology/sap_erp.ttl) | Group semantic owner and local entity semantic owner | Every local term is mapped to a canonical ID, proposed for governed extension, or explicitly rejected. |
 | 2. Product contract | Versioned product definition in `data_products/` with grain, schema, join keys, owner, certification, SLA, PII/classification, lineage, and quality expectations | data-product owner | Product is certifiable; source-to-product lineage and native policy boundaries are understood. |
 | 3. Local mapping | Platform/location mapping under `mappings/<platform>/` with physical fields, local values, normalization, and source lineage | Local entity semantic owner and platform owner | All exposed contract fields map once to governed concepts; unknown values fail closed. |
 | 4. Controls and execution | Adapter configuration, workload identity design, policy attributes, quality gate, and platform contract tests | platform owner with security and privacy | Native row/column/residency controls and semantic policy give the same or stricter answer; no arbitrary-table access. |
@@ -847,17 +847,17 @@ clear which capabilities are local implementation and which are production
 extension points.
 
 | Capability | Authoritative contract | Runnable local example | Regression evidence | Boundary |
-| --- | --- | --- | --- | --- |
-| Business-language grounding | [Vocabulary](semantic/vocabulary/insurance.yaml), [taxonomy](semantic/taxonomy/insurance-products.ttl), and mappings | `POST /resolve` with “car insurance” or “loss amount” | [Resolver tests](tests/unit/test_resolver.py) | Deterministic lexical/mapping resolution; no hosted model required. |
-| Relationships and graph validity | [Ontology](semantic/ontology/insurance.ttl) and [SHACL shapes](semantic/shapes/insurance-shapes.ttl) | `make validate-semantic` validates valid and invalid RDF fixtures | [SHACL tests](tests/semantic/test_shacl.py) | RDFLib/pySHACL local graph; no graph database is required. |
-| Governed metrics and rules | [Metrics](semantic/metrics/metrics.yaml) and [rules](semantic/rules/claims.yaml) | `make PYTHON=.venv/bin/python demo` computes qualifying-claim metrics | [Metric/rule tests](tests/semantic/test_metric_rules.py) | Rules are compiler-owned semantics, not LLM prompt instructions. |
+| --- | --- | --- | --- | --- | --- |
+| Business-language grounding | [Vocabulary](semantic/vocabulary/sap_erp.yaml), [taxonomy](semantic/taxonomy/sap_products.ttl), and mappings | `POST /resolve` with “car insurance” or “loss amount” | [Resolver tests](tests/unit/test_resolver.py) | Deterministic lexical/mapping resolution; no hosted model required. |
+| Relationships and graph validity | [Ontology](semantic/ontology/sap_erp.ttl) and [SHACL shapes](semantic/shapes/sap_erp_shapes.ttl) | `make validate-semantic` validates valid and invalid RDF fixtures | [SHACL tests](tests/semantic/test_shacl.py) | RDFLib/pySHACL local graph; no graph database is required. |
+| Governed metrics and rules | [Metrics](semantic/metrics/metrics.yaml) and [rules](semantic/rules/financial_postings.yaml) | `make PYTHON=.venv/bin/python demo` computes qualifying financial posting metrics | [Metric/rule tests](tests/semantic/test_metric_rules.py) | Rules are compiler-owned semantics, not LLM prompt instructions. |
 | Certified-product selection | [Data-product contracts](data_products/) | `GET /data-products`; `/query-plan` selects the required contracts | [Registry tests](tests/unit/test_registry.py) | Local CSV fixtures model certified serving products only. |
-| Federated physical normalization | [Mappings](mappings/) | France `MOTOR`/`MTR`, UK `AUTO`/`CAR`, Germany `MotorInsurance` resolve to `insurance:MotorInsurance` | [Mapping tests](tests/semantic/test_mappings.py) | Cloud mappings are unexecuted extension artifacts. |
+| Federated physical normalization | [Mappings](mappings/) | France `MOTOR`/`MTR`, UK `AUTO`/`CAR`, Germany `MotorInsurance` resolve to `sap:ProductAutomotive` | [Mapping tests](tests/semantic/test_mappings.py) | Cloud mappings are unexecuted extension artifacts. |
 | Typed planning and trusted SQL | [ADR-004](docs/decisions/ADR-004-typed-query-plans.md) and `src/semantic_layer/query_planner/` | `POST /query-plan`, then `/execute` | [Planner tests](tests/unit/test_query_planner.py) and [compiler tests](tests/unit/test_compiler.py) | Only DuckDB is executed locally; cloud dialect fragments are not equivalent executed queries. |
 | Authorization and quality gates | [Governance guidance](docs/governance.md), contracts, and mappings | An FR analyst can execute FR scope; unsupported/unauthorized input is denied | [Authorization tests](tests/unit/test_authorization.py), [quality tests](tests/unit/test_quality.py), and [execution-control tests](tests/unit/test_execution_controls_security.py) | Request-body role is demo-only; production derives claims from trusted identity. |
 | Lineage and tamper-evident provenance | `src/semantic_layer/lineage/` and `src/semantic_layer/provenance/` | `/execute` returns a `query_id`; `GET /provenance/{query_id}` retrieves evidence | [Provenance/integrity tests](tests/unit/test_capability_integrity.py) and [execution integration test](tests/integration/test_duckdb_execution.py) | Local SQLite/HMAC is not a multi-writer enterprise audit store. |
-| Agent end-to-end behavior | `src/semantic_layer/agents/` | Primary French motor-claims question through `make PYTHON=.venv/bin/python demo` | [Agent integration tests](tests/integration/test_agent_e2e.py) and [golden corpus](tests/golden/questions.yaml) | Deterministic workflow; optional LLM enhancement is not required or supplied. |
-| Continuous semantic assurance | [CI workflow](.github/workflows/ci.yml) and [verification evidence](docs/verification-report.md) | `make lint`, `make validate-semantic`, `make check-golden`, `make test` | CI job plus 208-test local evidence recorded in the report | CI does not yet execute cloud, performance, supply-chain, or deployment checks. |
+| Agent end-to-end behavior | `src/semantic_layer/agents/` | Primary French financial-posting question through `make PYTHON=.venv/bin/python demo` | [Agent integration tests](tests/integration/test_agent_e2e.py) and [golden corpus](tests/golden/questions.yaml) | Deterministic workflow; optional LLM enhancement is not required or supplied. |
+| Continuous semantic assurance | [CI workflow](.github/workflows/ci.yml) and [verification evidence](docs/verification-report.md) | `make lint`, `make validate-semantic`, `make check-golden`, `make test` | CI job plus 218-test local evidence recorded in the report | CI does not yet execute cloud, performance, supply-chain, or deployment checks. |
 
 ## Pilot implementation plan
 
@@ -1264,8 +1264,8 @@ For design rationale, see [architecture](docs/architecture.md),
 
 **Implemented locally:** semantic assets, SHACL, deterministic resolver and
 planner, registry, metric/rule definitions, authorization, quality, primary
-claims DuckDB execution, FastAPI, agent workflow, provenance, synthetic data,
-evaluation, and CI. `ClaimsRatio` remains discovery-only as described above.
+financial postings DuckDB execution, FastAPI, agent workflow, provenance, synthetic data,
+evaluation, and CI. `CostRevenueRatio` remains discovery-only as described above.
 
 **Simulated or documented:** Databricks, Snowflake, and Fabric connections and
 execution; production identity authentication; external KMS/HSM signing;

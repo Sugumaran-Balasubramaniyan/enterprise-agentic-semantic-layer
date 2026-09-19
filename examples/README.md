@@ -8,9 +8,9 @@ need a cloud account, MCP server, or LLM.
 
 | Artifact | Status | Purpose |
 | --- | --- | --- |
-| [Primary query plan](generated_query_plans/primary_claims_plan.json) | Checked in and exercised by the primary local path | Typed, SQL-free plan for the governed French claims question |
+| [Primary query plan](generated_query_plans/primary_erp_plan.json) | Checked in and exercised by the primary local path | Typed, SQL-free plan for the governed French financial postings question |
 | [Generated SQL index](generated_sql/README.md) | DuckDB is executed; cloud dialect files are incomplete documentation artifacts | Physical compiler output and bounded adapter examples |
-| [Governed questions](example_questions.md) | Primary question executes; active-policy and ClaimsRatio examples are discovery-only | Supported grammar and explicit authorization/execution limits |
+| [Governed questions](example_questions.md) | Primary question executes; active-sales-order and CostRevenueRatio examples are discovery-only | Supported grammar and explicit authorization/execution limits |
 
 ## Route, request, and response examples
 
@@ -33,8 +33,8 @@ The stable response is:
 ```json
 {
   "text": "car insurance",
-  "concept_ids": ["insurance:MotorInsurance"],
-  "matched_terms": {"insurance:MotorInsurance": "car insurance"}
+  "concept_ids": ["sap:ProductAutomotive"],
+  "matched_terms": {"sap:ProductAutomotive": "car insurance"}
 }
 ```
 
@@ -46,7 +46,7 @@ plan construction or SQL execution.
 ```bash
 curl -s -X POST http://127.0.0.1:8000/execute \
   -H 'content-type: application/json' \
-  -d '{"question":"Find French motor-insurance customers with at least three qualifying claims in the last 12 months and total incurred loss above EUR 20,000.","role":"UnknownRole"}'
+  -d '{"question":"Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.","role":"UnknownRole"}'
 ```
 
 The response status is `403` and the body is:

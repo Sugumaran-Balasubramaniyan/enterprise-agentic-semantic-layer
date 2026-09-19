@@ -1,6 +1,6 @@
 # Certified data products
 
-GlobalSure publishes four versioned contracts under `data_products/`. Each
+SAP SE publishes four versioned contracts under `data_products/`. Each
 contract names its owner, platform/location boundary, row grain, service level,
 quality checks, classification, PII fields, lineage, exposed concepts, schema,
 and certification state. The contracts are the selection boundary for agents;
@@ -8,32 +8,31 @@ an agent cannot choose an uncertified physical table by guessing a name.
 
 | Product | Grain | Primary concepts | Quality state |
 | --- | --- | --- | --- |
-| `Customer360` | one row per customer | Customer, Country | CERTIFIED |
-| `PolicyMaster` | one row per policy | Policy, ActivePolicy, InsuranceProduct | CERTIFIED |
-| `ClaimsAnalytics` | one row per claim | Claim, QualifyingClaim, IncurredLoss | CERTIFIED |
-| `PremiumAnalytics` | one row per policy and premium period | Premium, Policy | CERTIFIED |
+| `BusinessPartners` | one row per partner | BusinessPartner, CompanyCode | CERTIFIED |
+| `SalesOrders` | one row per sales order | SalesOrder, ActiveSalesOrder, Product | CERTIFIED |
+| `ACDOCAFinancials` | one row per journal entry item | FinancialPosting, QualifyingPosting, FinancialLoss | CERTIFIED |
+| `BillingAnalytics` | one row per order and billing period | BillingDocument, SalesOrder | CERTIFIED |
 
 The curated demo files in `data/curated/` implement these schemas locally.
 `data/raw/` also contains deliberately invalid records (blank IDs, negative
-amounts, future dates, and an unknown status) for later quality-check demos.
-The generated values are fictional and use EUR for a reproducible local run;
-they are synthetic demonstration data.
+amounts, future dates, and an unknown status) for quality-check verification.
+The generated values are synthetic demonstration data and use EUR for a reproducible local run.
 
 ## Governed metrics
 
-`semantic/metrics/metrics.yaml` defines `ClaimCount`, `TotalIncurredLoss`,
-`AverageClaimAmount`, `ActivePolicyCount`, and `ClaimsRatio`, including the
-expression, unit, source product, and rule. `QualifyingClaim` in
-`semantic/rules/claims.yaml` excludes `CANCELLED` and `DUPLICATE` claims while
+`semantic/metrics/metrics.yaml` defines `PostingCount`, `TotalDebitLossEur`,
+`AveragePostingAmountEur`, `ActiveSalesOrderCount`, and `CostRevenueRatio`, including the
+expression, unit, source product, and rule. `QualifyingPosting` in
+`semantic/rules/financial_postings.yaml` excludes `REVERSED` and `DUPLICATE` journal entries while
 keeping those records observable for audit and quality analysis.
 
-`ClaimsRatio` is a safe multi-product metric: ClaimsAnalytics loss and
-PremiumAnalytics premium are each filtered and aggregated independently, then
-joined on `customer_id`, `country`, and canonical `product` before division.
+`CostRevenueRatio` is a safe multi-product metric: ACDOCAFinancials loss and
+BillingAnalytics billed revenue are each filtered and aggregated independently, then
+joined on `partner_id`, `country`, and canonical `product` before division.
 The caller's as-of date and reporting window apply independently to
-`claim_date` and `premium_date`; the contract explicitly forbids joining raw
-claim and premium rows, which would multiply measures for customers with more
-than one claim or premium period. A zero premium denominator produces a null
+`posting_date` and `billing_date`; the contract explicitly forbids joining raw
+posting and billing rows, which would multiply measures for partners with more
+than one posting or billing period. A zero revenue denominator produces a null
 ratio rather than an unbounded value.
 
 This repository validates that definition during discovery only. No local

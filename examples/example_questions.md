@@ -4,10 +4,10 @@ The deterministic agent accepts business questions, not SQL. It resolves only
 registered terms, emits a typed logical plan, and fails closed for unsupported
 intent, invalid scope, uncertified products, or denied access.
 
-## Primary claims investigation
+## Primary financial posting audit
 
-> Find French motor-insurance customers with at least three qualifying claims
-> in the last 12 months and total incurred loss above EUR 20,000.
+> Find French automotive business partners with at least three qualifying financial postings
+> in the last 12 months and total debit loss above EUR 20,000.
 
 Run it locally with:
 
@@ -16,19 +16,19 @@ Run it locally with:
 ```
 
 Use the `ClaimsAnalystFR` role. The deterministic result contains `FR_001` and
-`FR_002`; cancelled and duplicate claims are excluded by the governed
-`QualifyingClaim` rule.
+`FR_002`; reversed and duplicate postings are excluded by the governed
+`QualifyingPosting` rule.
 
 ## Other governed discovery patterns
 
-- `How many French motor insurance customers have active policies this year?`
-- `Show the claims ratio for French motor insurance customers in the current year.`
+- `How many French automotive business partners have active sales orders this year?`
+- `Show the cost-revenue ratio for French automotive business partners in the current year.`
 
-Only the primary claims plan is compiled and executed by the local DuckDB
-adapter. Active-policy questions are discovery-only. `ClaimsRatio` is also
+Only the primary financial posting plan is compiled and executed by the local DuckDB
+adapter. Active-sales-order questions are discovery-only. `CostRevenueRatio` is also
 discovery-only and intentionally returns `PRODUCT_DENIED` during authorization:
-no local simulated role can access its complete `ClaimsAnalytics` and
-`PremiumAnalytics` product set. A production implementation needs a reviewed
+no local simulated role can access its complete `ACDOCAFinancials` and
+`BillingAnalytics` product set. A production implementation needs a reviewed
 aggregate-only workload role, a compiler, platform-native controls, and
 execution/evidence tests. Cloud mappings remain declared extension artifacts
 and are not executed by this repository.

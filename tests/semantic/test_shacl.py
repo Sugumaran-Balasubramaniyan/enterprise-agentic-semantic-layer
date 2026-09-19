@@ -7,17 +7,17 @@ from semantic_layer import validation
 from semantic_layer.semantic_validation import ValidationResult, validate_graph
 
 ROOT = Path(__file__).parents[2]
-SHAPES = ROOT / "semantic" / "shapes" / "insurance-shapes.ttl"
+SHAPES = ROOT / "semantic" / "shapes" / "sap_erp_shapes.ttl"
 VALID_GRAPH = ROOT / "semantic" / "ontology" / "sample-graph-valid.ttl"
 INVALID_GRAPH = ROOT / "semantic" / "ontology" / "sample-graph-invalid.ttl"
-ONTOLOGY = ROOT / "semantic" / "ontology" / "insurance.ttl"
-TAXONOMY = ROOT / "semantic" / "taxonomy" / "insurance-products.ttl"
+ONTOLOGY = ROOT / "semantic" / "ontology" / "sap_erp.ttl"
+TAXONOMY = ROOT / "semantic" / "taxonomy" / "sap_products.ttl"
 
 
 def test_invalid_claim_graph_fails_shacl_validation() -> None:
     result = validate_graph(INVALID_GRAPH, SHAPES)
     assert result.conforms is False
-    assert "claimDate" in result.report_text
+    assert "amountInCompanyCurrency" in result.report_text or "postingDate" in result.report_text
 
 
 def test_valid_claim_graph_conforms_to_shacl_shapes() -> None:
@@ -27,16 +27,16 @@ def test_valid_claim_graph_conforms_to_shacl_shapes() -> None:
 
 def test_valid_graph_contains_relationship_links_and_country_context() -> None:
     graph = Graph().parse(VALID_GRAPH, format="turtle")
-    insurance = Namespace("https://globalsure.example/insurance/")
-    customer = insurance["customer-FR-001"]
-    policy = insurance["policy-FR-001"]
-    claim = insurance["claim-FR-001"]
+    sap = Namespace("https://sap.example/erp/")
+    bp = sap["partner-FR-001"]
+    order = sap["order-FR-001"]
+    doc = sap["doc-FR-001"]
 
-    assert (customer, insurance.ownsPolicy, policy) in graph
-    assert (customer, insurance.submitsClaim, claim) in graph
-    assert (claim, insurance.relatesToPolicy, policy) in graph
-    assert (customer, insurance.countryCode, None) in graph
-    assert (policy, insurance.countryCode, None) in graph
+    assert (bp, sap.hasSalesOrder, order) in graph
+    assert (bp, sap.hasFinancialPosting, doc) in graph
+    assert (doc, sap.referencesSalesOrder, order) in graph
+    assert (bp, sap.countryCode, None) in graph
+    assert (order, sap.countryCode, None) in graph
 
 
 def test_shacl_validation_reports_fixture_paths() -> None:
@@ -83,37 +83,37 @@ def test_validation_cli_accepts_expected_fixture_outcomes(monkeypatch) -> None:
 
 def test_ontology_declares_versions_domains_ranges_and_subclasses() -> None:
     graph = Graph().parse(ONTOLOGY, format="turtle")
-    insurance = Namespace("https://globalsure.example/insurance/")
+    sap = Namespace("https://sap.example/erp/")
     owl = Namespace("http://www.w3.org/2002/07/owl#")
-    assert (insurance[""], RDF.type, owl.Ontology) in graph
-    assert (insurance[""], owl.versionInfo, None) in graph
+    assert (sap[""], RDF.type, owl.Ontology) in graph
+    assert (sap[""], owl.versionInfo, None) in graph
     for name, domain, range_ in (
-        ("ownsPolicy", "Customer", "Policy"),
-        ("submitsClaim", "Customer", "Claim"),
-        ("relatesToPolicy", "Claim", "Policy"),
-        ("hasProduct", "Policy", "InsuranceProduct"),
-        ("coversRisk", "Policy", "Risk"),
-        ("hasCoverage", "Policy", "Coverage"),
-        ("generatesPremium", "Policy", "Premium"),
-        ("hasClaimStatus", "Claim", "ClaimStatus"),
-        ("hasIncurredLoss", "Claim", "IncurredLoss"),
+        ("hasSalesOrder", "BusinessPartner", "SalesOrder"),
+        ("hasFinancialPosting", "BusinessPartner", "FinancialPosting"),
+        ("referencesSalesOrder", "FinancialPosting", "SalesOrder"),
+        ("hasProduct", "SalesOrder", "Product"),
+        ("coversRisk", "SalesOrder", "Risk"),
+        ("hasCoverage", "SalesOrder", "Coverage"),
+        ("generatesBilling", "SalesOrder", "BillingDocument"),
+        ("hasPostingStatus", "FinancialPosting", "PostingStatus"),
+        ("hasFinancialLoss", "FinancialPosting", "FinancialLoss"),
     ):
-        predicate = insurance[name]
+        predicate = sap[name]
         assert (predicate, RDF.type, owl.ObjectProperty) in graph
-        assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").domain, insurance[domain]) in graph
-        assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").range, insurance[range_]) in graph
-    assert (insurance.MotorInsurance, RDFS.subClassOf, insurance.InsuranceProduct) in graph
-    assert (insurance.HomeInsurance, RDFS.subClassOf, insurance.InsuranceProduct) in graph
+        assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").domain, sap[domain]) in graph
+        assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").range, sap[range_]) in graph
+    assert (sap.ProductAutomotive, RDFS.subClassOf, sap.Product) in graph
+    assert (sap.ProductCommercial, RDFS.subClassOf, sap.Product) in graph
 
 
 def test_country_code_domain_is_a_superclass_and_combined_instance_graph_conforms() -> None:
     ontology = Graph().parse(ONTOLOGY, format="turtle")
-    insurance = Namespace("https://globalsure.example/insurance/")
+    sap = Namespace("https://sap.example/erp/")
     rdfs = Namespace("http://www.w3.org/2000/01/rdf-schema#")
-    domains = set(ontology.objects(insurance.countryCode, rdfs.domain))
-    assert domains == {insurance.CountryCodedEntity}
-    assert (insurance.Customer, RDFS.subClassOf, insurance.CountryCodedEntity) in ontology
-    assert (insurance.Policy, RDFS.subClassOf, insurance.CountryCodedEntity) in ontology
+    domains = set(ontology.objects(sap.countryCode, rdfs.domain))
+    assert domains == {sap.CountryCodedEntity}
+    assert (sap.BusinessPartner, RDFS.subClassOf, sap.CountryCodedEntity) in ontology
+    assert (sap.SalesOrder, RDFS.subClassOf, sap.CountryCodedEntity) in ontology
 
     instance = Graph().parse(VALID_GRAPH, format="turtle")
     shapes = Graph().parse(SHAPES, format="turtle")
@@ -130,25 +130,25 @@ def test_country_code_domain_is_a_superclass_and_combined_instance_graph_conform
 
 def test_taxonomy_declares_version_and_skos_hierarchy_and_alternatives() -> None:
     graph = Graph().parse(TAXONOMY, format="turtle")
-    insurance = Namespace("https://globalsure.example/insurance/")
+    sap = Namespace("https://sap.example/erp/")
     skos = Namespace("http://www.w3.org/2004/02/skos/core#")
     owl = Namespace("http://www.w3.org/2002/07/owl#")
-    assert (insurance.InsuranceProductScheme, owl.versionInfo, None) in graph
-    assert (insurance.MotorInsurance, skos.broader, insurance.InsuranceProduct) in graph
-    assert (insurance.HomeInsurance, skos.broader, insurance.InsuranceProduct) in graph
-    assert (insurance.InsuranceProduct, skos.narrower, insurance.MotorInsurance) in graph
-    assert (insurance.InsuranceProduct, skos.narrower, insurance.HomeInsurance) in graph
-    assert (insurance.MotorInsurance, skos.altLabel, None) in graph
-    assert (insurance.HomeInsurance, skos.altLabel, None) in graph
+    assert (sap.ProductScheme, owl.versionInfo, None) in graph
+    assert (sap.ProductAutomotive, skos.broader, sap.Product) in graph
+    assert (sap.ProductCommercial, skos.broader, sap.Product) in graph
+    assert (sap.Product, skos.narrower, sap.ProductAutomotive) in graph
+    assert (sap.Product, skos.narrower, sap.ProductCommercial) in graph
+    assert (sap.ProductAutomotive, skos.altLabel, None) in graph
+    assert (sap.ProductCommercial, skos.altLabel, None) in graph
 
 
 def test_shapes_and_sample_graphs_declare_semantic_versions() -> None:
     owl = Namespace("http://www.w3.org/2002/07/owl#")
-    insurance = Namespace("https://globalsure.example/insurance/")
+    sap = Namespace("https://sap.example/erp/")
     for path, subject in (
-        (SHAPES, insurance.InsuranceShapes),
-        (VALID_GRAPH, insurance.SampleGraphValid),
-        (INVALID_GRAPH, insurance.SampleGraphInvalid),
+        (SHAPES, sap.ERPAShapes),
+        (VALID_GRAPH, sap.SampleGraphValid),
+        (INVALID_GRAPH, sap.SampleGraphInvalid),
     ):
         graph = Graph().parse(path, format="turtle")
         assert (subject, owl.versionInfo, None) in graph

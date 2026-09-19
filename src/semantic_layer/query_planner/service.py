@@ -62,20 +62,22 @@ _NUMBER_WORDS = {
 _NUMBER_TOKEN = r"(?:\d+|zero|one|two|three|four|five|six|seven|eight|nine|ten|"
 _NUMBER_TOKEN += r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)"
 _COUNTRY_TOKEN = r"(?:french|france|fr|uk|united kingdom|british|german|germany|de|gb)"
-_PRODUCT_TOKEN = r"(?:motor insurance|motor cover|car insurance|mtr|motorinsurance)"
-_SUBJECT_TOKEN = r"(?:customers|policyholders|insured customers)"
+_PRODUCT_TOKEN = r"(?:motor insurance|motor cover|car insurance|mtr|motorinsurance|automotive product|automotive products|automotive|productautomotive)"
+_SUBJECT_TOKEN = r"(?:customers|policyholders|insured customers|business partners|partners|bp)"
+_POSTINGS_TOKEN = r"(?:qualifying claims|qualifying financial postings|qualifying postings|financial postings)"
+_LOSS_TOKEN = r"(?:total incurred loss|total debit loss|total financial loss|total loss|total debit)"
 _CLAIMS_QUESTION = re.compile(
     rf"^find {_COUNTRY_TOKEN} {_PRODUCT_TOKEN} {_SUBJECT_TOKEN} with "
     rf"(?:at least {_NUMBER_TOKEN}|more than {_NUMBER_TOKEN}|over {_NUMBER_TOKEN}) "
-    rf"qualifying claims in the last 12 months and total incurred loss above eur [\d,]+"
-    rf"(?: for (?:claim loss|inclusion|policy|loss|claims state|contract) review)?\.$"
+    rf"{_POSTINGS_TOKEN} in the last 12 months and {_LOSS_TOKEN} above eur [\d,]+"
+    rf"(?: for (?:claim loss|inclusion|policy|loss|claims state|contract|financial audit|audit|debit) review)?\.$"
 )
 _ACTIVE_QUESTION = re.compile(
     rf"^(?:how many|find) {_COUNTRY_TOKEN} {_PRODUCT_TOKEN} {_SUBJECT_TOKEN} "
-    r"(?:have|with) active policies (?:this year|in the current year)[.?]$"
+    rf"(?:have|with) (?:active policies|active sales orders|released sales orders) (?:this year|in the current year)[.?]$"
 )
 _RATIO_QUESTION = re.compile(
-    rf"^show the claims ratio for {_COUNTRY_TOKEN} {_PRODUCT_TOKEN} {_SUBJECT_TOKEN} "
+    rf"^show the (?:claims ratio|cost-revenue ratio|cost revenue ratio) for {_COUNTRY_TOKEN} {_PRODUCT_TOKEN} {_SUBJECT_TOKEN} "
     r"in the current year(?: for finance planning)?\.$"
 )
 
@@ -123,7 +125,7 @@ def _money_threshold(question: str) -> int | None:
 
 def _claim_count_threshold(question: str) -> int | None:
     match = re.search(
-        r"(?:at least|more than|over)\s+(\d+|[a-z]+)\s+qualifying claims", question
+        rf"(?:at least|more than|over)\s+(\d+|[a-z]+)\s+{_POSTINGS_TOKEN}", question
     )
     if not match:
         return None
@@ -132,7 +134,7 @@ def _claim_count_threshold(question: str) -> int | None:
 
 
 def _caller(role: str, country: str | None) -> CallerContext:
-    role_country = "FR" if role == "ClaimsAnalystFR" else None
+    role_country = "FR" if role in ("ClaimsAnalystFR", "FinancialControllerFR") else None
     return CallerContext(role=role, country=country or role_country)
 
 
@@ -185,9 +187,9 @@ def _validate_supported_constraints(question: str, registry: SemanticRegistry) -
         raise ValueError("unsupported residual constraint language")
 
     has_claim_count = _claim_count_threshold(question) is not None
-    has_loss = "incurred loss" in question and _money_threshold(question) is not None
-    has_active = "active polic" in question
-    has_ratio = "claims ratio" in question
+    has_loss = any(k in question for k in ("incurred loss", "debit loss", "financial loss")) and _money_threshold(question) is not None
+    has_active = any(k in question for k in ("active polic", "active sales", "released sales"))
+    has_ratio = any(k in question for k in ("claims ratio", "cost-revenue ratio", "cost revenue ratio"))
     intent_count = sum((has_claim_count or has_loss, has_active, has_ratio))
     if intent_count != 1:
         raise ValueError("unsupported mixed clauses: question combines or omits governed intents")
@@ -218,61 +220,65 @@ def discover_question(question: str, role: str, registry: SemanticRegistry) -> Q
     normalized_question = normalize(question)
     _validate_supported_constraints(normalized_question, registry)
     resolution = registry.resolve(question)
-    customer_id = registry.concept_id_named("Customer")
-    policy_id = registry.concept_id_named("Policy")
-    claim_id = registry.concept_id_named("Claim")
-    country_id = registry.concept_id_named("Country")
-    motor_id = registry.concept_id_named("Motor Insurance")
+    partner_id = registry.concept_id_named("Business Partner")
+    order_id = registry.concept_id_named("Sales Order")
+    posting_id = registry.concept_id_named("Financial Posting")
+    company_code_id = registry.concept_id_named("Company Code")
+    auto_id = registry.concept_id_named("Automotive Product")
     country = _country_for(normalized_question, registry)
     filters: list[Filter] = []
     if country:
-        filters.append(Filter(concept_id=country_id, operator="=", value=country))
-    if motor_id in resolution.concept_ids:
-        filters.append(Filter(concept_id=registry.concept_id_named("Insurance Product"), operator="=", value=motor_id))
+        filters.append(Filter(concept_id=company_code_id, operator="=", value=country))
+    if auto_id in resolution.concept_ids:
+        filters.append(Filter(concept_id=registry.concept_id_named("Product"), operator="=", value=auto_id))
     elif _requires_mapped_product(normalized_question, registry):
-        raise ValueError(f"unresolved governed product: {motor_id}")
+        raise ValueError(f"unresolved governed product: {auto_id}")
 
-    claim_threshold = _claim_count_threshold(normalized_question)
-    incurred_threshold = _money_threshold(normalized_question) if "incurred loss" in normalized_question else None
-    relationships = [registry.relationship_path(customer_id, policy_id)]
+    posting_threshold = _claim_count_threshold(normalized_question)
+    loss_threshold = (
+        _money_threshold(normalized_question)
+        if any(term in normalized_question for term in ("incurred loss", "debit loss", "financial loss", "loss above", "amount above"))
+        else None
+    )
+    relationships = [registry.relationship_path(partner_id, order_id)]
     metric_predicates: list[MetricPredicate] = []
     metric_ids: list[str] = []
-    if claim_threshold is not None or incurred_threshold is not None:
+    if posting_threshold is not None or loss_threshold is not None:
         relationships.extend(
             (
-                registry.relationship_path(customer_id, claim_id),
-                registry.relationship_path(claim_id, policy_id),
+                registry.relationship_path(partner_id, posting_id),
+                registry.relationship_path(posting_id, order_id),
             )
         )
-        if claim_threshold is not None:
-            claim_count_id = registry.metric_id_named("ClaimCount")
+        if posting_threshold is not None:
+            posting_count_id = registry.metric_id_named("PostingCount")
             operator = ">" if "more than" in normalized_question or "over" in normalized_question else ">="
             metric_predicates.append(
-                MetricPredicate(metric_id=claim_count_id, operator=operator, value=claim_threshold)
+                MetricPredicate(metric_id=posting_count_id, operator=operator, value=posting_threshold)
             )
-            metric_ids.append(claim_count_id)
-        if incurred_threshold is not None:
-            total_loss_id = registry.metric_id_named("TotalIncurredLoss")
+            metric_ids.append(posting_count_id)
+        if loss_threshold is not None:
+            total_loss_id = registry.metric_id_named("TotalDebitLossEur")
             metric_predicates.append(
-                MetricPredicate(metric_id=total_loss_id, operator=">", value=incurred_threshold)
+                MetricPredicate(metric_id=total_loss_id, operator=">", value=loss_threshold)
             )
             metric_ids.append(total_loss_id)
-    elif "active polic" in normalized_question:
-        active_policy_count_id = registry.metric_id_named("ActivePolicyCount")
+    elif "active polic" in normalized_question or "active sales order" in normalized_question or "released sales order" in normalized_question:
+        active_order_count_id = registry.metric_id_named("ActiveSalesOrderCount")
         metric_predicates.append(
-            MetricPredicate(metric_id=active_policy_count_id, operator=">", value=0)
+            MetricPredicate(metric_id=active_order_count_id, operator=">", value=0)
         )
-        metric_ids.append(active_policy_count_id)
-    elif "claims ratio" in normalized_question:
+        metric_ids.append(active_order_count_id)
+    elif "claims ratio" in normalized_question or "cost-revenue ratio" in normalized_question or "cost revenue ratio" in normalized_question:
         relationships.extend(
             (
-                registry.relationship_path(customer_id, claim_id),
-                registry.relationship_path(claim_id, policy_id),
+                registry.relationship_path(partner_id, posting_id),
+                registry.relationship_path(posting_id, order_id),
             )
         )
-        claims_ratio_id = registry.metric_id_named("ClaimsRatio")
-        metric_predicates.append(MetricPredicate(metric_id=claims_ratio_id, operator=">", value=0))
-        metric_ids.append(claims_ratio_id)
+        ratio_id = registry.metric_id_named("CostRevenueRatio")
+        metric_predicates.append(MetricPredicate(metric_id=ratio_id, operator=">", value=0))
+        metric_ids.append(ratio_id)
     else:
         raise ValueError("unsupported question pattern; no governed metric could be resolved")
 
@@ -281,13 +287,13 @@ def discover_question(question: str, role: str, registry: SemanticRegistry) -> Q
         role=role,
         caller=_caller(role, country),
         resolution=resolution,
-        root_entity=customer_id,
-        projected_dimensions=(customer_id, country_id),
+        root_entity=partner_id,
+        projected_dimensions=(partner_id, company_code_id),
         filters=tuple(filters),
         relationships=tuple(relationships),
         metric_predicates=tuple(metric_predicates),
         time_context=_time_context(normalized_question),
-        selected_products=tuple(registry.products_for_plan([customer_id, policy_id], metric_ids)),
+        selected_products=tuple(registry.products_for_plan([partner_id, order_id], metric_ids)),
     )
 
 

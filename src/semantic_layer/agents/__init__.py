@@ -1,5 +1,15 @@
-"""Deterministic, governed semantic investigation agent."""
+"""Deterministic, governed SAP semantic investigation and financial audit agents."""
 
-from semantic_layer.agents.workflow import AgentAnswer, ClaimsInvestigationAgent
+from semantic_layer.agents.workflow import (
+    AgentAnswer,
+    ClaimsInvestigationAgent,
+    FinancialAuditAgent,
+    SAPFinancialAuditAgent,
+)
 
-__all__ = ["AgentAnswer", "ClaimsInvestigationAgent"]
+__all__ = [
+    "AgentAnswer",
+    "ClaimsInvestigationAgent",
+    "FinancialAuditAgent",
+    "SAPFinancialAuditAgent",
+]

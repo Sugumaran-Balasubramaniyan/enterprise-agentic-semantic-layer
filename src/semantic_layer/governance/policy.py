@@ -7,16 +7,20 @@ from semantic_layer.models import CallerContext, SemanticQueryPlan
 from semantic_layer.query_planner import QueryDiscovery
 from semantic_layer.registry import SemanticRegistry
 
-_COUNTRY_CONCEPT = "insurance:Country"
+_COUNTRY_CONCEPT = "sap:CompanyCode"
 _ROLE_PRODUCTS = {
-    "ClaimsAnalystFR": {"Customer360", "PolicyMaster", "ClaimsAnalytics"},
-    "ClaimsManagerGroup": {"Customer360", "PolicyMaster", "ClaimsAnalytics"},
-    "FinanceAnalyst": {"PremiumAnalytics"},
+    "ClaimsAnalystFR": {"BusinessPartners", "SalesOrders", "ACDOCAFinancials"},
+    "ClaimsManagerGroup": {"BusinessPartners", "SalesOrders", "ACDOCAFinancials"},
+    "FinancialControllerFR": {"BusinessPartners", "SalesOrders", "ACDOCAFinancials"},
+    "FinancialControllerGroup": {"BusinessPartners", "SalesOrders", "ACDOCAFinancials"},
+    "FinanceAnalyst": {"BillingAnalytics"},
 }
 _CLASSIFICATION_RANK = {"Public": 0, "Internal": 1, "Confidential": 2, "Restricted": 3}
 _ROLE_MAX_CLASSIFICATION = {
     "ClaimsAnalystFR": "Restricted",
     "ClaimsManagerGroup": "Restricted",
+    "FinancialControllerFR": "Restricted",
+    "FinancialControllerGroup": "Restricted",
     "FinanceAnalyst": "Confidential",
 }
 
@@ -249,11 +253,11 @@ def authorize_discovery(
             reason_code="COUNTRY_SCOPE_DENIED",
             message="discovery country scope does not match caller",
         )
-    if caller.role == "ClaimsAnalystFR" and countries != {"FR"}:
+    if caller.role in ("ClaimsAnalystFR", "FinancialControllerFR") and countries != {"FR"}:
         return issue(
             allowed=False,
             reason_code="COUNTRY_SCOPE_DENIED",
-            message="ClaimsAnalystFR is limited to French records",
+            message=f"{caller.role} is limited to French records",
         )
     pii_fields = _projected_pii_fields_for(set(discovery.projected_dimensions), countries, registry)
     if caller.role == "FinanceAnalyst" and pii_fields:
@@ -338,11 +342,11 @@ def authorize(
             reason_code="COUNTRY_SCOPE_DENIED",
             message="plan country scope does not match the supplied caller context",
         )
-    if caller.role == "ClaimsAnalystFR" and countries != {"FR"}:
+    if caller.role in ("ClaimsAnalystFR", "FinancialControllerFR") and countries != {"FR"}:
         return issue(
             allowed=False,
             reason_code="COUNTRY_SCOPE_DENIED",
-            message="ClaimsAnalystFR is limited to French records",
+            message=f"{caller.role} is limited to French records",
         )
     pii_fields = _projected_pii_fields(plan, registry)
     if caller.role == "FinanceAnalyst" and pii_fields:

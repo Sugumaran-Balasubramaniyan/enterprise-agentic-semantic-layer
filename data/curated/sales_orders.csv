@@ -1,0 +1,6 @@
+sales_order_id,partner_id,country,product,order_status,effective_date,expiry_date,net_value_eur
+FR_SO_001,FR_001,FR,sap:ProductAutomotive,RELEASED,2024-09-07,2026-09-07,1350.00
+FR_SO_002,FR_001,FR,sap:ProductAutomotive,CLOSED,2024-03-11,2025-07-24,850.00
+FR_SO_003,FR_002,FR,sap:ProductAutomotive,RELEASED,2025-04-15,2026-10-07,1490.00
+UK_SO_001,UK_001,GB,sap:ProductAutomotive,RELEASED,2024-11-16,2026-09-17,1120.00
+DE_SO_001,DE_001,DE,sap:ProductAutomotive,RELEASED,2025-01-05,2026-09-27,980.00

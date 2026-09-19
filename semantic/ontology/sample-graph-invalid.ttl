@@ -1,15 +1,15 @@
-@prefix insurance: <https://globalsure.example/insurance/> .
+@prefix sap: <https://sap.example/erp/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-insurance:SampleGraphInvalid a owl:Ontology ; owl:versionInfo "1.0.0" .
-insurance:policy-FR-BAD a insurance:Policy ;
-    insurance:policyId "FR_POL_BAD" ;
-    insurance:hasProduct insurance:MotorInsurance ;
-    insurance:policyStatus "ACTIVE" .
-insurance:MotorInsurance a insurance:MotorInsurance, insurance:InsuranceProduct .
-insurance:claim-FR-BAD a insurance:Claim ;
-    insurance:claimId "FR_CLM_BAD" ;
-    insurance:claimStatus "OPEN" ;
-    insurance:relatesToPolicy insurance:policy-FR-BAD ;
-    insurance:incurredLoss "-10.00"^^xsd:decimal .
+sap:SampleGraphInvalid a owl:Ontology ; owl:versionInfo "1.0.0" .
+sap:order-FR-BAD a sap:SalesOrder ;
+    sap:salesOrderId "FR_SO_BAD" ;
+    sap:hasProduct sap:ProductAutomotive ;
+    sap:orderStatus "RELEASED" .
+sap:ProductAutomotive a sap:ProductAutomotive, sap:Product .
+sap:doc-FR-BAD a sap:FinancialPosting ;
+    sap:journalEntryId "FR_DOC_BAD" ;
+    sap:postingStatus "POSTED" ;
+    sap:referencesSalesOrder sap:order-FR-BAD ;
+    sap:amountInCompanyCurrency "-10.00"^^xsd:decimal .

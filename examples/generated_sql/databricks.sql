@@ -1,10 +1,10 @@
 -- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Databricks execution is disabled locally.
 -- Use the governed plan, approved France mapping, and native Databricks security.
-SELECT customer.customer_id, COUNT(DISTINCT claim.claim_id) AS claim_count
-FROM globalsure_france.insurance_customer.customers AS customer
-JOIN globalsure_france.insurance_policy.policies AS policy
-    ON customer.customer_id = policy.customer_id
-JOIN globalsure_france.insurance_claim.claims AS claim
-    ON policy.policy_id = claim.policy_id
-WHERE claim.status IN (?, ?, ?)
-GROUP BY customer.customer_id;
+SELECT partner.partner_id, COUNT(DISTINCT posting.journal_entry_id) AS posting_count
+FROM s4hana_france.business_partner.partners AS partner
+JOIN s4hana_france.sales_order.orders AS ord
+    ON partner.partner_id = ord.partner_id
+JOIN s4hana_france.finance_acdoca.postings AS posting
+    ON ord.sales_order_id = posting.sales_order_id
+WHERE posting.posting_status IN (?, ?)
+GROUP BY partner.partner_id;

@@ -7,41 +7,41 @@ from pydantic import ValidationError
 from semantic_layer.semantic_validation import load_vocabulary
 
 ROOT = Path(__file__).parents[2]
-VOCABULARY = ROOT / "semantic" / "vocabulary" / "insurance.yaml"
+VOCABULARY = ROOT / "semantic" / "vocabulary" / "sap_erp.yaml"
 
 
 def test_claim_vocabulary_has_required_governance_metadata() -> None:
-    claim = next(c for c in load_vocabulary(VOCABULARY) if c.id == "insurance:Claim")
-    assert claim.version == "1.0.0"
-    assert "Insurance Claim" in claim.synonyms
-    assert claim.sensitivity.classification == "Confidential"
+    posting = next(c for c in load_vocabulary(VOCABULARY) if c.id == "sap:FinancialPosting")
+    assert posting.version == "1.0.0"
+    assert "Journal Entry" in posting.synonyms
+    assert posting.sensitivity.classification == "Confidential"
 
 
 def test_vocabulary_contains_all_canonical_concepts() -> None:
     concepts = load_vocabulary(VOCABULARY)
     assert {concept.id for concept in concepts} == {
-        "insurance:Customer",
-        "insurance:Policy",
-        "insurance:Claim",
-        "insurance:InsuranceProduct",
-        "insurance:MotorInsurance",
-        "insurance:HomeInsurance",
-        "insurance:Risk",
-        "insurance:Coverage",
-        "insurance:Premium",
-        "insurance:ClaimStatus",
-        "insurance:Country",
-        "insurance:ActivePolicy",
-        "insurance:QualifyingClaim",
-        "insurance:IncurredLoss",
+        "sap:BusinessPartner",
+        "sap:SalesOrder",
+        "sap:FinancialPosting",
+        "sap:Product",
+        "sap:ProductAutomotive",
+        "sap:ProductCommercial",
+        "sap:Risk",
+        "sap:Coverage",
+        "sap:BillingDocument",
+        "sap:PostingStatus",
+        "sap:CompanyCode",
+        "sap:ActiveSalesOrder",
+        "sap:QualifyingPosting",
+        "sap:FinancialLoss",
     }
 
 
 def test_vocabulary_retains_document_governance_metadata() -> None:
     vocabulary = load_vocabulary(VOCABULARY)
     assert vocabulary.version == "1.0.0"
-    assert vocabulary.namespace == "insurance"
-    assert vocabulary.owner == "GlobalSure Insurance Group"
+    assert vocabulary.namespace == "sap"
+    assert vocabulary.owner == "SAP SE"
     assert vocabulary.metadata.version == "1.0.0"
 
 
@@ -71,32 +71,32 @@ def test_vocabulary_accepts_valid_semver_prerelease(tmp_path: Path) -> None:
     prerelease_path = tmp_path / "prerelease-vocabulary.yaml"
     prerelease_path.write_text(yaml.safe_dump(document), encoding="utf-8")
 
-    customer = next(c for c in load_vocabulary(prerelease_path) if c.id == "insurance:Customer")
-    assert customer.version == "1.0.0-rc.1"
+    bp = next(c for c in load_vocabulary(prerelease_path) if c.id == "sap:BusinessPartner")
+    assert bp.version == "1.0.0-rc.1"
 
 
 def test_claim_relationships_use_canonical_object_targets() -> None:
-    claim = next(c for c in load_vocabulary(VOCABULARY) if c.id == "insurance:Claim")
-    relationships = {relationship.predicate: relationship.target for relationship in claim.relationships}
-    assert relationships["insurance:hasClaimStatus"] == "insurance:ClaimStatus"
-    assert relationships["insurance:hasIncurredLoss"] == "insurance:IncurredLoss"
+    posting = next(c for c in load_vocabulary(VOCABULARY) if c.id == "sap:FinancialPosting")
+    relationships = {relationship.predicate: relationship.target for relationship in posting.relationships}
+    assert relationships["sap:hasPostingStatus"] == "sap:PostingStatus"
+    assert relationships["sap:hasFinancialLoss"] == "sap:FinancialLoss"
 
 
 def test_vocabulary_declares_canonical_customer_claim_and_policy_coverage_edges() -> None:
     """The vocabulary must express the Group relationship contract used by OWL and plans."""
 
     concepts = {concept.id: concept for concept in load_vocabulary(VOCABULARY)}
-    customer_edges = {
+    bp_edges = {
         relationship.predicate: relationship.target
-        for relationship in concepts["insurance:Customer"].relationships
+        for relationship in concepts["sap:BusinessPartner"].relationships
     }
-    policy_edges = {
+    order_edges = {
         relationship.predicate: relationship.target
-        for relationship in concepts["insurance:Policy"].relationships
+        for relationship in concepts["sap:SalesOrder"].relationships
     }
 
-    assert customer_edges["insurance:ownsPolicy"] == "insurance:Policy"
-    assert customer_edges["insurance:submitsClaim"] == "insurance:Claim"
-    assert policy_edges["insurance:hasProduct"] == "insurance:InsuranceProduct"
-    assert policy_edges["insurance:coversRisk"] == "insurance:Risk"
-    assert policy_edges["insurance:hasCoverage"] == "insurance:Coverage"
+    assert bp_edges["sap:hasSalesOrder"] == "sap:SalesOrder"
+    assert bp_edges["sap:hasFinancialPosting"] == "sap:FinancialPosting"
+    assert order_edges["sap:hasProduct"] == "sap:Product"
+    assert order_edges["sap:coversRisk"] == "sap:Risk"
+    assert order_edges["sap:hasCoverage"] == "sap:Coverage"

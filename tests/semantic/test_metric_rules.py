@@ -23,18 +23,18 @@ def test_metrics_reference_governed_rules_and_certified_products() -> None:
 
 def test_qualifying_claim_rule_excludes_cancelled_and_duplicate() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
-    rule = registry.rules["insurance:QualifyingClaim"]
+    rule = registry.rules["sap:QualifyingPosting"]
 
-    assert set(rule.include_statuses) == {"OPEN", "PENDING", "SETTLED"}
-    assert set(rule.exclude_statuses) == {"CANCELLED", "DUPLICATE"}
+    assert set(rule.include_statuses) == {"POSTED", "CLEARED"}
+    assert set(rule.exclude_statuses) == {"REVERSED", "DUPLICATE"}
 
 
 def test_claims_ratio_preserves_independent_aggregate_contract() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
-    metric = registry.metrics["insurance:ClaimsRatio"]
+    metric = registry.metrics["sap:CostRevenueRatio"]
 
     assert metric.aggregation == "ratio_of_aggregates"
-    assert metric.numerator["product"] == "ClaimsAnalytics"
-    assert metric.denominator["product"] == "PremiumAnalytics"
+    assert metric.numerator["product"] == "ACDOCAFinancials"
+    assert metric.denominator["product"] == "BillingAnalytics"
     assert metric.alignment["pre_aggregate_each_product"] is True
     assert metric.alignment["join_multiplication"] == "forbidden"

@@ -32,7 +32,7 @@ class LineageService:
             (
                 query_filter.value
                 for query_filter in plan.filters
-                if query_filter.concept_id == "insurance:Country" and query_filter.operator == "="
+                if query_filter.concept_id in ("sap:CompanyCode", "insurance:Country") and query_filter.operator == "="
             ),
             None,
         )

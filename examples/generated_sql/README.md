@@ -9,6 +9,6 @@ incomplete SQL fragments, not equivalent generated plans. Their adapters fail
 closed until their own credentials, configuration, mapping-derived compilation,
 and platform-native security controls are deliberately supplied.
 
-The local primary query uses the `QualifyingClaim` rule's governed included
-statuses and its fixed demo as-of date of `2026-08-28`; cancelled and duplicate
-claims are therefore never counted in the result.
+The local primary query uses the `QualifyingPosting` rule's governed included
+statuses and its fixed demo as-of date of `2026-08-28`; reversed and duplicate
+postings are therefore never counted in the result.

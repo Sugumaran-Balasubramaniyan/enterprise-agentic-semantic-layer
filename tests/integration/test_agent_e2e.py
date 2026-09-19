@@ -25,13 +25,13 @@ def test_agent_returns_answer_plan_sql_and_provenance(agent: ClaimsInvestigation
     answer = agent.answer(PRIMARY_QUESTION, CallerContext(role="ClaimsAnalystFR"))
 
     assert answer.authorization.allowed is True
-    assert answer.plan.root_entity == "insurance:Customer"
+    assert answer.plan.root_entity == "sap:BusinessPartner"
     assert "SELECT" in answer.compiled_query.sql
     assert answer.quality.status == "PASS"
     assert answer.provenance.query_id
     assert answer.rows == [
-        {"customer_id": "FR_001", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 24000.0},
-        {"customer_id": "FR_002", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 25000.0},
+        {"partner_id": "FR_001", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 24000.0},
+        {"partner_id": "FR_002", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 25000.0},
     ]
     assert answer.stages == (
         "intent_parse",

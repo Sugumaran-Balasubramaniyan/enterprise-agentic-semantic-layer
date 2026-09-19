@@ -1,0 +1,63 @@
+{
+  "caller": {
+    "country": "FR",
+    "purpose": "semantic_query",
+    "role": "ClaimsAnalystFR"
+  },
+  "filters": [
+    {
+      "concept_id": "sap:CompanyCode",
+      "operator": "=",
+      "value": "FR"
+    },
+    {
+      "concept_id": "sap:Product",
+      "operator": "=",
+      "value": "sap:ProductAutomotive"
+    }
+  ],
+  "metric_predicates": [
+    {
+      "metric_id": "sap:PostingCount",
+      "operator": ">=",
+      "value": 3
+    },
+    {
+      "metric_id": "sap:TotalDebitLossEur",
+      "operator": ">",
+      "value": 20000
+    }
+  ],
+  "projected_dimensions": [
+    "sap:BusinessPartner",
+    "sap:CompanyCode"
+  ],
+  "relationships": [
+    {
+      "predicate": "sap:hasSalesOrder",
+      "source": "sap:BusinessPartner",
+      "target": "sap:SalesOrder"
+    },
+    {
+      "predicate": "sap:hasFinancialPosting",
+      "source": "sap:BusinessPartner",
+      "target": "sap:FinancialPosting"
+    },
+    {
+      "predicate": "sap:referencesSalesOrder",
+      "source": "sap:FinancialPosting",
+      "target": "sap:SalesOrder"
+    }
+  ],
+  "root_entity": "sap:BusinessPartner",
+  "selected_products": [
+    "BusinessPartners",
+    "SalesOrders",
+    "ACDOCAFinancials"
+  ],
+  "target_platform": "DuckDB",
+  "time_context": {
+    "months": 12,
+    "window": "last_12_months"
+  }
+}

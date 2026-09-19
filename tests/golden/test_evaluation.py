@@ -39,8 +39,8 @@ def test_primary_golden_answer_is_deterministic() -> None:
 
     primary = next(result for result in report.results if result.case_id == "primary-claims")
     assert primary.answer == [
-        {"customer_id": "FR_001", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 24000.0},
-        {"customer_id": "FR_002", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 25000.0},
+        {"partner_id": "FR_001", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 24000.0},
+        {"partner_id": "FR_002", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 25000.0},
     ]
 
 
@@ -102,7 +102,7 @@ def test_governed_variant_executes_and_requires_execution_evidence() -> None:
 def test_secondary_constraints_reference_existing_semantic_assets() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     case = next(case for case in load_golden_cases(GOLDEN_CASES) if case.id == "secondary-01-active-french")
-    case.expected["deterministic"]["answer_constraints"]["rule"] = "insurance:NotARealRule"
+    case.expected["deterministic"]["answer_constraints"]["rule"] = "sap:NotARealRule"
 
     result = _evaluate_case(case, registry, REPOSITORY_ROOT)
 
@@ -113,7 +113,7 @@ def test_secondary_constraints_reference_existing_semantic_assets() -> None:
 def test_secondary_constraints_must_match_discovered_metric() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     case = next(case for case in load_golden_cases(GOLDEN_CASES) if case.id == "secondary-01-active-french")
-    case.expected["deterministic"]["answer_constraints"]["metric"] = "insurance:ClaimsRatio"
+    case.expected["deterministic"]["answer_constraints"]["metric"] = "sap:CostRevenueRatio"
 
     result = _evaluate_case(case, registry, REPOSITORY_ROOT)
 

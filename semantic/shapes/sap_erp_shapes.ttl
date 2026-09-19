@@ -1,0 +1,21 @@
+@prefix sap: <https://sap.example/erp/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sap:ERPAShapes a sh:NodeShape ;
+    owl:versionInfo "1.0.0" .
+
+sap:FinancialPostingShape a sh:NodeShape ;
+    sh:targetClass sap:FinancialPosting ;
+    sh:property [ sh:path sap:journalEntryId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path sap:postingDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path sap:postingStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "POSTED" "CLEARED" "REVERSED" "DUPLICATE" ) ] ;
+    sh:property [ sh:path sap:referencesSalesOrder ; sh:minCount 1 ; sh:maxCount 1 ; sh:class sap:SalesOrder ] ;
+    sh:property [ sh:path sap:amountInCompanyCurrency ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] .
+
+sap:SalesOrderShape a sh:NodeShape ;
+    sh:targetClass sap:SalesOrder ;
+    sh:property [ sh:path sap:salesOrderId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path sap:hasProduct ; sh:minCount 1 ; sh:maxCount 1 ; sh:class sap:Product ] ;
+    sh:property [ sh:path sap:orderStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "RELEASED" "CLOSED" "CANCELLED" ) ] .

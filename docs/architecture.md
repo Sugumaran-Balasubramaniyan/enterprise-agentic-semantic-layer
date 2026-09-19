@@ -1,6 +1,6 @@
 # Architecture
 
-GlobalSure Insurance Group's semantic layer is a small control plane between
+The enterprise agentic semantic layer is a small control plane between
 business intent and platform execution. Git is the reviewable source of truth
 for vocabulary, taxonomy, ontology, SHACL shapes, metric rules, products, and
 local mappings. Python services load those assets into a typed registry; a
@@ -54,9 +54,9 @@ version. SKOS taxonomy organizes product labels. OWL/RDFS describes typed
 classes and relationships, while SHACL validates instance graphs. A knowledge
 graph contains compact example facts; it is not the analytical execution
 store. Product contracts describe grain, SLA, classification, quality and
-lineage. Mappings normalize local fields and values to the Group vocabulary.
-Metrics and rules define governed calculations such as `QualifyingClaim` and
-`ClaimsRatio`.
+lineage. Mappings normalize local fields and values to the enterprise vocabulary.
+Metrics and rules define governed calculations such as `QualifyingPosting` and
+`CostRevenueRatio`.
 
 RAG can retrieve policy documents or explain a definition, but retrieval does
 not make a join, metric, authorization decision, or physical field mapping
@@ -73,7 +73,7 @@ must map into the canonical vocabulary before a Group metric can use it.
 
 ```mermaid
 flowchart TB
-    G[Group semantic contract 1.0.0]
+    G[Enterprise semantic contract 1.0.0]
     G --> FR[France / Databricks mapping]
     G --> UK[United Kingdom / Snowflake mapping]
     G --> DE[Germany / Fabric mapping]
@@ -85,8 +85,8 @@ flowchart TB
 
 The mapping boundary is explicit and platform-independent. For example,
 `MTR`, `CAR`, and `MotorInsurance` normalize to
-`insurance:MotorInsurance`, while `HOME` and `HomeInsurance` normalize to the
-governed `insurance:HomeInsurance` concept. A normalization target absent from
+`sap:ProductAutomotive`, while `HOME` and `HomeInsurance` normalize to the
+governed `sap:ProductEnterprise` concept. A normalization target absent from
 the vocabulary or an unknown local value fails closed. Cloud identifiers
 and SQL examples are documentation/interface artifacts only. The repository
 does not claim a live Databricks, Snowflake, or Fabric execution.

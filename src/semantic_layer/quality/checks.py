@@ -23,30 +23,30 @@ from semantic_layer.registry import SemanticRegistry
 
 AS_OF_DATE = date(2026, 8, 28)
 _COUNTRIES = {"FR", "GB", "DE"}
-_CLAIM_STATUSES = {"OPEN", "PENDING", "SETTLED", "CANCELLED", "DUPLICATE"}
-_POLICY_STATUSES = {"ACTIVE", "LAPSED", "CANCELLED"}
+_POSTING_STATUSES = {"POSTED", "CLEARED", "REVERSED", "DUPLICATE"}
+_ORDER_STATUSES = {"RELEASED", "CLOSED", "CANCELLED"}
 _ID_COLUMNS = {
-    "claims.csv": "claim_id",
-    "customers.csv": "customer_id",
-    "policies.csv": "policy_id",
-    "premiums.csv": "premium_id",
+    "acdoca_financials.csv": "journal_entry_id",
+    "business_partners.csv": "partner_id",
+    "sales_orders.csv": "sales_order_id",
+    "billing_documents.csv": "billing_doc_id",
 }
 _JOIN_ID_COLUMNS = {
-    "claims.csv": ("claim_id", "policy_id", "customer_id"),
-    "customers.csv": ("customer_id",),
-    "policies.csv": ("policy_id", "customer_id"),
-    "premiums.csv": ("premium_id", "policy_id", "customer_id"),
+    "acdoca_financials.csv": ("journal_entry_id", "sales_order_id", "partner_id"),
+    "business_partners.csv": ("partner_id",),
+    "sales_orders.csv": ("sales_order_id", "partner_id"),
+    "billing_documents.csv": ("billing_doc_id", "sales_order_id", "partner_id"),
 }
 _NULL_IDENTIFIERS = {"", "null", "none"}
 _REQUIRED_FIELDS = {
-    "claims.csv": {
-        "claim_id", "policy_id", "customer_id", "country", "product", "status", "claim_date", "incurred_loss_eur"
+    "acdoca_financials.csv": {
+        "journal_entry_id", "sales_order_id", "partner_id", "country", "product", "posting_status", "posting_date", "amount_in_company_currency_eur"
     },
-    "customers.csv": {"customer_id", "customer_name", "country", "email"},
-    "policies.csv": {
-        "policy_id", "customer_id", "country", "product", "policy_status", "effective_date", "expiry_date", "annual_premium_eur"
+    "business_partners.csv": {"partner_id", "partner_name", "country", "email"},
+    "sales_orders.csv": {
+        "sales_order_id", "partner_id", "country", "product", "order_status", "effective_date", "expiry_date", "net_value_eur"
     },
-    "premiums.csv": {"premium_id", "policy_id", "customer_id", "country", "product", "premium_date", "premium_eur"},
+    "billing_documents.csv": {"billing_doc_id", "sales_order_id", "partner_id", "country", "product", "billing_date", "billed_amount_eur"},
 }
 
 
@@ -252,33 +252,33 @@ def validate_curated_data(path: Path, registry: SemanticRegistry | None = None) 
                             "product",
                             "product is not mapped for the row country",
                         )
-                if file_name == "claims.csv":
-                    if row.get("status") not in _CLAIM_STATUSES:
-                        _issue(issues, "INVALID_STATUS", file_name, row_number, "status", "unknown claim status")
-                    _date_is_valid(row.get("claim_date", ""), file_name, row_number, "claim_date", issues)
+                if file_name == "acdoca_financials.csv":
+                    if row.get("posting_status") not in _POSTING_STATUSES:
+                        _issue(issues, "INVALID_STATUS", file_name, row_number, "posting_status", "unknown posting status")
+                    _date_is_valid(row.get("posting_date", ""), file_name, row_number, "posting_date", issues)
                     _nonnegative_finite(
-                        row.get("incurred_loss_eur", ""), file_name, row_number, "incurred_loss_eur", issues
+                        row.get("amount_in_company_currency_eur", ""), file_name, row_number, "amount_in_company_currency_eur", issues
                     )
-                elif file_name == "policies.csv":
-                    if row.get("policy_status") not in _POLICY_STATUSES:
+                elif file_name == "sales_orders.csv":
+                    if row.get("order_status") not in _ORDER_STATUSES:
                         _issue(
                             issues,
                             "INVALID_STATUS",
                             file_name,
                             row_number,
-                            "policy_status",
-                            "unknown policy status",
+                            "order_status",
+                            "unknown order status",
                         )
                     _date_is_valid(
                         row.get("effective_date", ""), file_name, row_number, "effective_date", issues
                     )
                     _nonnegative_finite(
-                        row.get("annual_premium_eur", ""), file_name, row_number, "annual_premium_eur", issues
+                        row.get("net_value_eur", ""), file_name, row_number, "net_value_eur", issues
                     )
-                elif file_name == "premiums.csv":
-                    _date_is_valid(row.get("premium_date", ""), file_name, row_number, "premium_date", issues)
+                elif file_name == "billing_documents.csv":
+                    _date_is_valid(row.get("billing_date", ""), file_name, row_number, "billing_date", issues)
                     _nonnegative_finite(
-                        row.get("premium_eur", ""), file_name, row_number, "premium_eur", issues
+                        row.get("billed_amount_eur", ""), file_name, row_number, "billed_amount_eur", issues
                     )
         if row_count == 0:
             _issue(issues, "EMPTY_EXPECTED_DATASET", file_name, 1, "path", "curated CSV has no rows")

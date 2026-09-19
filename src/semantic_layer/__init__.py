@@ -1,4 +1,4 @@
-"""Governed, locally runnable semantic layer for GlobalSure Insurance Group."""
+"""Governed, locally runnable semantic layer and Knowledge Graph reasoning for SAP SE."""
 
 __version__ = "0.1.0"
 

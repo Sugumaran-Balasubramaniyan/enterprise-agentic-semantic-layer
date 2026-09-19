@@ -1,0 +1,67 @@
+id: SalesOrders
+name: Sales Orders (VBAK/VBAP)
+version: "1.0.0"
+owner: SAP SE Sales and Distribution
+platform: Federated
+location: Group
+grain: one row per sales order
+sla: daily by 06:00 UTC
+classification: Confidential
+pii:
+  - partner_id
+quality:
+  status: CERTIFIED
+  checks:
+    - sales_order_id is non-null and unique
+    - partner_id references BusinessPartners
+    - order_status is RELEASED, CLOSED, or CANCELLED
+    - product resolves through a certified local mapping
+lineage:
+  upstream:
+    - local S/4HANA Sales systems in France, United Kingdom, and Germany
+  transformations:
+    - local material codes are normalized to SAP product taxonomy
+    - local order lifecycle values are normalized to the Group status vocabulary
+concepts:
+  - sap:SalesOrder
+  - sap:ActiveSalesOrder
+  - sap:Product
+  - sap:ProductAutomotive
+schema:
+  - name: sales_order_id
+    type: string
+    concept: sap:SalesOrder
+    nullable: false
+  - name: partner_id
+    type: string
+    concept: sap:BusinessPartner
+    nullable: false
+    pii: true
+  - name: country
+    type: string
+    concept: sap:CompanyCode
+    nullable: false
+  - name: product
+    type: string
+    concept: sap:Product
+    nullable: false
+  - name: order_status
+    type: string
+    concept: sap:SalesOrder
+    nullable: false
+  - name: effective_date
+    type: date
+    concept: sap:SalesOrder
+    nullable: false
+  - name: expiry_date
+    type: date
+    concept: sap:SalesOrder
+    nullable: false
+  - name: net_value_eur
+    type: decimal
+    concept: sap:BillingDocument
+    nullable: false
+certification:
+  status: CERTIFIED
+  certified_by: SAP Enterprise Data Governance Board
+  certified_at: "2026-08-28"

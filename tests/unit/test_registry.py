@@ -17,9 +17,9 @@ def test_registry_loads_governed_assets_into_a_sqlite_cache() -> None:
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
 
-    assert registry.concepts["insurance:Customer"].name == "Customer"
-    assert registry.products["ClaimsAnalytics"].certification.status == "CERTIFIED"
-    assert registry.metrics["insurance:ClaimCount"].source_products == ["ClaimsAnalytics"]
+    assert registry.concepts["sap:BusinessPartner"].name == "Business Partner"
+    assert registry.products["ACDOCAFinancials"].certification.status == "CERTIFIED"
+    assert registry.metrics["sap:PostingCount"].source_products == ["ACDOCAFinancials"]
     assert registry.connection.execute("SELECT COUNT(*) FROM concepts").fetchone()[0] == 14
     assert registry.connection.execute("SELECT COUNT(*) FROM products").fetchone()[0] == 4
 
@@ -29,9 +29,9 @@ def test_registry_selects_only_certified_products_for_a_concept() -> None:
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
 
-    products = registry.certified_products_for("insurance:QualifyingClaim")
+    products = registry.certified_products_for("sap:QualifyingPosting")
 
-    assert [product.id for product in products] == ["ClaimsAnalytics"]
+    assert [product.id for product in products] == ["ACDOCAFinancials"]
 
 
 def test_registry_reuses_vocabulary_validation_and_rejects_dangling_mapping_targets(
@@ -41,7 +41,7 @@ def test_registry_reuses_vocabulary_validation_and_rejects_dangling_mapping_targ
 
     repository = tmp_path / "repository"
     shutil.copytree(REPOSITORY_ROOT, repository, ignore=shutil.ignore_patterns(".git", ".venv"))
-    vocabulary_path = repository / "semantic" / "vocabulary" / "insurance.yaml"
+    vocabulary_path = repository / "semantic" / "vocabulary" / "sap_erp.yaml"
     document = yaml.safe_load(vocabulary_path.read_text())
     document["version"] = "1.0.0-01"
     vocabulary_path.write_text(yaml.safe_dump(document, sort_keys=False))
@@ -57,7 +57,7 @@ def test_registry_reuses_vocabulary_validation_and_rejects_dangling_mapping_targ
     )
     mapping_path = dangling_repository / "mappings" / "databricks" / "france.yaml"
     mapping = yaml.safe_load(mapping_path.read_text())
-    mapping["normalization"]["products"]["UNKNOWN"] = "insurance:UnknownProduct"
+    mapping["normalization"]["products"]["UNKNOWN"] = "sap:UnknownProduct"
     mapping_path.write_text(yaml.safe_dump(mapping, sort_keys=False))
 
     with pytest.raises(ValueError, match="normalization.*unknown concept|UnknownProduct"):

@@ -1,0 +1,71 @@
+id: ACDOCAFinancials
+name: Universal Journal Financials (ACDOCA)
+version: "1.0.0"
+owner: SAP SE Financials and Controlling
+platform: Federated
+location: Group
+grain: one row per financial posting
+sla: hourly, within 15 minutes of source update
+classification: Restricted
+pii:
+  - partner_id
+quality:
+  status: CERTIFIED
+  checks:
+    - journal_entry_id is non-null and unique in the curated relation
+    - posting_date is non-null and not in the future as of the query context
+    - amount_in_company_currency_eur is non-negative
+    - posting_status and country use governed values
+    - product resolves through a certified local mapping
+lineage:
+  upstream:
+    - local S/4HANA FI-GL/FI-AP/FI-AR engines in France, United Kingdom, and Germany
+  transformations:
+    - journal items are conformed to SalesOrders by sales_order_id
+    - local accounting statuses and materials are normalized to SAP ERP semantics
+    - REVERSED and DUPLICATE entries remain observable but are excluded by QualifyingPosting
+concepts:
+  - sap:FinancialPosting
+  - sap:QualifyingPosting
+  - sap:FinancialLoss
+  - sap:PostingStatus
+  - sap:SalesOrder
+  - sap:BusinessPartner
+schema:
+  - name: journal_entry_id
+    type: string
+    concept: sap:FinancialPosting
+    nullable: false
+  - name: sales_order_id
+    type: string
+    concept: sap:SalesOrder
+    nullable: false
+  - name: partner_id
+    type: string
+    concept: sap:BusinessPartner
+    nullable: false
+    pii: true
+  - name: country
+    type: string
+    concept: sap:CompanyCode
+    nullable: false
+  - name: product
+    type: string
+    concept: sap:Product
+    nullable: false
+  - name: posting_status
+    type: string
+    concept: sap:PostingStatus
+    nullable: false
+  - name: posting_date
+    type: date
+    concept: sap:FinancialPosting
+    nullable: false
+  - name: amount_in_company_currency_eur
+    type: decimal
+    concept: sap:FinancialLoss
+    nullable: false
+certification:
+  status: CERTIFIED
+  certified_by: SAP Enterprise Financial Governance Board
+  certified_at: "2026-08-28"

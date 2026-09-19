@@ -1,0 +1,67 @@
+@prefix sap: <https://sap.example/erp/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sap: a owl:Ontology ;
+    rdfs:label "SAP S/4HANA Enterprise Semantic Layer Ontology"@en ;
+    owl:versionInfo "1.0.0" ;
+    owl:versionIRI <https://sap.example/erp/1.0.0> .
+
+sap:BusinessPartner a owl:Class .
+sap:SalesOrder a owl:Class .
+sap:FinancialPosting a owl:Class .
+sap:Product a owl:Class .
+sap:ProductAutomotive a owl:Class ; rdfs:subClassOf sap:Product .
+sap:ProductCommercial a owl:Class ; rdfs:subClassOf sap:Product .
+sap:Risk a owl:Class .
+sap:Coverage a owl:Class .
+sap:BillingDocument a owl:Class .
+sap:PostingStatus a owl:Class .
+sap:CompanyCode a owl:Class .
+sap:CountryCodedEntity a owl:Class .
+sap:BusinessPartner rdfs:subClassOf sap:CountryCodedEntity .
+sap:SalesOrder rdfs:subClassOf sap:CountryCodedEntity .
+sap:ActiveSalesOrder a owl:Class ; rdfs:subClassOf sap:SalesOrder .
+sap:QualifyingPosting a owl:Class ; rdfs:subClassOf sap:FinancialPosting .
+sap:FinancialLoss a owl:Class .
+
+sap:hasSalesOrder a owl:ObjectProperty ;
+    rdfs:domain sap:BusinessPartner ; rdfs:range sap:SalesOrder .
+sap:hasFinancialPosting a owl:ObjectProperty ;
+    rdfs:domain sap:BusinessPartner ; rdfs:range sap:FinancialPosting .
+sap:referencesSalesOrder a owl:ObjectProperty ;
+    rdfs:domain sap:FinancialPosting ; rdfs:range sap:SalesOrder .
+sap:hasProduct a owl:ObjectProperty ;
+    rdfs:domain sap:SalesOrder ; rdfs:range sap:Product .
+sap:coversRisk a owl:ObjectProperty ;
+    rdfs:domain sap:SalesOrder ; rdfs:range sap:Risk .
+sap:hasCoverage a owl:ObjectProperty ;
+    rdfs:domain sap:SalesOrder ; rdfs:range sap:Coverage .
+sap:generatesBilling a owl:ObjectProperty ;
+    rdfs:domain sap:SalesOrder ; rdfs:range sap:BillingDocument .
+sap:postingOrder a owl:ObjectProperty ;
+    rdfs:subPropertyOf sap:referencesSalesOrder ;
+    rdfs:domain sap:FinancialPosting ; rdfs:range sap:SalesOrder .
+sap:orderProduct a owl:ObjectProperty ;
+    rdfs:subPropertyOf sap:hasProduct ;
+    rdfs:domain sap:SalesOrder ; rdfs:range sap:Product .
+
+sap:countryCode a owl:DatatypeProperty ;
+    rdfs:domain sap:CountryCodedEntity ; rdfs:range xsd:string .
+
+sap:partnerId a owl:DatatypeProperty ; rdfs:domain sap:BusinessPartner ; rdfs:range xsd:string .
+sap:salesOrderId a owl:DatatypeProperty ; rdfs:domain sap:SalesOrder ; rdfs:range xsd:string .
+sap:journalEntryId a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:string .
+sap:postingDate a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:date .
+sap:postingStatus a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:string .
+sap:orderStatus a owl:DatatypeProperty ; rdfs:domain sap:SalesOrder ; rdfs:range xsd:string .
+sap:amountInCompanyCurrency a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:decimal .
+sap:hasPostingStatus a owl:ObjectProperty ;
+    rdfs:domain sap:FinancialPosting ; rdfs:range sap:PostingStatus .
+sap:hasFinancialLoss a owl:ObjectProperty ;
+    rdfs:domain sap:FinancialPosting ; rdfs:range sap:FinancialLoss .
+sap:statusValue a owl:DatatypeProperty ;
+    rdfs:domain sap:PostingStatus ; rdfs:range xsd:string .
+sap:amountValue a owl:DatatypeProperty ;
+    rdfs:domain sap:FinancialLoss ; rdfs:range xsd:decimal .

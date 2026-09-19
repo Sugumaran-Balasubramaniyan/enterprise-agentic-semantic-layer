@@ -31,12 +31,12 @@ def test_curated_demo_data_passes_all_governed_quality_checks() -> None:
 
 
 def test_claim_quality_rejects_duplicate_ids_invalid_values_and_future_dates(tmp_path: Path) -> None:
-    """Removing any claim control must allow an unsafe detail product through."""
+    """Removing any detail posting control must allow an unsafe detail product through."""
 
-    (tmp_path / "claims.csv").write_text(
-        "claim_id,policy_id,customer_id,country,product,status,claim_date,incurred_loss_eur\n"
-        "C_1,P_1,FR_001,FR,insurance:MotorInsurance,OPEN,2026-08-01,5.00\n"
-        "C_1,P_1,FR_001,ZZ,UNKNOWN,BAD_STATUS,2026-09-01,-1.00\n",
+    (tmp_path / "acdoca_financials.csv").write_text(
+        "journal_entry_id,sales_order_id,partner_id,country,product,posting_status,posting_date,amount_in_company_currency_eur\n"
+        "DOC_1,SO_1,FR_001,FR,sap:ProductAutomotive,POSTED,2026-08-01,5.00\n"
+        "DOC_1,SO_1,FR_001,ZZ,UNKNOWN,BAD_STATUS,2026-10-01,-1.00\n",
         encoding="utf-8",
     )
 
@@ -58,12 +58,12 @@ def test_claim_quality_rejects_duplicate_ids_invalid_values_and_future_dates(tmp
 def test_quality_rejects_rows_using_an_unregistered_product_extension(tmp_path: Path) -> None:
     """A mapping target absent from the vocabulary cannot receive a PASS quality report."""
 
-    for name in ("customers.csv", "policies.csv", "premiums.csv"):
+    for name in ("business_partners.csv", "sales_orders.csv", "billing_documents.csv"):
         source = REPOSITORY_ROOT / "data" / "curated" / name
         (tmp_path / name).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
-    (tmp_path / "claims.csv").write_text(
-        "claim_id,policy_id,customer_id,country,product,status,claim_date,incurred_loss_eur\n"
-        "C_TRAVEL,P_TRAVEL,FR_001,FR,insurance:TravelInsurance,OPEN,2026-08-01,1.00\n",
+    (tmp_path / "acdoca_financials.csv").write_text(
+        "journal_entry_id,sales_order_id,partner_id,country,product,posting_status,posting_date,amount_in_company_currency_eur\n"
+        "DOC_EXT,SO_EXT,FR_001,FR,sap:UnregisteredProduct,POSTED,2026-08-01,1.00\n",
         encoding="utf-8",
     )
 
@@ -76,15 +76,15 @@ def test_quality_rejects_rows_using_an_unregistered_product_extension(tmp_path: 
 @pytest.mark.parametrize(
     ("file_name", "field"),
     [
-        ("customers.csv", "customer_id"),
-        ("policies.csv", "policy_id"),
-        ("policies.csv", "customer_id"),
-        ("claims.csv", "claim_id"),
-        ("claims.csv", "policy_id"),
-        ("claims.csv", "customer_id"),
-        ("premiums.csv", "premium_id"),
-        ("premiums.csv", "policy_id"),
-        ("premiums.csv", "customer_id"),
+        ("business_partners.csv", "partner_id"),
+        ("sales_orders.csv", "sales_order_id"),
+        ("sales_orders.csv", "partner_id"),
+        ("acdoca_financials.csv", "journal_entry_id"),
+        ("acdoca_financials.csv", "sales_order_id"),
+        ("acdoca_financials.csv", "partner_id"),
+        ("billing_documents.csv", "billing_doc_id"),
+        ("billing_documents.csv", "sales_order_id"),
+        ("billing_documents.csv", "partner_id"),
     ],
 )
 @pytest.mark.parametrize("missing_value", ["", "null"])

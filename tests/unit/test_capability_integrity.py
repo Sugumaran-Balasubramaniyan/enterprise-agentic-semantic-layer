@@ -84,9 +84,9 @@ def test_issued_query_decision_and_quality_are_immutable() -> None:
     with pytest.raises(AttributeError):
         quality.status = "FAIL"
     with pytest.raises(TypeError):
-        query.field_evidence["field:claim_id"] = "forged"
+        query.field_evidence["field:journal_entry_id"] = "forged"
     with pytest.raises(TypeError):
-        quality.source_digests["claims.csv"] = "forged"
+        quality.source_digests["acdoca_financials.csv"] = "forged"
 
 
 def test_adapter_detects_low_level_query_decision_and_quality_tampering() -> None:
@@ -154,8 +154,8 @@ def test_quality_rejects_missing_required_csv_schema_field(tmp_path: Path) -> No
 
     for source in (REPOSITORY_ROOT / "data" / "curated").glob("*.csv"):
         contents = source.read_text(encoding="utf-8")
-        if source.name == "claims.csv":
-            contents = contents.replace(",incurred_loss_eur", "", 1)
+        if source.name == "acdoca_financials.csv":
+            contents = contents.replace(",amount_in_company_currency_eur", "", 1)
             contents = "\n".join(",".join(row.split(",")[:-1]) for row in contents.splitlines()) + "\n"
         (tmp_path / source.name).write_text(contents, encoding="utf-8")
 
@@ -174,9 +174,9 @@ def test_compiler_rejects_a_relationship_with_correct_nodes_but_wrong_predicate(
         update={
             "relationships": [
                 RelationshipPath(
-                    source="insurance:Customer",
-                    predicate="insurance:submitsClaim",
-                    target="insurance:Policy",
+                    source="sap:BusinessPartner",
+                    predicate="sap:hasFinancialPosting",
+                    target="sap:SalesOrder",
                 ),
                 plan.relationships[1],
             ]
@@ -204,7 +204,7 @@ def test_question_and_concepts_are_bound_to_plan_execution_and_local_provenance(
     assert provenance.question_digest == query.question_digest
     assert provenance.physical_sources == tuple(provenance.local_sources.values())
     assert all("databricks://" not in source for source in provenance.physical_sources)
-    assert all("customer_id" in evidence or "claim" in evidence or "policy" in evidence for evidence in provenance.field_evidence.values())
+    assert all("partner_id" in evidence or "posting" in evidence or "sales_order" in evidence or "entry" in evidence or "amount" in evidence for evidence in provenance.field_evidence.values())
 
 
 def test_provenance_detects_mutated_execution_and_signed_storage_rows(tmp_path: Path) -> None:
@@ -245,7 +245,7 @@ def test_provenance_nested_metadata_is_defensive_and_immutable(tmp_path: Path) -
     products = provenance.data_products
     products.append("ForgedProduct")
     sources = provenance.source_digests
-    sources["claims.csv"] = "forged"
+    sources["acdoca_financials.csv"] = "forged"
 
     assert provenance.data_products == original_products
     assert provenance.source_digests == execution.source_digests
@@ -270,7 +270,7 @@ def test_execution_uses_the_validated_snapshot_when_source_changes_after_digest_
         digests = original_source_digests()
         if not changed:
             changed = True
-            claims = data_dir / "claims.csv"
+            claims = data_dir / "acdoca_financials.csv"
             claims.write_text(claims.read_text(encoding="utf-8").replace("9000.00", "9001.00", 1), encoding="utf-8")
         return digests
 
@@ -278,8 +278,8 @@ def test_execution_uses_the_validated_snapshot_when_source_changes_after_digest_
     execution = adapter.execute(query, decision, caller, quality)
 
     assert execution == [
-        {"customer_id": "FR_001", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 24000.0},
-        {"customer_id": "FR_002", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 25000.0},
+        {"partner_id": "FR_001", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 24000.0},
+        {"partner_id": "FR_002", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 25000.0},
     ]
 
 

@@ -1,72 +1,72 @@
 version: "1.0.0"
-owner: GlobalSure Insurance Group
+owner: SAP SE
 metrics:
-  - id: insurance:ClaimCount
-    name: ClaimCount
+  - id: sap:PostingCount
+    name: PostingCount
     version: "1.0.0"
-    definition: Number of distinct qualifying claims in the selected time context.
-    concept: insurance:QualifyingClaim
-    expression: COUNT(DISTINCT claim_id)
+    definition: Number of distinct qualifying financial journal postings in the selected time context.
+    concept: sap:QualifyingPosting
+    expression: COUNT(DISTINCT journal_entry_id)
     aggregation: count_distinct
-    unit: claims
-    filter_rule: insurance:QualifyingClaim
-    source_products: [ClaimsAnalytics]
-  - id: insurance:TotalIncurredLoss
-    name: TotalIncurredLoss
+    unit: postings
+    filter_rule: sap:QualifyingPosting
+    source_products: [ACDOCAFinancials]
+  - id: sap:TotalDebitLossEur
+    name: TotalDebitLossEur
     version: "1.0.0"
-    definition: Sum of incurred loss for distinct qualifying claims in the selected time context.
-    concept: insurance:IncurredLoss
-    expression: SUM(incurred_loss_eur)
+    definition: Sum of financial write-off / debit loss for distinct qualifying postings in the selected time context.
+    concept: sap:FinancialLoss
+    expression: SUM(amount_in_company_currency_eur)
     aggregation: sum
     unit: EUR
-    filter_rule: insurance:QualifyingClaim
-    source_products: [ClaimsAnalytics]
-  - id: insurance:AverageClaimAmount
-    name: AverageClaimAmount
+    filter_rule: sap:QualifyingPosting
+    source_products: [ACDOCAFinancials]
+  - id: sap:AveragePostingAmountEur
+    name: AveragePostingAmountEur
     version: "1.0.0"
-    definition: Average incurred loss per distinct qualifying claim.
-    concept: insurance:IncurredLoss
-    expression: SUM(incurred_loss_eur) / NULLIF(COUNT(DISTINCT claim_id), 0)
+    definition: Average financial loss per distinct qualifying journal posting.
+    concept: sap:FinancialLoss
+    expression: SUM(amount_in_company_currency_eur) / NULLIF(COUNT(DISTINCT journal_entry_id), 0)
     aggregation: average
-    unit: EUR per claim
-    filter_rule: insurance:QualifyingClaim
-    source_products: [ClaimsAnalytics]
-  - id: insurance:ActivePolicyCount
-    name: ActivePolicyCount
+    unit: EUR per posting
+    filter_rule: sap:QualifyingPosting
+    source_products: [ACDOCAFinancials]
+  - id: sap:ActiveSalesOrderCount
+    name: ActiveSalesOrderCount
     version: "1.0.0"
-    definition: Number of policies whose governed lifecycle status is ACTIVE.
-    concept: insurance:ActivePolicy
-    expression: COUNT(DISTINCT policy_id) WHERE policy_status = 'ACTIVE'
+    definition: Number of sales orders whose governed lifecycle status is RELEASED.
+    concept: sap:ActiveSalesOrder
+    expression: COUNT(DISTINCT sales_order_id) WHERE order_status = 'RELEASED'
     aggregation: count_distinct
-    unit: policies
-    filter_rule: insurance:ActivePolicy
-    source_products: [PolicyMaster]
-  - id: insurance:ClaimsRatio
-    name: ClaimsRatio
+    unit: orders
+    filter_rule: sap:ActiveSalesOrder
+    source_products: [SalesOrders]
+  - id: sap:CostRevenueRatio
+    name: CostRevenueRatio
     version: "1.0.0"
-    definition: Separately aggregated qualifying incurred loss divided by separately aggregated written premium for the same aligned scope.
-    concept: insurance:IncurredLoss
-    expression: loss_aggregate.total_incurred_loss_eur / NULLIF(premium_aggregate.total_premium_eur, 0)
+    definition: Separately aggregated qualifying financial loss divided by separately aggregated billed revenue for the same aligned scope.
+    concept: sap:FinancialLoss
+    expression: loss_aggregate.total_debit_loss_eur / NULLIF(revenue_aggregate.total_billed_amount_eur, 0)
     aggregation: ratio_of_aggregates
     unit: ratio
-    filter_rule: insurance:QualifyingClaim
-    source_products: [ClaimsAnalytics, PremiumAnalytics]
-    dependencies: [insurance:TotalIncurredLoss]
+    filter_rule: sap:QualifyingPosting
+    source_products: [ACDOCAFinancials, BillingAnalytics]
+    dependencies: [sap:TotalDebitLossEur]
     numerator:
-      product: ClaimsAnalytics
-      measure: incurred_loss_eur
+      product: ACDOCAFinancials
+      measure: amount_in_company_currency_eur
       aggregation: SUM
-      filter_rule: insurance:QualifyingClaim
-      aggregate_name: total_incurred_loss_eur
+      filter_rule: sap:QualifyingPosting
+      aggregate_name: total_debit_loss_eur
     denominator:
-      product: PremiumAnalytics
-      measure: premium_eur
+      product: BillingAnalytics
+      measure: billed_amount_eur
       aggregation: SUM
-      aggregate_name: total_premium_eur
-      filter_context: selected premium periods for the same scope
+      aggregate_name: total_billed_amount_eur
+      filter_context: selected billing periods for the same scope
     alignment:
-      dimensions: [customer_id, country, product]
-      join_keys: [customer_id, country, product]
-      time_context: same caller-selected as_of and reporting window, applied independently to claim_date and premium_date
+      dimensions: [partner_id, country, product]
+      join_keys: [partner_id, country, product]
+      time_context: same caller-selected as_of and reporting window, applied independently to posting_date and billing_date
       pre_aggregate_each_product: true
       join_multiplication: forbidden

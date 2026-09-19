@@ -1,10 +1,10 @@
 -- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Snowflake execution is disabled locally.
 -- Use the governed plan, approved United Kingdom mapping, and native Snowflake security.
-SELECT customer.customer_id, COUNT(DISTINCT claim.claim_id) AS claim_count
-FROM GLOBALSURE_UK.CUSTOMER.CUSTOMERS AS customer
-JOIN GLOBALSURE_UK.POLICY.POLICIES AS policy
-    ON customer.customer_id = policy.customer_id
-JOIN GLOBALSURE_UK.CLAIMS.CLAIMS AS claim
-    ON policy.policy_id = claim.policy_id
-WHERE claim.status IN (?, ?, ?)
-GROUP BY customer.customer_id;
+SELECT partner.partner_id, COUNT(DISTINCT posting.journal_entry_id) AS posting_count
+FROM S4HANA_UK.BP.PARTNERS AS partner
+JOIN S4HANA_UK.SALES.ORDERS AS ord
+    ON partner.partner_id = ord.partner_id
+JOIN S4HANA_UK.FINANCE.POSTINGS AS posting
+    ON ord.sales_order_id = posting.sales_order_id
+WHERE posting.posting_status IN (?, ?)
+GROUP BY partner.partner_id;

@@ -34,12 +34,12 @@ def test_finance_analyst_cannot_request_customer_pii_but_can_request_aggregate_s
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     pii_plan = SemanticQueryPlan(
-        root_entity="insurance:Customer",
-        projected_dimensions=["insurance:Customer"],
-        selected_products=["PremiumAnalytics"],
+        root_entity="sap:BusinessPartner",
+        projected_dimensions=["sap:BusinessPartner"],
+        selected_products=["BillingAnalytics"],
         caller=CallerContext(role="FinanceAnalyst"),
     )
-    aggregate_plan = pii_plan.model_copy(update={"projected_dimensions": ["insurance:Country"]})
+    aggregate_plan = pii_plan.model_copy(update={"projected_dimensions": ["sap:CompanyCode"]})
     finance = CallerContext(role="FinanceAnalyst")
 
     pii_denied = authorize(pii_plan, finance, registry)
@@ -67,7 +67,7 @@ def test_unrecognized_product_classification_is_denied_by_default() -> None:
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
-    registry.products["ClaimsAnalytics"].classification = "TopSecret"
+    registry.products["ACDOCAFinancials"].classification = "TopSecret"
 
     decision = authorize(plan, plan.caller, registry)
 
@@ -81,7 +81,7 @@ def test_non_healthy_product_quality_denies_authorization(quality_status: str) -
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
-    registry.products["ClaimsAnalytics"].quality.status = quality_status
+    registry.products["ACDOCAFinancials"].quality.status = quality_status
 
     decision = authorize(plan, plan.caller, registry)
 

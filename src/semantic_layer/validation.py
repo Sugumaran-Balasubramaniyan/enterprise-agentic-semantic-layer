@@ -9,11 +9,11 @@ __all__ = ["ValidationResult", "load_vocabulary", "main", "validate_graph"]
 
 def main(root: Path | None = None) -> int:
     root = root or Path(__file__).resolve().parents[2]
-    shapes = root / "semantic" / "shapes" / "insurance-shapes.ttl"
+    shapes = root / "semantic" / "shapes" / "sap_erp_shapes.ttl"
     valid = root / "semantic" / "ontology" / "sample-graph-valid.ttl"
     invalid = root / "semantic" / "ontology" / "sample-graph-invalid.ttl"
 
-    vocabulary = load_vocabulary(root / "semantic" / "vocabulary" / "insurance.yaml")
+    vocabulary = load_vocabulary(root / "semantic" / "vocabulary" / "sap_erp.yaml")
     print(f"Vocabulary: {len(vocabulary)} concepts loaded")
     results = []
     for path in (valid, invalid):

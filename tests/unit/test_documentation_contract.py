@@ -336,7 +336,7 @@ def test_readme_verification_section_identifies_latest_evidence() -> None:
         r"\b(\d+)\s+(?:passed|passing\s+tests?)\b", readme, flags=re.IGNORECASE
     )
     assert publication_counts
-    assert set(publication_counts) == {"208"}, publication_counts
+    assert set(publication_counts) == {"218"}, publication_counts
 
 
 def test_readme_documents_local_prerequisites_and_reproducibility_contract() -> None:
@@ -353,10 +353,10 @@ def test_readme_documents_local_prerequisites_and_reproducibility_contract() -> 
         "seed",
         "as-of",
         "lockfile",
-        "customer_id",
-        "policy_id",
-        "claim_id",
-        "premium_id",
+        "partner_id",
+        "sales_order_id",
+        "journal_entry_id",
+        "billing_doc_id",
     ]
     for fragment in required_fragments:
         assert fragment in readme, fragment
@@ -422,22 +422,22 @@ def test_readme_is_a_complete_repository_handbook_for_extension_and_release() ->
         "## Scale-out plan and promotion gates",
         "## Production extension matrix",
         "## Support and escalation",
-        "[Business vocabulary](semantic/vocabulary/insurance.yaml)",
-        "[Product taxonomy](semantic/taxonomy/insurance-products.ttl)",
-        "[Insurance ontology](semantic/ontology/insurance.ttl)",
-        "[SHACL shapes](semantic/shapes/insurance-shapes.ttl)",
+        "[Business vocabulary](semantic/vocabulary/sap_erp.yaml)",
+        "[Product taxonomy](semantic/taxonomy/sap_products.ttl)",
+        "[ERP ontology](semantic/ontology/sap_erp.ttl)",
+        "[SHACL shapes](semantic/shapes/sap_erp_shapes.ttl)",
         "[Metric definitions](semantic/metrics/metrics.yaml)",
-        "[Business rules](semantic/rules/claims.yaml)",
+        "[Business rules](semantic/rules/financial_postings.yaml)",
         "[Certified data-product contracts](data_products/)",
         "[Federated mappings](mappings/)",
         "[Golden evaluation corpus](tests/golden/questions.yaml)",
         "[CI workflow](.github/workflows/ci.yml)",
         "[Example index](examples/README.md)",
-        "[Checked-in primary plan](examples/generated_query_plans/primary_claims_plan.json)",
+        "[Checked-in primary plan](examples/generated_query_plans/primary_erp_plan.json)",
         "[Generated SQL artifacts](examples/generated_sql/README.md)",
         "MCP transport is not implemented",
         "LLM integration is not implemented",
-        "ClaimsRatio is discovery-only",
+        "CostRevenueRatio is discovery-only",
         "PRODUCT_DENIED",
         "breaking change",
         "deprecation window",
@@ -460,7 +460,7 @@ def test_readme_is_a_complete_repository_handbook_for_extension_and_release() ->
         "POST /execute",
         '"concept_ids"',
         '"detail"',
-        "generated_query_plans/primary_claims_plan.json",
+        "generated_query_plans/primary_erp_plan.json",
         "generated_sql/README.md",
         "MCP transport is not implemented",
         "LLM integration is not implemented",

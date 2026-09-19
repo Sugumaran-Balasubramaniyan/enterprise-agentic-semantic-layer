@@ -1,0 +1,28 @@
+@prefix sap: <https://sap.example/erp/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+sap:ProductScheme a skos:ConceptScheme ;
+    owl:versionInfo "1.0.0" ;
+    skos:prefLabel "SAP S/4HANA Material and Product Taxonomy"@en ;
+    skos:hasTopConcept sap:Product .
+
+sap:Product a skos:Concept ;
+    skos:prefLabel "Product"@en ;
+    skos:definition "A governed category of products and materials in SAP S/4HANA."@en ;
+    skos:topConceptOf sap:ProductScheme ;
+    skos:narrower sap:ProductAutomotive, sap:ProductCommercial .
+
+sap:ProductAutomotive a skos:Concept ;
+    skos:prefLabel "Automotive Product"@en ;
+    skos:altLabel "Motor Insurance"@en, "Car Insurance"@en, "Auto Insurance"@en, "Motor cover"@en, "Automotive"@en ;
+    skos:broader sap:Product ;
+    skos:inScheme sap:ProductScheme ;
+    skos:definition "Material group and products for automotive components and vehicles."@en .
+
+sap:ProductCommercial a skos:Concept ;
+    skos:prefLabel "Commercial Product"@en ;
+    skos:altLabel "Home Insurance"@en, "House Insurance"@en, "Commercial Equipment"@en, "Home cover"@en ;
+    skos:broader sap:Product ;
+    skos:inScheme sap:ProductScheme ;
+    skos:definition "Material group for commercial, industrial, and facility products."@en .

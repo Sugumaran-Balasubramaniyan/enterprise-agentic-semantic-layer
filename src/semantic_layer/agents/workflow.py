@@ -198,3 +198,7 @@ class ClaimsInvestigationAgent:
             provenance=provenance,
             stages=tuple(stages),
         )
+
+
+FinancialAuditAgent = ClaimsInvestigationAgent
+SAPFinancialAuditAgent = ClaimsInvestigationAgent

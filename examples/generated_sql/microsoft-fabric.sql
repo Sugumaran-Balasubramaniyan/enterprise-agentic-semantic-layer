@@ -1,10 +1,10 @@
 -- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Microsoft Fabric execution is disabled locally.
 -- Use the governed plan, approved Germany mapping, and native Fabric security.
-SELECT customer.customer_id, COUNT(DISTINCT claim.claim_id) AS claim_count
-FROM dbo.customers AS customer
-JOIN dbo.policies AS policy
-    ON customer.customer_id = policy.customer_id
-JOIN dbo.claims AS claim
-    ON policy.policy_id = claim.policy_id
-WHERE claim.status IN (?, ?, ?)
-GROUP BY customer.customer_id;
+SELECT partner.partner_id, COUNT(DISTINCT posting.journal_entry_id) AS posting_count
+FROM dbo.partners AS partner
+JOIN dbo.orders AS ord
+    ON partner.partner_id = ord.partner_id
+JOIN dbo.acdoca_postings AS posting
+    ON ord.sales_order_id = posting.sales_order_id
+WHERE posting.posting_status IN (?, ?)
+GROUP BY partner.partner_id;

@@ -19,9 +19,9 @@ PRODUCT_FILES = tuple(sorted(PRODUCT_ROOT.glob("*.yaml")))
 
 
 def test_all_local_motor_codes_normalize_to_group_motor_insurance() -> None:
-    assert canonical_product("databricks", "MTR") == "insurance:MotorInsurance"
-    assert canonical_product("snowflake", "CAR") == "insurance:MotorInsurance"
-    assert canonical_product("fabric", "MotorInsurance") == "insurance:MotorInsurance"
+    assert canonical_product("databricks", "MTR") == "sap:ProductAutomotive"
+    assert canonical_product("snowflake", "CAR") == "sap:ProductAutomotive"
+    assert canonical_product("fabric", "MotorInsurance") == "sap:ProductAutomotive"
 
 
 def test_mapping_assets_declare_platform_location_and_field_mappings() -> None:
@@ -50,9 +50,9 @@ def test_unknown_local_product_is_rejected() -> None:
 
 
 def test_local_home_codes_normalize_to_governed_home_insurance() -> None:
-    assert canonical_product("databricks", "HOME") == "insurance:HomeInsurance"
-    assert canonical_product("snowflake", "HOME") == "insurance:HomeInsurance"
-    assert canonical_product("fabric", "HomeInsurance") == "insurance:HomeInsurance"
+    assert canonical_product("databricks", "HOME") == "sap:ProductCommercial"
+    assert canonical_product("snowflake", "HOME") == "sap:ProductCommercial"
+    assert canonical_product("fabric", "HomeInsurance") == "sap:ProductCommercial"
 
 
 @pytest.mark.parametrize("mapping_path", MAPPING_FILES)
@@ -76,15 +76,15 @@ def test_each_platform_maps_every_certified_product_schema_field(
     [
         (
             MAPPING_ROOT / "databricks" / "france.yaml",
-            {"EN_COURS": "ACTIVE", "ECHUE": "LAPSED", "ANNULEE": "CANCELLED"},
+            {"EN_COURS": "RELEASED", "CLOTURE": "CLOSED", "ANNULE": "CANCELLED"},
         ),
         (
             MAPPING_ROOT / "snowflake" / "united_kingdom.yaml",
-            {"IN_FORCE": "ACTIVE", "LAPSED": "LAPSED", "CANCELLED": "CANCELLED"},
+            {"IN_FORCE": "RELEASED", "RELEASED": "RELEASED", "CLOSED": "CLOSED", "CANCELLED": "CANCELLED"},
         ),
         (
             MAPPING_ROOT / "fabric" / "germany.yaml",
-            {"AKTIV": "ACTIVE", "ABGELAUFEN": "LAPSED", "STORNIERT": "CANCELLED"},
+            {"FREIGEGEBEN": "RELEASED", "ABGESCHLOSSEN": "CLOSED", "STORNIERT": "CANCELLED"},
         ),
     ],
 )
@@ -92,19 +92,19 @@ def test_policy_statuses_normalize_to_active_policy_values(
     mapping_path: Path, expected: dict[str, str]
 ) -> None:
     mapping = yaml.safe_load(mapping_path.read_text())
-    assert mapping["fields"]["policy_status"]["concept"] == "insurance:Policy"
-    statuses = mapping["normalization"].get("policy_statuses", {})
+    assert mapping["fields"]["order_status"]["concept"] == "sap:SalesOrder"
+    statuses = mapping["normalization"].get("order_statuses", {})
     assert statuses.items() >= expected.items()
 
 
 def test_claims_ratio_preaggregates_each_product_before_aligned_ratio() -> None:
     metric = yaml.safe_load(Path("semantic/metrics/metrics.yaml").read_text())["metrics"][-1]
-    assert metric["id"] == "insurance:ClaimsRatio"
+    assert metric["id"] == "sap:CostRevenueRatio"
     assert metric["aggregation"] == "ratio_of_aggregates"
     assert metric["alignment"]["pre_aggregate_each_product"] is True
     assert metric["alignment"]["join_multiplication"] == "forbidden"
-    assert metric["alignment"]["dimensions"] == ["customer_id", "country", "product"]
-    assert metric["numerator"]["product"] == "ClaimsAnalytics"
-    assert metric["denominator"]["product"] == "PremiumAnalytics"
-    assert metric["numerator"]["filter_rule"] == "insurance:QualifyingClaim"
-    assert "SUM(incurred_loss_eur) /" not in metric["expression"]
+    assert metric["alignment"]["dimensions"] == ["partner_id", "country", "product"]
+    assert metric["numerator"]["product"] == "ACDOCAFinancials"
+    assert metric["denominator"]["product"] == "BillingAnalytics"
+    assert metric["numerator"]["filter_rule"] == "sap:QualifyingPosting"
+    assert "SUM(amount_in_company_currency_eur) /" not in metric["expression"]

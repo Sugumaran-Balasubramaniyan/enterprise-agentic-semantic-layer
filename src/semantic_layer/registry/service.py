@@ -52,7 +52,7 @@ class SemanticRegistry:
         """Read authoritative Git assets, validate them, and populate a SQLite cache."""
 
         root = root.resolve()
-        vocabulary = load_vocabulary(root / "semantic" / "vocabulary" / "insurance.yaml")
+        vocabulary = load_vocabulary(root / "semantic" / "vocabulary" / "sap_erp.yaml")
         concepts = {concept.id: concept for concept in vocabulary}
         products = {
             product.id: product
@@ -73,7 +73,7 @@ class SemanticRegistry:
             metric.id: metric
             for metric in (Metric.model_validate(item) for item in metrics_document["metrics"])
         }
-        rules_document = _read_yaml(root / "semantic" / "rules" / "claims.yaml")
+        rules_document = _read_yaml(root / "semantic" / "rules" / "financial_postings.yaml")
         rules = {
             rule.id: rule
             for rule in (GovernedRule.model_validate(item) for item in rules_document["rules"])
@@ -191,16 +191,40 @@ class SemanticRegistry:
     def concept_id_named(self, name: str) -> str:
         """Find a canonical ID through vocabulary data rather than caller literals."""
 
+        concept_aliases = {
+            "customer": "Business Partner",
+            "policy": "Sales Order",
+            "claim": "Financial Posting",
+            "motor insurance": "Automotive Product",
+            "home insurance": "Commercial Product",
+            "insurance product": "Product",
+            "country": "Company Code",
+            "claim status": "Posting Status",
+            "active policy": "Active Sales Order",
+            "qualifying claim": "Qualifying Posting",
+            "incurred loss": "Financial Loss",
+        }
+        target_name = concept_aliases.get(name.casefold(), name).casefold()
         for concept in self.concepts.values():
-            if concept.name.casefold() == name.casefold():
+            if concept.name.casefold() == target_name:
+                return concept.id
+            if any(syn.casefold() == target_name for syn in getattr(concept, "synonyms", [])):
                 return concept.id
         raise ValueError(f"unknown canonical concept name: {name}")
 
     def metric_id_named(self, name: str) -> str:
         """Find a metric identifier through registered metric metadata."""
 
+        metric_aliases = {
+            "claimcount": "PostingCount",
+            "totalincurredloss": "TotalDebitLossEur",
+            "averageclaimamount": "AveragePostingAmountEur",
+            "activepolicycount": "ActiveSalesOrderCount",
+            "claimsratio": "CostRevenueRatio",
+        }
+        target_name = metric_aliases.get(name.casefold(), name).casefold()
         for metric in self.metrics.values():
-            if metric.name.casefold() == name.casefold():
+            if metric.name.casefold() == target_name or metric.id.casefold().endswith(f":{target_name}"):
                 return metric.id
         raise ValueError(f"unknown governed metric name: {name}")
 

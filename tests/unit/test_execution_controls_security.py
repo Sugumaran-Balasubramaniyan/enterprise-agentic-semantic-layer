@@ -53,7 +53,7 @@ def test_non_healthy_product_quality_blocks_compilation_and_execution(quality_st
     allowed = authorize(plan, caller, registry)
     compiled = DuckDBCompiler(registry).compile(plan, allowed, caller, PRIMARY_QUESTION)
     quality = validate_curated_data(REPOSITORY_ROOT / "data" / "curated", registry)
-    registry.products["ClaimsAnalytics"].quality.status = quality_status
+    registry.products["ACDOCAFinancials"].quality.status = quality_status
     decision = authorize(plan, caller, registry)
 
     assert decision.allowed is False
@@ -73,8 +73,8 @@ def test_authorization_requires_authenticated_country_and_derives_pii_from_proje
     wrong_country = authorize(plan, CallerContext(role="ClaimsAnalystFR", country="DE"), registry)
     finance_plan = plan.model_copy(
         update={
-            "projected_dimensions": ["insurance:Customer"],
-            "selected_products": ["PremiumAnalytics"],
+            "projected_dimensions": ["sap:BusinessPartner"],
+            "selected_products": ["BillingAnalytics"],
             "caller": CallerContext(role="FinanceAnalyst"),
         }
     )
@@ -93,21 +93,21 @@ def test_authorization_requires_authenticated_country_and_derives_pii_from_proje
             update={
                 "filters": [
                     *plan.filters,
-                    Filter(concept_id="insurance:ClaimStatus", operator="!=", value="CANCELLED"),
+                    Filter(concept_id="sap:PostingStatus", operator="!=", value="REVERSED"),
                 ]
             }
         ),
         lambda plan: plan.model_copy(
-            update={"projected_dimensions": [*plan.projected_dimensions, "insurance:Policy"]}
+            update={"projected_dimensions": [*plan.projected_dimensions, "sap:SalesOrder"]}
         ),
         lambda plan: plan.model_copy(
             update={
                 "relationships": [
                     *plan.relationships,
                     RelationshipPath(
-                        source="insurance:Customer",
-                        predicate="insurance:ownsPolicy",
-                        target="insurance:Policy",
+                        source="sap:BusinessPartner",
+                        predicate="sap:hasSalesOrder",
+                        target="sap:SalesOrder",
                     ),
                 ]
             }
@@ -131,9 +131,9 @@ def test_compiler_rejects_every_unrepresented_plan_constraint(mutation) -> None:
 def test_quality_requires_all_nonempty_expected_datasets_and_rejects_nonfinite_loss(tmp_path: Path) -> None:
     """Partial or non-finite curated data must not produce a reusable passing report."""
 
-    (tmp_path / "claims.csv").write_text(
-        "claim_id,policy_id,customer_id,country,product,status,claim_date,incurred_loss_eur\n"
-        "C_1,P_1,FR_001,FR,insurance:MotorInsurance,OPEN,2026-08-01,nan\n",
+    (tmp_path / "acdoca_financials.csv").write_text(
+        "journal_entry_id,sales_order_id,partner_id,country,product,posting_status,posting_date,amount_in_company_currency_eur\n"
+        "DOC_1,SO_1,FR_001,FR,sap:ProductAutomotive,POSTED,2026-08-01,nan\n",
         encoding="utf-8",
     )
 
@@ -149,12 +149,12 @@ def test_quality_requires_all_nonempty_expected_datasets_and_rejects_nonfinite_l
 def test_quality_checks_mapping_for_each_rows_country(tmp_path: Path) -> None:
     """Using global product values must accept a product not mapped for that market."""
 
-    for name in ("customers.csv", "policies.csv", "premiums.csv"):
+    for name in ("business_partners.csv", "sales_orders.csv", "billing_documents.csv"):
         source = REPOSITORY_ROOT / "data" / "curated" / name
         (tmp_path / name).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
-    (tmp_path / "claims.csv").write_text(
-        "claim_id,policy_id,customer_id,country,product,status,claim_date,incurred_loss_eur\n"
-        "DE_C_1,DE_P_1,DE_1,DE,insurance:HomeInsurance,OPEN,2026-08-01,1.00\n",
+    (tmp_path / "acdoca_financials.csv").write_text(
+        "journal_entry_id,sales_order_id,partner_id,country,product,posting_status,posting_date,amount_in_company_currency_eur\n"
+        "DE_DOC_1,DE_SO_1,DE_1,DE,sap:ProductCommercial,POSTED,2026-08-01,1.00\n",
         encoding="utf-8",
     )
 
@@ -178,8 +178,8 @@ def test_adapter_requires_current_quality_and_rejects_changed_source_data(tmp_pa
     for source in (REPOSITORY_ROOT / "data" / "curated").glob("*.csv"):
         (data_dir / source.name).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
     quality = validate_curated_data(data_dir, registry)
-    (data_dir / "claims.csv").write_text(
-        (data_dir / "claims.csv").read_text(encoding="utf-8").replace("9000.00", "9001.00", 1),
+    (data_dir / "acdoca_financials.csv").write_text(
+        (data_dir / "acdoca_financials.csv").read_text(encoding="utf-8").replace("9000.00", "9001.00", 1),
         encoding="utf-8",
     )
 
@@ -206,10 +206,10 @@ def test_provenance_is_append_only_and_bound_to_the_actual_execution(tmp_path: P
     assert provenance.plan_digest == compiled.plan_digest
     assert provenance.parameter_digest == compiled.parameter_digest
     assert provenance.source_digests == execution.source_digests
-    assert set(provenance.local_sources) == {"claims.csv", "customers.csv", "policies.csv", "premiums.csv"}
+    assert set(provenance.local_sources) == {"acdoca_financials.csv", "billing_documents.csv", "business_partners.csv", "sales_orders.csv"}
     assert provenance.mapping_evidence
-    assert "field:incurred_loss_eur" in provenance.field_evidence
-    assert "rule:insurance:QualifyingClaim" in provenance.semantic_versions
+    assert "field:amount_in_company_currency_eur" in provenance.field_evidence
+    assert "rule:sap:QualifyingPosting" in provenance.semantic_versions
     assert provenance.semantic_versions["policy:authorization"] == "1.0.0"
     assert provenance.authorization_outcome == "ALLOWED"
     assert not hasattr(store, "connection")

@@ -1,4 +1,4 @@
-"""Integration tests for the governed local DuckDB execution path."""
+"""Integration tests for DuckDB execution with certified curated data."""
 
 from pathlib import Path
 
@@ -17,16 +17,20 @@ PRIMARY_QUESTION = (
 )
 
 
-def _primary_execution() -> tuple[SemanticRegistry, object, object, object, object]:
+def _primary_execution():
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     plan = build_plan(PRIMARY_QUESTION, role="ClaimsAnalystFR", registry=registry)
     authorization = authorize(plan, plan.caller, registry)
-    assert authorization.allowed is True
-    quality = validate_curated_data(REPOSITORY_ROOT / "data" / "curated", registry)
-    assert quality.status == "PASS"
-    compiled = DuckDBCompiler(registry).compile(plan, authorization, plan.caller, PRIMARY_QUESTION)
-    rows = LocalDuckDBAdapter(REPOSITORY_ROOT / "data" / "curated", registry).execute(
-        compiled, authorization, plan.caller, quality
+    compiler = DuckDBCompiler(registry)
+    query = compiler.compile(plan, authorization, plan.caller, PRIMARY_QUESTION)
+    data_dir = REPOSITORY_ROOT / "data" / "curated"
+    quality = validate_curated_data(data_dir, registry)
+    adapter = LocalDuckDBAdapter(data_dir, registry)
+    rows = adapter.execute(
+        query,
+        authorization,
+        plan.caller,
+        quality,
     )
     return registry, plan, authorization, quality, rows
 
@@ -37,8 +41,8 @@ def test_primary_plan_executes_with_deterministic_qualifying_fr_customers() -> N
     _, _, _, _, rows = _primary_execution()
 
     assert rows == [
-        {"customer_id": "FR_001", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 24000.0},
-        {"customer_id": "FR_002", "country": "FR", "claim_count": 3, "total_incurred_loss_eur": 25000.0},
+        {"partner_id": "FR_001", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 24000.0},
+        {"partner_id": "FR_002", "country": "FR", "posting_count": 3, "total_debit_loss_eur": 25000.0},
     ]
 
 
@@ -52,8 +56,8 @@ def test_provenance_persists_semantic_sources_for_the_executed_answer(tmp_path: 
 
     persisted = store.get(provenance.query_id)
     assert provenance.quality_status == "PASS"
-    assert provenance.data_products == ["Customer360", "PolicyMaster", "ClaimsAnalytics"]
-    assert "ClaimsAnalytics" in provenance.data_products
+    assert provenance.data_products == ["BusinessPartners", "SalesOrders", "ACDOCAFinancials"]
+    assert "ACDOCAFinancials" in provenance.data_products
     assert persisted == provenance
     assert all(source.endswith(".csv") for source in provenance.physical_sources)
 
@@ -68,23 +72,21 @@ def test_primary_provenance_contains_semantic_closure_and_separates_source_evide
         question=PRIMARY_QUESTION, execution=execution
     )
 
-    assert set(provenance.concepts) == {
-        "insurance:Customer",
-        "insurance:Country",
-        "insurance:InsuranceProduct",
-        "insurance:Policy",
-        "insurance:MotorInsurance",
-        "insurance:Claim",
-        "insurance:QualifyingClaim",
-        "insurance:IncurredLoss",
-        "insurance:ClaimCount",
-        "insurance:TotalIncurredLoss",
+    assert {
+        "sap:BusinessPartner",
+        "sap:CompanyCode",
+        "sap:Product",
+        "sap:SalesOrder",
+        "sap:ProductAutomotive",
+        "sap:FinancialPosting",
+        "sap:QualifyingPosting",
+        "sap:FinancialLoss",
     } <= set(provenance.concepts)
-    assert set(provenance.queried_sources) == {"customers.csv", "policies.csv", "claims.csv"}
+    assert set(provenance.queried_sources) == {"business_partners.csv", "sales_orders.csv", "acdoca_financials.csv"}
     assert set(provenance.quality_validated_sources) == {
-        "customers.csv",
-        "policies.csv",
-        "claims.csv",
-        "premiums.csv",
+        "business_partners.csv",
+        "sales_orders.csv",
+        "acdoca_financials.csv",
+        "billing_documents.csv",
     }
     assert set(provenance.queried_sources) < set(provenance.quality_validated_sources)

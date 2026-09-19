@@ -25,7 +25,11 @@ from semantic_layer.models import CallerContext
 from semantic_layer.quality import QualityReport
 from semantic_layer.registry import SemanticRegistry
 
-_VIEWS = {"customers": "customers.csv", "policies": "policies.csv", "claims": "claims.csv"}
+_VIEWS = {
+    "business_partners": "business_partners.csv",
+    "sales_orders": "sales_orders.csv",
+    "acdoca_financials": "acdoca_financials.csv",
+}
 
 
 class ExecutionResult(Sequence[dict[str, Any]]):
@@ -139,7 +143,7 @@ class LocalDuckDBAdapter:
 
     @staticmethod
     def _required_quality_datasets() -> tuple[str, ...]:
-        return ("claims.csv", "customers.csv", "policies.csv", "premiums.csv")
+        return ("acdoca_financials.csv", "billing_documents.csv", "business_partners.csv", "sales_orders.csv")
 
     @staticmethod
     def _assert_finite_rows(rows: list[dict[str, Any]]) -> None:

@@ -2,8 +2,8 @@
 
 ## Ownership and change control
 
-GlobalSure Group owns the canonical vocabulary, ontology, semantic CI,
-interoperability rules, and semantic version. Local entities own source
+SAP's central enterprise architecture owns the canonical vocabulary, ontology, semantic CI,
+interoperability rules, and semantic version. Regional operating entities own source
 schemas, local mappings, products, and regulatory restrictions. A pull request
 that changes a definition, relationship, join, metric expression, or
 normalization must include updated tests and a reviewer from the owning data
@@ -22,16 +22,16 @@ authentication. A production identity-aware transport must supply authenticated
 attributes before invoking this policy. The demo roles are
 `ClaimsAnalystFR`, `ClaimsManagerGroup`, and `FinanceAnalyst`. Authorization
 evaluates role, country, purpose, product classification, and derived PII. A
-French claims analyst is scoped to French claims; Finance can use premium
-metrics without customer PII; an unknown or over-classified role is denied.
+French financial analyst is scoped to French postings; Finance can use financial
+metrics without partner PII; an unknown or over-classified role is denied.
 Quality or authorization failures are fail-closed and return a reason code.
 
 ## Data quality
 
-The curated path checks non-null identifiers, non-negative incurred loss,
-non-future claim dates, governed statuses and countries, and certified product
-mappings. `CANCELLED` and `DUPLICATE` claims remain observable for audit but
-are excluded from `QualifyingClaim`. A product marked unsafe or degraded must
+The curated path checks non-null identifiers, non-negative debit loss,
+non-future posting dates, governed statuses and countries, and certified product
+mappings. `REVERSED` and `DUPLICATE` postings remain observable for audit but
+are excluded from `QualifyingPosting`. A product marked unsafe or degraded must
 not be used for a detail answer. Quality status is included in both the API
 response and provenance.
 

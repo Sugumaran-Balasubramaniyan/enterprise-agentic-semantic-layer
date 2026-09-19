@@ -16,8 +16,8 @@ def test_resolver_grounds_car_insurance_in_canonical_concept() -> None:
 
     resolution = registry.resolver.resolve("Find customers with car-insurance cover")
 
-    assert "insurance:MotorInsurance" in resolution.concept_ids
-    assert resolution.matched_terms["insurance:MotorInsurance"] == "car insurance"
+    assert "sap:ProductAutomotive" in resolution.concept_ids
+    assert resolution.matched_terms["sap:ProductAutomotive"] == "car insurance"
 
 
 def test_resolver_does_not_match_a_term_inside_an_unrelated_word() -> None:
@@ -27,7 +27,7 @@ def test_resolver_does_not_match_a_term_inside_an_unrelated_word() -> None:
 
     resolution = registry.resolve("The claimant is unrelated to this insurance product")
 
-    assert "insurance:Claim" not in resolution.concept_ids
+    assert "sap:FinancialPosting" not in resolution.concept_ids
 
 
 def test_resolver_quarantines_an_unknown_mapping_target() -> None:
@@ -35,24 +35,24 @@ def test_resolver_quarantines_an_unknown_mapping_target() -> None:
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     registry.mappings["DatabricksFranceMapping"].normalization["products"]["MTR"] = (
-        "insurance:UnknownLocalProduct"
+        "sap:UnknownLocalProduct"
     )
 
     resolution = registry.resolve("Find MTR customers")
 
-    assert "insurance:UnknownLocalProduct" not in resolution.concept_ids
-    assert "insurance:MotorInsurance" not in resolution.concept_ids
+    assert "sap:UnknownLocalProduct" not in resolution.concept_ids
+    assert "sap:ProductAutomotive" not in resolution.concept_ids
 
 
 def test_resolver_grounds_registered_home_insurance_mapping_targets() -> None:
-    """Dropping governed HomeInsurance must leave an active mapping target unresolved."""
+    """Dropping governed CommercialProduct must leave an active mapping target unresolved."""
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
 
     resolution = registry.resolve("Find HOME customers")
 
-    assert "insurance:HomeInsurance" in resolution.concept_ids
-    assert resolution.matched_terms["insurance:HomeInsurance"] == "home"
+    assert "sap:ProductCommercial" in resolution.concept_ids
+    assert resolution.matched_terms["sap:ProductCommercial"] == "home"
 
 
 @pytest.mark.parametrize("local_value", ["MTR", "AUTO"])
@@ -63,7 +63,7 @@ def test_resolver_grounds_local_mapping_values_in_motor_insurance(local_value: s
 
     resolution = registry.resolve(f"Find {local_value} customers")
 
-    assert resolution.matched_terms["insurance:MotorInsurance"] == local_value.casefold()
+    assert resolution.matched_terms["sap:ProductAutomotive"] == local_value.casefold()
 
 
 def test_resolver_grounds_governed_plural_business_terms() -> None:
@@ -74,9 +74,9 @@ def test_resolver_grounds_governed_plural_business_terms() -> None:
     )
 
     assert {
-        "insurance:ActivePolicy",
-        "insurance:Claim",
-        "insurance:Customer",
-        "insurance:Policy",
-        "insurance:QualifyingClaim",
+        "sap:ActiveSalesOrder",
+        "sap:FinancialPosting",
+        "sap:BusinessPartner",
+        "sap:SalesOrder",
+        "sap:QualifyingPosting",
     }.issubset(resolution.concept_ids)
