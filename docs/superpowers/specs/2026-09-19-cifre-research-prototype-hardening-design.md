@@ -390,7 +390,7 @@ the first migration. Change metadata and labels as follows:
   the original 40-query controlled corpus.
 
 Do not delete the legacy expected answer. For every changed gold expectation,
-record `legacy_expected_notes`, `revised_expected_notes`, a reason, the graph
+record `legacy_expected_notes`, `gold_note_numbers`, a `migration_reason`, the graph
 query/policy used to derive the new set, and reviewer sign-off in the dataset
 metadata or migration manifest. Gold sets are justified by the current graph
 and declared semantics: exact note identity, direct versus transitive
@@ -583,7 +583,7 @@ The implementation impact is fixed and explicit:
 | Namespace constants and graph loading | `src/semantic_layer/kg/loader.py`, `src/semantic_layer/kg/sap_dataset_generator.py` | One neutral namespace registry; no legacy aliases |
 | Synthetic semantic assets | `semantic/ontology/`, `semantic/shapes/`, `semantic/data/`, `semantic/vocabulary/`, `semantic/taxonomy/` | Distinct support, PPMS, ERP OWL, and SKOS IRIs; coherent datatypes |
 | AQR contracts | `src/semantic_layer/reasoning/schema_linker.py`, `query_planner.py`, `text_to_sparql.py`, `reflective_agent.py` | Abstention, bound projections, closure path, typed status and repair ledger |
-| Benchmark | `src/semantic_layer/research/benchmark_runner.py`, `tests/research/benchmark_dataset.yaml`, new `results/latest_benchmark.json` | Real conditions only; exact-set and set metrics; hashes/per-query records |
+| Benchmark | `src/semantic_layer/research/benchmark_runner.py`, `tests/research/benchmark_dataset_legacy.yaml`, `tests/research/benchmark_dataset_v1.yaml`, `tests/research/benchmark_dataset_v2.yaml`, `results/latest_benchmark.json` | Real conditions only; exact-set and set metrics; hashes/per-query records |
 | Reproducibility | `Makefile`, generator/validation helpers, tests | One `research-verify` target with parity, SHACL, benchmark, tests, lint |
 | Claims and handoff | `README.md`, `docs/research/cifre_phd_proposal.md`, new `docs/research/cifre-interview-brief.md`, `docs/data-products.md`, `docs/governance.md`, `docs/verification-report.md`, `pyproject.toml` | Independent disclaimer, current/proposed labels, no ownership/affiliation claims |
 | Tests | `tests/research/`, `tests/semantic/`, `tests/unit/`, documentation claim tests | TDD, semantic regression, artifact integrity, status and claim contracts |
@@ -691,9 +691,10 @@ input never generates a guessed capability; relaxed results remain
 
 ### Task 5: Rebuild the preliminary benchmark
 
-Keep the 40-query v1 at `tests/research/benchmark_dataset.yaml` unchanged in
-scope and create `tests/research/benchmark_dataset_v2.yaml` with the 12
-negative records specified in Section 23. Add migration metadata to v1, remove
+Preserve `tests/research/benchmark_dataset.yaml` as historical input, generate
+normalized v1 at `tests/research/benchmark_dataset_v1.yaml`, and create
+`tests/research/benchmark_dataset_v2.yaml` with the 12 negative records
+specified in Section 26.1. Add migration metadata to v1, remove
 the fake Vector RAG path, rename the one-shot ablation, implement exact-set/set
 metrics, and write the hashed v1/v2 per-query JSON artifact.
 
@@ -778,6 +779,8 @@ filler_tokens:
   - addresses
   - alert
   - any
+  - an
+  - and
   - application
   - are
   - at
@@ -830,25 +833,26 @@ The grammar source also contains these exact token sequences:
 templates:
   - id: note_lookup
     intent: NOTE_LOOKUP
-    sequence: [lookup_verb, filler*, note_number]
+    sequence: [lookup_verb, "filler*", note_number]
   - id: alert_resolution
     intent: ALERT_RESOLUTION
-    sequence: [question_word, filler*, alert_code, filler*, component_code?, product_version?, support_package?, priority?]
+    sequence: [question_word, "filler*", alert_code, "filler*", "component_code?", "product_version?", "support_package?", "priority?"]
   - id: component_search
     intent: COMPONENT_SEARCH
-    sequence: [question_word, filler*, component_code, filler*, product_version?, support_package?, priority?]
+    sequence: [question_word, "filler*", component_code, "filler*", "product_version?", "support_package?", "priority?"]
   - id: version_filtered_search
     intent: VERSION_FILTERED_SEARCH
-    sequence: [question_word, filler*, alert_code|component_code, filler*, product_version|support_package, filler*, priority?]
+    sequence: [question_word, "filler*", "alert_code|component_code", "filler*", "product_version|support_package", "filler*", "priority?"]
   - id: prerequisite_closure
     intent: PREREQUISITE_CLOSURE
-    sequence: [question_word, filler*, prerequisite_marker, filler*, note_number]
+    sequence: [question_word, "filler*", prerequisite_marker, "filler*", note_number]
   - id: general_note_lookup
     intent: GENERAL_SEARCH
     sequence: [note_number]
 lookup_verb: [find, get, identify, retrieve, what, which]
 question_word: [find, get, identify, what, which, list]
 prerequisite_marker: [dependency, dependencies, prerequisite, prerequisites]
+unsupported_intent_marker: [explain, recommend, summarize]
 ```
 
 `filler*` consumes only the declared `filler_tokens`; `?` consumes zero or
@@ -879,11 +883,12 @@ The supported intents and their required slots are fixed:
 | `GENERAL_SEARCH` | exactly one `note_number` | none | Alias for `NOTE_LOOKUP` only; it never emits an unconstrained note search |
 
 Intent selection is deterministic and ordered: prerequisite words select
-`PREREQUISITE_CLOSURE`; an alert selects `ALERT_RESOLUTION`; a component
-without an alert selects `COMPONENT_SEARCH`; a version/support-package
-qualifier with an alert or component selects `VERSION_FILTERED_SEARCH`; a
-single note number with lookup wording selects `NOTE_LOOKUP`; the only
-remaining accepted case is `GENERAL_SEARCH` with exactly one note number.
+`PREREQUISITE_CLOSURE`; a version/support-package qualifier with one alert or
+component selects `VERSION_FILTERED_SEARCH`; an alert without a version or
+support-package selects `ALERT_RESOLUTION`; a component without those
+qualifiers selects `COMPONENT_SEARCH`; a single note number with lookup
+wording selects `NOTE_LOOKUP`; the only remaining accepted case is
+`GENERAL_SEARCH` with exactly one note number.
 Conflicting intent markers, no required slot, multiple distinct values,
 unknown tokens, and a version/package qualifier without an alert or component
 return `UNSUPPORTED` before planning. The linker never invents an entity from
@@ -898,7 +903,7 @@ The grammar fixtures must include these exact cases:
 | `What are the prerequisite notes required for SAP Note 3109922?` | `PREREQUISITE_CLOSURE` / `SUCCESS` after execution | `note_number=[3109922]` |
 | `Find notes valid for S/4HANA 2023.` | `UNSUPPORTED` / `UNSUPPORTED` | no anchored alert/component |
 | `Find notes for TIME_OUT and DBSQL_NO_MORE_CONNECTION.` | `UNSUPPORTED` / `UNSUPPORTED` | two distinct `alert_code` values |
-| `Find notes for UNKNOWN_ALERT.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_TOKEN` |
+| `Find notes for UNKNOWN_ALERT.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_ENTITY` |
 | `Find notes for TIME_OUT in component BC-DB-HDB for an Oracle system.` | `UNSUPPORTED` / `UNSUPPORTED` | `UNKNOWN_TOKEN=oracle/system` |
 
 The fixture expected status is the status after execution for supported
@@ -921,9 +926,20 @@ violations. `NaN`, positive infinity, negative infinity, and the strings
   "query_id": "Q01",
   "condition": "deterministic_bounded_repair",
   "question": "Which SAP Notes directly resolve alert DBSQL_NO_MORE_CONNECTION?",
+  "normalized_request": "which sap notes directly resolve alert dbsql_no_more_connection",
   "expected_status": "SUCCESS",
   "observed_status": "SUCCESS",
   "reason_code": "NONE",
+  "original_constraints": {
+    "alert_code": ["DBSQL_NO_MORE_CONNECTION"],
+    "component_code": [],
+    "product_version": [],
+    "software_component": [],
+    "support_package": [],
+    "note_number": [],
+    "priority": [],
+    "predicates": ["cifsup:resolvesAlert", "cifsup:alertCode"]
+  },
   "grounding": {
     "intent": "ALERT_RESOLUTION",
     "entities": {
@@ -947,8 +963,15 @@ violations. `NaN`, positive infinity, negative infinity, and the strings
     "relaxation_attempted": false,
     "operations": []
   },
+  "relaxation": {
+    "attempted": false,
+    "strict_status": "SUCCESS",
+    "operations": []
+  },
+  "answer_scope": "strict",
+  "relaxed_candidates": [],
   "bindings": [
-    {"noteNumber": "3345100", "title": "...", "alertCode": "DBSQL_NO_MORE_CONNECTION"}
+    {"note": "https://example.org/cifre-kg/data/support/note/3345100", "noteNumber": "3345100", "title": "...", "alertCode": "DBSQL_NO_MORE_CONNECTION"}
   ],
   "predicted_note_numbers": ["3345100"],
   "gold_note_numbers": ["3345100"],
@@ -1013,6 +1036,10 @@ following details:
 
 ### 17.1 Exact hash manifest and environment
 
+The complete manifest is the sorted glob expansion in Section 26.6; the
+short list below is retained only to show the primary research assets and is
+not an alternative manifest.
+
 `results/latest_benchmark.json` contains `manifest_version: "1.0"` and an
 ordered `hash_manifest` with this exact path order. Each entry stores the
 repository-relative path, byte SHA-256, and byte length:
@@ -1028,7 +1055,8 @@ semantic/vocabulary/sap_erp.yaml
 semantic/data/sap_support_graph.ttl
 semantic/provenance/synthetic_source.yaml
 tests/research/grounding_grammar.yaml
-tests/research/benchmark_dataset.yaml
+tests/research/benchmark_dataset_legacy.yaml
+tests/research/benchmark_dataset_v1.yaml
 tests/research/benchmark_dataset_v2.yaml
 tests/research/result_schema.json
 constraints/py312.txt
@@ -1223,7 +1251,7 @@ The namespace registry is closed. The allowed class and property names are:
 | `cifppms` | `ProductLine`, `Product`, `ProductVersion`, `SoftwareComponent`, `SoftwareComponentVersion`, `SupportPackage`, `PatchLevel` | `belongsToProductLine`, `hasProductVersion`, `includesComponent`, `isVersionOfComponent`, `hasSupportPackage`, `hasPatchLevel`, `dependsOnComponent`, `productLineCode`, `productCode`, `versionCode`, `componentName`, `componentVersionString`, `stackLevel`, `spName`, `patchNumber`, `releaseYear` |
 | `ciferp` | `BusinessPartner`, `SalesOrder`, `FinancialPosting`, `Product`, `ProductAutomotive`, `ProductCommercial`, `Risk`, `Coverage`, `BillingDocument`, `PostingStatus`, `CompanyCode`, `CountryCodedEntity`, `ActiveSalesOrder`, `QualifyingPosting`, `FinancialLoss` | `hasSalesOrder`, `hasFinancialPosting`, `referencesSalesOrder`, `hasProduct`, `coversRisk`, `hasCoverage`, `generatesBilling`, `postingOrder`, `orderProduct`, `countryCode`, `partnerId`, `salesOrderId`, `journalEntryId`, `postingDate`, `postingStatus`, `orderStatus`, `amountInCompanyCurrency`, `hasPostingStatus`, `hasFinancialLoss`, `statusValue`, `amountValue` |
 | `cifskos` | `ProductScheme`, `Product`, `ProductAutomotive`, `ProductCommercial` as SKOS resources only | `skos:hasTopConcept`, `skos:topConceptOf`, `skos:narrower`, `skos:broader`, `skos:inScheme`, `skos:prefLabel`, `skos:altLabel` |
-| `cifmeta` | `SyntheticDataset`, `SyntheticCrosswalk` | `sourceKind`, `official`, `datasetId`, `generatedBy`, `graphPath`, `mapsToConcept`, `crosswalkVersion` |
+| `cifmeta` | `SyntheticDataset`, `CrosswalkEntry` | `sourceKind`, `official`, `datasetId`, `generatedBy`, `graphPath`, `sourceResource`, `targetConcept`, `crosswalkVersion` |
 
 Allowed instance bases are exact: support instances use
 `https://example.org/cifre-kg/data/support/{note,alert,component,simcat,doc}/`;
@@ -1289,22 +1317,14 @@ passes the negative-control test.
 
 ## 23. Corpus versions and reflection metadata
 
-The existing 40 questions remain unchanged as the controlled v1 corpus at
-`tests/research/benchmark_dataset.yaml`, with header
-`version: "1.0.0"`, `corpus_id: "cifre-synthetic-aqr-v1"`, and exactly five
-tiers of eight questions. No negative questions are added to v1 and no v1
-question is silently deleted. Revised gold expectations remain governed by
-the migration fields in Section 8.1; v1 is the positive baseline used for the
-headline preliminary metrics.
-
-Create a separate v2 file at
-`tests/research/benchmark_dataset_v2.yaml`, with header
-`version: "2.0.0"`, `corpus_id: "cifre-synthetic-aqr-v2"`, and all 40 v1
-records copied byte-for-byte plus 12 new negative records: two unknown-token,
-two unknown-entity, two ambiguous/multiple-entity, two unsupported-intent,
-two syntax, and two strict-empty cases. V2 does not alter v1 golds. The
-reproducibility target runs both files, writes one `corpus_runs` entry per
-version to `results/latest_benchmark.json`, and reports v1 and v2 separately.
+The exact corpus migration is defined in Section 26.1. The currently committed
+40-record file is historical input; normalized v1 is
+`tests/research/benchmark_dataset_v1.yaml` and normalized v2 is
+`tests/research/benchmark_dataset_v2.yaml`. V1 remains the 40-query positive
+baseline, and v2 evaluates all 52 normalized records. The migration script,
+not byte-for-byte copying, supplies the required normalized fields and exact
+v1/v2 IDs, categories, statuses, and gold sets. Both versions produce one
+`corpus_runs` entry in `results/latest_benchmark.json`.
 
 Every record includes `reflection_reason`, whose enum is exactly:
 
@@ -1386,7 +1406,8 @@ src/semantic_layer/reasoning/reflective_agent.py
 src/semantic_layer/research/benchmark_runner.py
 tests/research/grounding_grammar.yaml
 tests/research/result_schema.json
-tests/research/benchmark_dataset.yaml
+tests/research/benchmark_dataset_legacy.yaml
+tests/research/benchmark_dataset_v1.yaml
 tests/research/benchmark_dataset_v2.yaml
 tests/semantic/test_sap_kg.py
 tests/semantic/test_shacl.py
@@ -1429,3 +1450,336 @@ This section is normative and supersedes earlier shorthand that refers to one
 benchmark file, one benchmark run, or an unspecified dependency installation:
 the implementation uses both named corpus versions, the locked constraints
 file, and the v1/v2 `corpus_runs` structure in `results/latest_benchmark.json`.
+
+## 26. Final reproducibility corrections
+
+This section resolves the remaining migration choices and supersedes any
+earlier wording that conflicts with it.
+
+### 26.1 Historical input, normalized corpora, and exact migration
+
+The currently committed `tests/research/benchmark_dataset.yaml` remains
+unchanged as historical input. The migration first creates the identical
+archival copy `tests/research/benchmark_dataset_legacy.yaml`. The checked-in normalized
+corpora are:
+
+- `tests/research/benchmark_dataset_v1.yaml`: exactly 40 records, IDs `Q01`
+  through `Q40`, `corpus_id: cifre-synthetic-aqr-v1`, `version: "1.0.0"`;
+- `tests/research/benchmark_dataset_v2.yaml`: exactly 52 records, IDs `Q01`
+  through `Q52`, `corpus_id: cifre-synthetic-aqr-v2`, `version: "2.0.0"`.
+
+The historical file is an input only and is never evaluated. The migration is
+the committed deterministic script `scripts/migrate_benchmark_v1.py`, invoked
+as:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/migrate_benchmark_v1.py \
+  tests/research/benchmark_dataset_legacy.yaml \
+  tests/research/benchmark_dataset_v1.yaml \
+  tests/research/benchmark_dataset_v2.yaml
+```
+
+The script has no wall-clock, random, network, or model input. It validates
+that the legacy file has exactly `Q01` through `Q40`, copies `question`,
+`tier`, and `category`, converts `expected_notes` to the sole normalized field
+`gold_note_numbers`, and writes all fields required by Section 26.2. The
+normalized files never contain `expected_notes`; that name is accepted only
+in the historical input. `Q01` through `Q24` preserve their historical gold
+sets and expected status `SUCCESS`. For prerequisite closure, `Q25`, `Q28`,
+and `Q31` have gold `["3012445", "3098110"]`; `Q26` and `Q30` have
+`["3012445"]`; `Q27`, `Q29`, and `Q32` have `["3185002"]`. `Q33` through
+`Q40` have expected status `EMPTY_RESULT`, empty strict gold sets, and retain
+their historical answers in `legacy_expected_notes` only; their
+`reflection_reason` is `STRICT_EMPTY_SEMANTIC_RELAXATION`.
+
+V2 adds these exact records; it does not copy YAML bytes from v1 because the
+normalized schema adds required fields:
+
+| ID | Category | Expected status | Reason | Question |
+| --- | --- | --- | --- | --- |
+| Q41 | `negative_unknown_token` | `UNSUPPORTED` | `UNKNOWN_TOKEN` | `Find notes for an unlicensed oracle system.` |
+| Q42 | `negative_unknown_token` | `UNSUPPORTED` | `UNKNOWN_TOKEN` | `Which notes resolve an unexplained outage?` |
+| Q43 | `negative_unknown_entity` | `UNSUPPORTED` | `UNKNOWN_ENTITY` | `Find notes for alert UNKNOWN_ALERT.` |
+| Q44 | `negative_unknown_entity` | `UNSUPPORTED` | `UNKNOWN_ENTITY` | `Find notes for component ZZ-UNKNOWN.` |
+| Q45 | `negative_ambiguity` | `UNSUPPORTED` | `AMBIGUOUS_INPUT` | `Find notes for TIME_OUT and DBSQL_NO_MORE_CONNECTION.` |
+| Q46 | `negative_ambiguity` | `UNSUPPORTED` | `AMBIGUOUS_INPUT` | `Find notes for component FI and component MM.` |
+| Q47 | `negative_unsupported_intent` | `UNSUPPORTED` | `UNSUPPORTED_INTENT` | `Summarize the support landscape in a paragraph.` |
+| Q48 | `negative_unsupported_intent` | `UNSUPPORTED` | `UNSUPPORTED_INTENT` | `Recommend a patch for this system.` |
+| Q49 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for TIME_OUT in component MM-PUR-PO at SP99.` |
+| Q50 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB at SP99.` |
+| Q51 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes resolving TIME_OUT on S/4HANA 2022 in component SD-SLS.` |
+| Q52 | `negative_strict_empty` | `EMPTY_RESULT` | `EMPTY_STRICT_RESULT` | `Find notes for CALL_FUNCTION_NOT_FOUND in component SD-SLS.` |
+
+Q43 and Q44 are unknown entities, not unknown tokens, because `UNKNOWN_ALERT`
+matches the alert-code shape and `ZZ-UNKNOWN` matches the component-code
+shape. Q41 and Q42 are unknown tokens because their words are outside the
+grammar filler set and do not match an entity-slot shape. Q49-Q52 are valid
+grammar requests whose strict graph constraints return no bindings. Syntax and
+execution failures are not corpus records: they are deterministic mocked
+executor tests at `tests/research/test_failure_state_machine.py`, which supply
+fixed parser/store exceptions and fixed input hashes.
+
+### 26.2 Normalized record schema
+
+Every v1 and v2 record has exactly these fields, in this canonical key order:
+
+```yaml
+id: Q01
+corpus_id: cifre-synthetic-aqr-v1
+version: "1.0.0"
+tier: 1
+category: single_hop_alert
+question: "..."
+expected_status: SUCCESS
+gold_note_numbers: ["3345100"]
+legacy_expected_notes: null
+reflection_reason: NONE
+strict_constraints: true
+gold_policy: exact_set
+```
+
+`legacy_expected_notes` is a sorted string array for Q33-Q40 and `null` for
+all other records. `gold_note_numbers` is always a sorted unique string array;
+unsupported and empty records use `[]`. `tier` is an integer 1-5 for Q01-Q40
+and `0` for Q41-Q52. `strict_constraints` is always true in v2. No normalized
+record has an omitted field or the legacy `expected_notes` field.
+
+### 26.3 Grounding precedence and token classification
+
+Intent precedence is exactly:
+
+1. `PREREQUISITE_CLOSURE` when a prerequisite marker and one note number are
+   present; any alert, component, or version token makes the request
+   `UNSUPPORTED` rather than changing this intent.
+2. `VERSION_FILTERED_SEARCH` when exactly one alert or component anchor and
+   exactly one product-version or support-package qualifier are present. With
+   both alert and component, the alert is the anchor and the component is an
+   additional qualifier.
+3. `ALERT_RESOLUTION` when exactly one alert is present without a version or
+   support-package qualifier; a single component is an optional qualifier.
+4. `COMPONENT_SEARCH` when exactly one component is present without an alert
+   or version/package qualifier.
+5. `NOTE_LOOKUP` when exactly one note number is present with a lookup verb.
+6. `GENERAL_SEARCH` only when exactly one note number is present and none of
+   the preceding markers apply; it compiles identically to `NOTE_LOOKUP`.
+
+Two distinct values in any entity family produce `AMBIGUOUS_INPUT`. An
+`unsupported_intent_marker` produces `UNSUPPORTED_INTENT` before token
+classification. A token outside `filler_tokens`, an entity-slot token, or
+punctuation rules is an `UNKNOWN_TOKEN` unless it matches one of these slot
+shapes, in which case it is an `UNKNOWN_ENTITY`: alert shape
+`[A-Z][A-Z0-9_]{2,}`, component shape
+`[A-Z]{2,}(?:-[A-Z0-9]+)+`, support-package shape `SP[0-9]{1,2}`, product
+version shape `S/4HANA [0-9]{4}`, or note-number shape `[0-9]{7}`. This
+classification happens before intent precedence and is recorded in
+`grounding.failure_class`.
+
+The filler vocabulary includes `and` and `an`; the grammar therefore accepts
+the v2 wording `TIME_OUT and DBSQL_NO_MORE_CONNECTION` long enough to classify
+it as `AMBIGUOUS_INPUT`, while `an unlicensed Oracle system` is rejected as
+`UNKNOWN_TOKEN`.
+
+### 26.4 Complete result artifact schema
+
+The top-level object in `results/latest_benchmark.json` has exactly these
+required fields:
+
+```json
+{
+  "schema_version": "1.0.0",
+  "artifact_id": "cifre-aqr-benchmark-results",
+  "generated_by": "semantic_layer.research.benchmark_runner",
+  "canonicalization": {"encoding": "UTF-8", "key_order": "lexicographic", "metric_precision": 6},
+  "hash_manifest": {"manifest_version": "1.0", "entries": [], "digest_sha256": "..."},
+  "environment": {"python_version": "3.12.0", "platform_system": "Linux", "platform_machine": "x86_64", "pip_version": "25.2", "lock_sha256": "...", "packages": {}},
+  "namespace_registry": {},
+  "validation": {"checks": [], "combined_graph_sha256": "..."},
+  "corpus_runs": [],
+  "per_query": []
+}
+```
+
+`corpus_runs` is an array of objects with required fields
+`corpus_id`, `version`, `path`, `dataset_sha256`, `query_count`, `query_ids`,
+`conditions`, `aggregate`, and `result_ids`. `query_ids` and `result_ids` are
+sorted arrays. `conditions` is the fixed two-element array from Section 17.
+`aggregate` contains status counts, `applicable_count`,
+`not_applicable_count`, exact-set count, and six-decimal-string macro/micro
+metrics. `result_ids` references `per_query` objects by the exact string
+`<corpus_id>:<condition>:<query_id>`. `per_query` is the complete array of
+records, sorted by `(corpus_id, condition, query_id)`.
+
+Each per-query record additionally requires `normalized_request` (string),
+`original_constraints` (object containing sorted entity arrays and the exact
+constraint predicates), `relaxation` (object), `answer_scope` (enum
+`strict`, `relaxed_candidates`, or `none`), and `relaxed_candidates` (array).
+`relaxation.attempted` is boolean, `relaxation.operations` is the ordered
+ledger, `relaxation.strict_status` is the status before relaxation, and
+`relaxed_candidates` contains rows with the same binding schema as
+`bindings`. `answer_scope` is `none` for unsupported/error records, `strict`
+for strict success or strict empty, and `relaxed_candidates` only when strict
+empty candidates are displayed. `original_constraints` is never replaced by
+the relaxed constraints.
+
+`attempts` counts executed attempts, not indexes: unsupported records have
+`0`, an initial execution has `1`, and an initial plus three repairs has `4`.
+Ledger `attempt_index` is zero-based (`0` initial, `1..3` repairs), so
+`attempts = 0` or `1 + max(attempt_index)` for records with execution
+attempts. `bindings` includes the required `note` IRI, `noteNumber`, and
+`title` fields; optional fields are explicit JSON `null`.
+
+### 26.5 Complete status/reason pairs and repair state machine
+
+The query status/reason relation is closed:
+
+| Status | Allowed final reasons |
+| --- | --- |
+| `SUCCESS` | `NONE` only |
+| `UNSUPPORTED` | `UNKNOWN_TOKEN`, `UNKNOWN_ENTITY`, `AMBIGUOUS_INPUT`, `AMBIGUOUS_INTENT`, `MULTIPLE_DISTINCT_ENTITIES`, `UNSUPPORTED_INTENT`, `MISSING_REQUIRED_ENTITY` |
+| `SYNTAX_ERROR` | `UNBOUND_REQUIRED_PROJECTION`, `SPARQL_SYNTAX`, `NO_OP_REPAIR`, `REPAIR_BUDGET_EXHAUSTED` |
+| `EXECUTION_ERROR` | `SPARQL_EXECUTION`, `PROVENANCE_MISSING`, `NO_OP_REPAIR`, `REPAIR_BUDGET_EXHAUSTED` |
+| `EMPTY_RESULT` | `EMPTY_STRICT_RESULT`, `RELAX_SUPPORT_PACKAGE`, `WIDEN_COMPONENT`, `PREREQUISITE_DEPTH_EXCEEDED` |
+
+`INVALID_DATASET` and `HASH_MISMATCH` are artifact-level `artifact_errors`
+and are forbidden as per-query reasons. Add `AMBIGUOUS_INPUT`, `NO_OP_REPAIR`,
+and `PREREQUISITE_DEPTH_EXCEEDED` to the reason enum.
+
+The closed state machine is:
+
+| State | Event | Next state | Final status/reason |
+| --- | --- | --- | --- |
+| `INITIAL` | grammar abstention | `FINAL` | `UNSUPPORTED` / grammar reason |
+| `INITIAL` with no-reflection condition | success | `FINAL` | `SUCCESS` / `NONE` |
+| `INITIAL` with no-reflection condition | syntax/execution/empty | `FINAL` | corresponding error or `EMPTY_RESULT` |
+| `INITIAL` bounded | syntax | `SYNTAX_REPAIR` | not final while budget remains |
+| `INITIAL` bounded | execution | `EXECUTION_REPAIR` | not final while budget remains |
+| `INITIAL` bounded | empty with relaxable predicate | `SEMANTIC_RELAXATION` | not final while budget remains |
+| `INITIAL` bounded | empty without relaxable predicate | `FINAL` | `EMPTY_RESULT` / `EMPTY_STRICT_RESULT` |
+| `SYNTAX_REPAIR` or `EXECUTION_REPAIR` | repaired strict success | `FINAL` | `SUCCESS` / `NONE`, `recovered=true` |
+| `SYNTAX_REPAIR` or `EXECUTION_REPAIR` | same query/plan (no-op) | `FINAL` | error / `NO_OP_REPAIR` |
+| `SYNTAX_REPAIR` or `EXECUTION_REPAIR` | another failure with budget | same repair state | not final |
+| `SEMANTIC_RELAXATION` | candidates found | `FINAL` | `EMPTY_RESULT` / relaxation reason, `answer_scope=relaxed_candidates` |
+| `SEMANTIC_RELAXATION` | no candidates | `FINAL` | `EMPTY_RESULT` / relaxation reason |
+| any repair state | repair index 3 fails | `FINAL` | last error / `REPAIR_BUDGET_EXHAUSTED` |
+| `SEMANTIC_RELAXATION` after a syntax/execution repair | any result | `FINAL` | `EMPTY_RESULT` / relaxation reason; `recovery_success=false` |
+
+`max_repairs=3` is fixed for both conditions, but the no-reflection condition
+never enters a repair state. Every attempted execution ledger entry stores
+the complete `sparql_text` string, not merely a digest; the same text appears
+in the corresponding top-level `sparql.initial` or `sparql.final` field. Thus
+every attempted query is retrievable from the checked-in result artifact.
+
+### 26.6 Hash manifest and validation construction
+
+The hash manifest expands this exact ordered glob list, using repository-root
+relative POSIX paths and bytewise lexical order within each glob, then sorts
+the complete expanded path list once and removes duplicates:
+
+```text
+.github/workflows/ci.yml
+Makefile
+pyproject.toml
+constraints/py312.txt
+scripts/**/*.py
+semantic/**/*.ttl
+semantic/**/*.yaml
+semantic/**/*.json
+src/semantic_layer/**/*.py
+tests/**/*.py
+tests/**/*.yaml
+tests/**/*.json
+```
+
+This includes both valid/invalid graph fixtures, `src/semantic_layer/semantic_validation.py`,
+`src/semantic_layer/validation.py`, all current AQR consumers, generator and
+loader code, integration/unit/semantic/vocabulary/documentation tests, and
+the migration/failure scripts. Exclude `.git/`, `.venv/`, `results/`, and
+untracked files. The sorted manifest is the complete research-reproduce input;
+each path has its byte SHA-256 and length, and the digest uses the
+`path\\0sha256\\0byte_length\\n` records specified in Section 17.1.
+
+The canonical combined graph is constructed in this exact order into a fresh
+RDFLib `Graph`: ontology support, ontology PPMS, checked-in support data,
+ontology ERP, valid ERP sample. The exact paths are
+`semantic/ontology/sap_support.ttl`, `semantic/ontology/sap_ppms.ttl`,
+`semantic/data/sap_support_graph.ttl`, `semantic/ontology/sap_erp.ttl`, and
+`semantic/ontology/sample-graph-valid.ttl`. Shapes are unioned in the order
+`semantic/shapes/sap_support_shapes.ttl`, then
+`semantic/shapes/sap_erp_shapes.ttl`. The combined graph and shapes are each
+serialized to temporary canonical N-Triples for hashes, then validated as one
+RDFLib graph with `inference: "rdfs"`. The graph-isomorphism check compares
+the generated support graph with its checked-in artifact before the combined
+load.
+
+The committed prerequisite-cycle fixture is
+`semantic/data/support-prerequisite-cycle.ttl`. The planner's exact traversal
+policy is `MAX_PREREQUISITE_DEPTH=16`: it compiles a union of the valid SPARQL
+property paths of lengths 1 through 16 over
+`cifsup:hasPrerequisiteNote`, deduplicates note IRIs, excludes the target note,
+and returns `EMPTY_RESULT` / `PREREQUISITE_DEPTH_EXCEEDED` when a reachable
+edge would require hop 17. The cycle fixture is three notes A→B→C→A and
+must return B and C for A without looping or returning A.
+
+This bounded union supersedes the unbounded `cifsup:hasPrerequisiteNote+`
+shorthand in Section 6.3; `+` describes the intended closure relation, while
+the generated union is the executable bounded query.
+
+### 26.7 Complete live affected-file set
+
+The live implementation set is the exact union of the paths below; the prior
+shorter table is superseded:
+
+```text
+.github/workflows/ci.yml
+Makefile
+pyproject.toml
+constraints/py312.txt
+scripts/**/*.py
+semantic/**/*.ttl
+semantic/**/*.yaml
+semantic/**/*.json
+semantic/provenance/synthetic_source.yaml
+src/semantic_layer/**/*.py
+data/**/*.py
+tests/conftest.py
+tests/integration/**/*.py
+tests/unit/**/*.py
+tests/semantic/**/*.py
+tests/research/**/*.py
+tests/research/**/*.yaml
+tests/research/**/*.json
+tests/golden/**/*.py
+tests/golden/**/*.yaml
+mappings/**/*.yaml
+data_products/**/*.yaml
+README.md
+docs/**/*.md
+results/latest_benchmark.json
+```
+
+The set explicitly includes `src/semantic_layer/semantic_validation.py`,
+`src/semantic_layer/validation.py`, `src/semantic_layer/kg/`,
+`src/semantic_layer/reasoning/`, `src/semantic_layer/research/`, all current
+integration/unit/semantic/vocabulary/documentation tests, and every current
+consumer discovered by the repository globs. The implementation must update
+all references in this set or the namespace/claim contract fails.
+
+### 26.8 Crosswalk RDF correction
+
+The earlier direct `cifmeta:mapsToConcept` example is superseded by a
+mapping-entry model so the RDF domain is coherent. The only permitted form is:
+
+```turtle
+cifmeta:crosswalk-entry-product-automotive a cifmeta:CrosswalkEntry ;
+    cifmeta:sourceResource ciferp:ProductAutomotive ;
+    cifmeta:targetConcept cifskos:ProductAutomotive ;
+    cifmeta:crosswalkVersion "1.0"^^xsd:string .
+```
+
+`cifmeta:sourceResource` has domain `cifmeta:CrosswalkEntry` and range
+`ciferp:Product`; `cifmeta:targetConcept` has domain
+`cifmeta:CrosswalkEntry` and range `skos:Concept`.
+`cifmeta:CrosswalkEntry`, `sourceResource`, and `targetConcept` are added to
+the closed metadata vocabulary. No `ciferp` resource is used as the subject
+of a predicate whose declared domain is `cifmeta:CrosswalkEntry`, and no SKOS
+concept is assigned an OWL class type.
