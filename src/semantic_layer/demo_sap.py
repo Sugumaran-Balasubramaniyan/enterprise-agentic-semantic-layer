@@ -31,7 +31,7 @@ def run_demo() -> None:
     demo_queries = [
         (
             "Scenario A: Multi-Hop Diagnostic Root-Cause Search",
-            "Which SAP Note resolves dump TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2023 in component FI-GL?",
+            "Which SAP Note resolves alert TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2023 in component FI-GL?",
         ),
         (
             "Scenario B: Prerequisite Dependency Chain Traversal",
@@ -53,35 +53,45 @@ def run_demo() -> None:
         res = agent.run(query)
 
         # 1. Grounding
-        g = res.grounded_entities
+        g = res.grounding
         print("  [Step 1: Ontology Grounding]")
-        print(f"  - Components:        {g.component_codes}")
-        print(f"  - Alerts/Dumps:      {g.alert_codes}")
-        print(f"  - Product Versions:  {g.product_versions}")
-        print(f"  - Support Packages:  {g.support_packages}")
-        print(f"  - Inferred Intent:   {g.intent}")
+        if g is None:
+            print("  - Grounding:          abstained")
+        else:
+            print(f"  - Components:        {g.component_codes}")
+            print(f"  - Alerts/Dumps:      {g.alert_codes}")
+            print(f"  - Product Versions:  {g.product_versions}")
+            print(f"  - Support Packages:  {g.support_packages}")
+            print(f"  - Inferred Intent:   {g.intent}")
 
         # 2. Reflection
-        if res.reflection_history:
+        if res.repair.operations[1:]:
             print("\n  [Step 2: Reflective Diagnostic Loop (AQR-Reflect)]")
-            for step in res.reflection_history:
-                print(f"  - Reflection Iteration {step.iteration}: {step.failure_type}")
-                print(f"    Feedback: {step.diagnostic_feedback}")
-                print("    Action:   Relaxed constraints and re-compiled SPARQL.")
-            print(f"  - Self-Correction Recovery: {'SUCCESSFUL' if res.recovery_succeeded else 'FAILED'}")
+            for operation in res.repair.operations[1:]:
+                print(f"  - Attempt {operation.attempt_index}: {operation.operation_kind}")
+                print(f"    Status/reason: {operation.status_after.value}/{operation.reason_code.value}")
+                print(f"    Diagnostic: {operation.diagnostic}")
+            print(f"  - Strict recovery: {'SUCCESSFUL' if res.repair.recovery_success else 'NOT CLAIMED'}")
         else:
             print("\n  [Step 2: Single-Shot Traversal Succeeded (No reflection required)]")
 
         # 3. SPARQL
         print("\n  [Step 3: Compiled W3C SPARQL 1.1 Query]")
-        for line in res.final_sparql.splitlines():
-            print(f"    {line}")
+        if res.sparql_final:
+            for line in res.sparql_final.splitlines():
+                print(f"    {line}")
+        else:
+            print("    (no SPARQL emitted; grounding abstained or compilation failed)")
 
         # 4. Results & Answer
         print("\n  [Step 4: Synthesized Answer & Provenance]")
-        for line in res.answer.splitlines():
-            print(f"    {line}")
-        print(f"  Citations: {res.provenance_citations}")
+        if res.answer:
+            for line in res.answer.splitlines():
+                print(f"    {line}")
+        else:
+            print(f"    No factual answer emitted ({res.status.value}/{res.reason_code.value}).")
+        print(f"  Status: {res.status.value}; reason: {res.reason_code.value}")
+        print(f"  Provenance: {res.provenance}")
         print()
 
     print("=" * 80)
