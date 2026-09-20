@@ -1,4 +1,4 @@
-"""Deterministic generator for high-fidelity SAP Enterprise Support Knowledge Graph.
+"""Deterministic generator for a synthetic support knowledge graph.
 
 Synthesizes interconnected multi-source RDF data:
 - PPMS product and software lifecycle hierarchy

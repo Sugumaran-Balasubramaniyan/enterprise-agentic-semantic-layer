@@ -34,6 +34,7 @@ LEGACY_URI_CONTROL_DOCUMENTS = frozenset(
         "docs/research/cifre-hardening-baseline.md",
     }
 )
+GENERATED_RESULT_ARTIFACT = "results/latest_benchmark.json"
 
 
 def test_namespace_registry_is_the_closed_neutral_registry() -> None:
@@ -259,7 +260,7 @@ def test_legacy_uri_contract_decodes_exact_values_and_scans_tracked_surfaces() -
         if not raw_path:
             continue
         relative = raw_path.decode("utf-8")
-        if relative in LEGACY_URI_CONTROL_DOCUMENTS:
+        if relative in LEGACY_URI_CONTROL_DOCUMENTS or relative == GENERATED_RESULT_ARTIFACT:
             continue
         text = (ROOT / relative).read_bytes().decode("utf-8", errors="ignore")
         assert not any(uri in text for uri in LEGACY_URI_SURFACE_FAMILIES), relative

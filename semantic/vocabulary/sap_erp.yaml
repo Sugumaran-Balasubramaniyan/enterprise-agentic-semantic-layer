@@ -1,6 +1,6 @@
 version: "1.0.0"
 namespace: "ciferp"
-owner: "SAP SE"
+owner: "repository-maintained synthetic contract"
 concepts:
   - id: "ciferp:BusinessPartner"
     name: "Business Partner"
@@ -9,7 +9,7 @@ concepts:
     description: "The governed party connecting sales orders, billing documents, and general ledger journal postings."
     synonyms: ["Customer", "Commercial Partner", "BP", "Customers", "Partner", "Partners", "Policyholder", "Policyholders", "Insured Customer", "Insured Customers"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"
@@ -29,7 +29,7 @@ concepts:
     description: "The sales order contract against which delivery, billing, and postings are governed."
     synonyms: ["Order", "Sales Document", "Contract", "Policy", "Policies", "Insurance Policy"]
     domain: "Sales"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Confidential"
@@ -54,7 +54,7 @@ concepts:
     description: "A ledger posting is assessed, tracked by posting status, and associated with a sales order and financial loss/debit."
     synonyms: ["Journal Entry", "Universal Journal Item", "ACDOCA Entry", "Posting", "Postings", "Financial Posting", "Financial Postings", "Cost-Revenue Ratio", "Cost Revenue Ratio", "Claim", "Claims", "Insurance Claim"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"
@@ -75,7 +75,7 @@ concepts:
     description: "The material hierarchy provides canonical grouping for orders and financials."
     synonyms: ["Material", "Product Hierarchy"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Public"
@@ -88,7 +88,7 @@ concepts:
     description: "Canonical group concept for local motor, auto, and vehicle material codes."
     synonyms: ["Motor Insurance", "Automotive", "Vehicle Materials", "Car Insurance"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Public"
@@ -103,7 +103,7 @@ concepts:
     description: "Canonical group concept for commercial facility material codes."
     synonyms: ["Commercial Equipment", "Home Insurance", "Facilities"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Public"
@@ -118,7 +118,7 @@ concepts:
     description: "A risk is addressed by order controls and financial buffers."
     synonyms: ["Credit Risk", "Operational Exposure"]
     domain: "Governance"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
@@ -131,7 +131,7 @@ concepts:
     description: "Coverage describes warranty and commitment boundaries."
     synonyms: ["Warranty Cover", "Contract Protection", "Coverage", "Cover", "Motor Cover"]
     domain: "Sales"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
@@ -144,7 +144,7 @@ concepts:
     description: "Billed revenue amount associated with a sales order period."
     synonyms: ["Invoice", "Billed Revenue", "Billing Item"]
     domain: "Billing"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"
@@ -157,7 +157,7 @@ concepts:
     description: "Status values support consistent audit filtering and quality validation."
     synonyms: ["Document Status", "Accounting Status"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
@@ -170,7 +170,7 @@ concepts:
     description: "Company code scopes federation, data residency, and financial authorization."
     synonyms: ["Company Jurisdiction", "Country", "BUKRS"]
     domain: "Governance"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
@@ -183,7 +183,7 @@ concepts:
     description: "ActiveSalesOrder is the reusable semantic subset for in-force released orders."
     synonyms: ["Released Order", "In-force Order", "Active Policy", "Active Policies", "Active Sales Order", "Active Sales Orders"]
     domain: "Sales"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Confidential"
@@ -199,7 +199,7 @@ concepts:
     description: "Qualifying postings exclude REVERSED and DUPLICATE records."
     synonyms: ["Audited Posting", "Valid Journal Entry", "Qualifying Financial Posting", "Qualifying Financial Postings", "Qualifying Posting", "Qualifying Postings", "Qualifying Claim", "Qualifying Claims"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Confidential"
@@ -215,7 +215,7 @@ concepts:
     description: "Financial loss is non-negative and measured in company code currency (EUR)."
     synonyms: ["Debit Loss", "Incurred Loss", "Posting Amount"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"

@@ -34,7 +34,6 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^]]+\]\(([^)]+)\)")
 MARKDOWN_FENCE_RE = re.compile(
     r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<suffix>[^\r\n]*)$"
 )
-DEFERRED_ARTIFACT_LINK = "results/latest_benchmark.json"
 RESEARCH_HANDOFF_DOCS = (
     ROOT / "docs" / "research" / "cifre_phd_proposal.md",
     ROOT / "docs" / "research" / "technical_design_and_research_questions.md",
@@ -485,7 +484,7 @@ def test_owned_markdown_links_have_syntax_without_resolving_artifacts() -> None:
             assert target
 
 
-def test_markdown_relative_links_and_anchors_resolve_except_deferred_artifact() -> None:
+def test_markdown_relative_links_and_anchors_resolve_including_canonical_artifact() -> None:
     broken: list[str] = []
     for path in _tracked_markdown_paths():
         text = path.read_text(encoding="utf-8")
@@ -498,8 +497,6 @@ def test_markdown_relative_links_and_anchors_resolve_except_deferred_artifact() 
                     broken.append(f"{path.relative_to(ROOT)} -> {target}")
                 continue
             relative_target, _, anchor = target.partition("#")
-            if relative_target == DEFERRED_ARTIFACT_LINK:
-                continue
             resolved = (path.parent / relative_target).resolve()
             if not resolved.exists():
                 broken.append(f"{path.relative_to(ROOT)} -> {target}")

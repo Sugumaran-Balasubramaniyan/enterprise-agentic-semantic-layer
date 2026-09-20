@@ -26,15 +26,16 @@ synthetic fixtures -> namespace/schema checks -> graph parity -> scoped SHACL
   -> local RDFLib execution -> bounded repair -> typed result/provenance
 ```
 
-Run the planned reproducibility gate from the repository root:
+Run the reproducibility gate from the repository root:
 
 ```bash
 make PYTHON=.venv/bin/python research-verify
 ```
 
-The command validates the committed artifact against a fresh temporary run; it
-does not rewrite the artifact. A reviewed source or documentation change must
-be finalized explicitly and then pass the same gate again.
+The command validates deterministic content against a fresh temporary run and
+reports the recorded and current runtime environments separately; it does not
+rewrite the artifact. A reviewed source or documentation change must be
+finalized explicitly and then pass the same gate again.
 
 ## Five source-verifiable implementation statements
 
@@ -78,10 +79,14 @@ This Task 13 finalization run was executed from source revision
 `9b3da7c836be605d084138cb5ba99fdf438c918e` on Python `3.12.3`, Linux
 `aarch64`, with pip `25.2` and lock SHA-256
 `a8b8a5054ae3d55cfc51950b0276d9d7d00c725c7676cad1cdc741ef274f1534`.
-The temporary run's artifact manifest contained 156 entries and had digest
+The pre-documentation temporary run contained 156 manifest entries and had digest
 `33fe84eac0ddccd67b85c44358b70bb4a3fbfaa373fac5b06d4c113c5a31ffaa`.
-The outer artifact digest is intentionally not embedded in this document
-because this document is one of the manifest-covered inputs; compute it with
+That digest is historical evidence for the temporary run, not the canonical
+post-documentation digest. Read the current canonical internal digest from
+`results/latest_benchmark.json` (`hash_manifest.digest_sha256`) after checkout;
+repeating it here would change a manifest-covered document and invalidate the
+value. The outer artifact digest is intentionally not embedded in this
+document because it is also manifest-covered; compute it with
 `sha256sum results/latest_benchmark.json` after checkout.
 
 | Corpus | Dataset SHA-256 | N | Condition | Status accuracy | Exact / P / R / F1 | Syntax | Execution | Strict empty | Unsupported rejection |

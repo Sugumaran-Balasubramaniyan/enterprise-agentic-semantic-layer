@@ -10,7 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -25,6 +25,7 @@ __all__ = [
     "ValidationResult",
     "VerificationReport",
     "assert_graph_isomorphic",
+    "compare_result_artifacts",
     "finalize_research_artifact",
     "load_vocabulary",
     "main",
@@ -107,6 +108,7 @@ _SCAN_CONTROL_DOCUMENTS = frozenset(
         "docs/research/cifre-hardening-baseline.md",
     }
 )
+_GENERATED_CONTRACT_DOCUMENTS = frozenset({"results/latest_benchmark.json"})
 _PLACEHOLDER_MARKERS = tuple(
     marker
     for marker in (
@@ -159,13 +161,13 @@ def _relative_scan_path(root: Path, path: Path) -> str:
 def scan_repository_legacy_uris(
     root: Path, *, paths: Sequence[Path] | None = None
 ) -> list[str]:
-    """Return forbidden legacy-URI findings outside the three control documents."""
+    """Return forbidden URI findings outside controls and the result contract."""
 
     findings: list[str] = []
     repository_root = Path(root).resolve()
     for path in _scan_paths(repository_root, paths):
         relative = _relative_scan_path(repository_root, path)
-        if relative in _SCAN_CONTROL_DOCUMENTS:
+        if relative in _SCAN_CONTROL_DOCUMENTS or relative in _GENERATED_CONTRACT_DOCUMENTS:
             continue
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             for family in _LEGACY_URI_FAMILIES:
@@ -214,6 +216,86 @@ def scan_repository_placeholders(
             if _PLACEHOLDER_PATTERN.search(line):
                 findings.append(f"{relative}:{line_number}:placeholder-marker")
     return findings
+
+
+def compare_result_artifacts(
+    recorded: Mapping[str, Any],
+    current: Mapping[str, Any],
+    root: Path,
+    *,
+    runtime_environment: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Compare deterministic result content while treating runtime identity separately.
+
+    The checked-in artifact is a claim from the environment that produced it. A
+    verification run on another supported Python patch/platform must therefore
+    compare every deterministic field, validate both manifests, and validate the
+    current environment without pretending that the recorded runtime is current.
+    """
+
+    if not isinstance(recorded, Mapping) or not isinstance(current, Mapping):
+        raise TypeError("result artifacts must be mappings")
+    from semantic_layer.research.benchmark_runner import (
+        _environment,
+        validate_hash_manifest,
+        validate_result_id_references,
+    )
+
+    validate_hash_manifest(recorded, root)
+    validate_hash_manifest(current, root)
+    validate_result_id_references(recorded)
+    validate_result_id_references(current)
+
+    recorded_environment = recorded.get("environment")
+    current_environment = current.get("environment")
+    if not isinstance(recorded_environment, Mapping) or not isinstance(
+        current_environment, Mapping
+    ):
+        raise TypeError("result artifacts must contain environment mappings")
+
+    expected_current = dict(runtime_environment or _environment(Path(root).resolve()))
+    required_environment = {
+        "python_version",
+        "platform_system",
+        "platform_machine",
+        "pip_version",
+        "lock_sha256",
+        "packages",
+    }
+    for label, environment in (
+        ("recorded", recorded_environment),
+        ("current", current_environment),
+    ):
+        if set(environment) != required_environment:
+            raise ValueError(f"{label} artifact environment fields are incomplete")
+        version_parts = str(environment["python_version"]).split(".")
+        if version_parts[:2] != ["3", "12"]:
+            raise ValueError(f"{label} artifact requires Python 3.12")
+        if environment["platform_system"] != expected_current["platform_system"]:
+            raise ValueError(f"{label} artifact platform system is unsupported")
+        if environment["platform_machine"] not in {"aarch64", "x86_64"}:
+            raise ValueError(f"{label} artifact platform machine is unsupported")
+        if environment["lock_sha256"] != expected_current["lock_sha256"]:
+            raise ValueError(f"{label} artifact lock does not match current inputs")
+        if environment["packages"] != expected_current["packages"]:
+            raise ValueError(f"{label} artifact package map does not match current lock")
+        if environment["pip_version"] != expected_current["pip_version"]:
+            raise ValueError(f"{label} artifact pip version does not match current run")
+
+    if dict(current_environment) != expected_current:
+        raise ValueError("current artifact environment does not match the verification runtime")
+
+    recorded_content = {
+        key: value for key, value in recorded.items() if key != "environment"
+    }
+    current_content = {key: value for key, value in current.items() if key != "environment"}
+    if recorded_content != current_content:
+        raise ValueError("deterministic result artifact content differs from a fresh run")
+    return {
+        "environment_match": dict(recorded_environment) == dict(current_environment),
+        "recorded_environment": dict(recorded_environment),
+        "current_environment": dict(current_environment),
+    }
 
 
 def _validate_interpreter(python: str, root: Path) -> str:
@@ -539,24 +621,20 @@ def _asset_verification(
                         f"benchmark command failed ({completed.returncode}): "
                         f"{completed.stderr.strip() or completed.stdout.strip()}"
                     )
-                temporary_artifact = json.loads(result_path.read_text(encoding="utf-8"))
-                from semantic_layer.research.benchmark_runner import (
-                    validate_hash_manifest,
-                    validate_result_id_references,
-                )
                 from semantic_layer.research.contracts import load_and_validate_result
+
+                temporary_artifact = load_and_validate_result(result_path)
 
                 canonical_path = root / "results/latest_benchmark.json"
                 if not canonical_path.is_file():
                     raise ValueError("canonical result artifact is missing")
                 canonical_artifact = load_and_validate_result(canonical_path)
-                validate_hash_manifest(canonical_artifact, root)
-                validate_result_id_references(canonical_artifact)
-                if canonical_artifact != temporary_artifact:
-                    raise ValueError(
-                        "canonical result artifact differs from a fresh temporary benchmark"
-                    )
-                benchmark = {"command": command, "artifact": temporary_artifact}
+                comparison = compare_result_artifacts(canonical_artifact, temporary_artifact, root)
+                benchmark = {
+                    "command": command,
+                    "artifact": temporary_artifact,
+                    "comparison": comparison,
+                }
                 scan_findings = [
                     *scan_repository_legacy_uris(root),
                     *scan_repository_secrets(root),

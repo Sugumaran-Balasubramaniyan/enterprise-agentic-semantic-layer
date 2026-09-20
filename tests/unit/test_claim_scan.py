@@ -90,6 +90,15 @@ _ADJACENT_SUFFIX = re.compile(
     r"\b(?:is|are|was|were)\s+(?:a\s+)?(?:future|proposed|planned|hypothetical)\b)",
     re.IGNORECASE,
 )
+_NEGATED_INDEPENDENCE_LIST = re.compile(
+    r"\bnot\s+an?\s+SAP\s+product,\s+SAP\s+publication,\s+SAP[- ]endorsed\s+"
+    r"benchmark,\s+or\s+report\b",
+    re.IGNORECASE,
+)
+_NEGATED_INDEPENDENCE_CONTINUATION = re.compile(
+    r"^\s*>\s*publication,\s+SAP[- ]endorsed\s+benchmark\b",
+    re.IGNORECASE,
+)
 
 
 def _relative(path: Path) -> str:
@@ -106,6 +115,14 @@ def _claim_is_non_claim(
     claim_spans: Sequence[tuple[int, int]] = (),
 ) -> bool:
     """Allow only negation/future grammar adjacent to the matched claim span."""
+
+    if any(
+        match.start() <= start and end <= match.end()
+        for match in _NEGATED_INDEPENDENCE_LIST.finditer(text)
+    ):
+        return True
+    if _NEGATED_INDEPENDENCE_CONTINUATION.search(text):
+        return True
 
     # Neighboring detected spans bound the proposition without naming connectors.
     preceding = [span_end for _, span_end in claim_spans if span_end <= start]
@@ -242,6 +259,18 @@ STATUS = 'CERTIFIED'
 # A future Vector RAG baseline is proposed, not a current result.
 # A 0% hallucination guarantee is not claimed.
 """,
+        encoding="utf-8",
+    )
+
+    assert scan_claim_surfaces([fixture]) == []
+
+
+def test_claim_scan_accepts_the_repository_independence_disclaimer(tmp_path: Path) -> None:
+    fixture = tmp_path / "disclaimer.md"
+    fixture.write_text(
+        "> This is an independent, unaffiliated candidate prototype using synthetic support and "
+        "product-lifecycle fixtures. It is not an SAP product, SAP publication, SAP-endorsed "
+        "benchmark, or report of access to SAP internal data.\n",
         encoding="utf-8",
     )
 

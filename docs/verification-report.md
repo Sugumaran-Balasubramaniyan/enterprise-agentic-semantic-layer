@@ -52,12 +52,12 @@ artifact environment section.
 | --- | --- |
 | Source revision for measured run | `9b3da7c836be605d084138cb5ba99fdf438c918e` |
 | Artifact schema | `1.0.0`, canonical UTF-8 JSON, 184 per-query records, two corpora, two conditions |
-| Temporary-run hash-manifest entries/digest | `156`; `33fe84eac0ddccd67b85c44358b70bb4a3fbfaa373fac5b06d4c113c5a31ffaa` |
+| Pre-documentation temporary-run manifest | `156` entries; digest `33fe84eac0ddccd67b85c44358b70bb4a3fbfaa373fac5b06d4c113c5a31ffaa` (historical temporary evidence, not the canonical post-documentation digest) |
 | Dependency lock | `constraints/py312.txt`; SHA-256 `a8b8a5054ae3d55cfc51950b0276d9d7d00c725c7676cad1cdc741ef274f1534` |
 | Platform/environment | Python `3.12.3`; Linux `aarch64`; pip `25.2`; third-party versions are sorted in artifact `environment.packages` |
 | Canonical artifact | [`results/latest_benchmark.json`](../results/latest_benchmark.json), schema-validated and manifest-validated |
 | Outer artifact digest | Deliberately not embedded in this manifest-covered report; run `sha256sum results/latest_benchmark.json` |
-| Final command | `make PYTHON=.venv/bin/python research-verify`; exit `0` in the locked verification environment |
+| Final command | `make PYTHON=.venv/bin/python research-verify`; exit `0` in the locked verification environment; supported runtime differences are reported separately from deterministic content |
 | Secret scan | Repository-native fail-closed tracked-file scanner; the optional `gitleaks` binary was unavailable and is not claimed as run |
 
 ### Measured preliminary metrics

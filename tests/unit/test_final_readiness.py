@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,6 +15,7 @@ from semantic_layer.evaluation import GOLDEN_CASES, load_golden_cases, run_evalu
 from semantic_layer.registry import SemanticRegistry
 from semantic_layer.research.benchmark_runner import build_hash_manifest
 from semantic_layer.validation import (
+    compare_result_artifacts,
     scan_repository_legacy_uris,
     scan_repository_placeholders,
     scan_repository_secrets,
@@ -50,6 +52,57 @@ SPEC_26_6_GLOBS = (
     "data_products/**/*.yaml",
     "results/**/*.json",
     "results/**/*.sql",
+)
+
+T3_CLAIM_SURFACE = (
+    "src/semantic_layer/kg/loader.py",
+    "src/semantic_layer/kg/sap_dataset_generator.py",
+    "semantic/data/sap_support_graph.ttl",
+    "semantic/metrics/metrics.yaml",
+    "semantic/ontology/sample-graph-invalid.ttl",
+    "semantic/ontology/sample-graph-valid.ttl",
+    "semantic/ontology/sap_erp.ttl",
+    "semantic/ontology/sap_ppms.ttl",
+    "semantic/ontology/sap_support.ttl",
+    "semantic/rules/financial_postings.yaml",
+    "semantic/shapes/sap_erp_shapes.ttl",
+    "semantic/shapes/sap_support_shapes.ttl",
+    "semantic/taxonomy/sap_products.ttl",
+    "semantic/vocabulary/sap_erp.yaml",
+    "data/generate_demo_data.py",
+    "data_products/acdoca_financials.yaml",
+    "data_products/billing_analytics.yaml",
+    "data_products/business_partners.yaml",
+    "data_products/sales_orders.yaml",
+)
+T11_CLAIM_SURFACE = (
+    "README.md",
+    "docs/agent-architecture.md",
+    "docs/architecture.md",
+    "docs/data-products.md",
+    "docs/decisions/ADR-001-canonical-group-model.md",
+    "docs/decisions/ADR-002-semantic-assets-in-git.md",
+    "docs/decisions/ADR-003-ontology-runtime-boundary.md",
+    "docs/decisions/ADR-004-typed-query-plans.md",
+    "docs/decisions/ADR-005-platform-compilation-boundary.md",
+    "docs/decisions/ADR-006-duckdb-local-demo.md",
+    "docs/decisions/ADR-007-deterministic-core.md",
+    "docs/decisions/ADR-008-certified-data-products.md",
+    "docs/evaluation.md",
+    "docs/federated-semantics.md",
+    "docs/governance.md",
+    "docs/implementation-plan.md",
+    "docs/ontology.md",
+    "docs/semantic-layer.md",
+)
+T12_CLAIM_SURFACE = (
+    "docs/research/cifre_phd_proposal.md",
+    "docs/research/technical_design_and_research_questions.md",
+    "docs/research/cifre-interview-brief.md",
+    "docs/verification-report.md",
+)
+FINAL_CLAIM_SURFACE = tuple(
+    dict.fromkeys((*T3_CLAIM_SURFACE, *NON_PUBLICATION_SURFACE, *T11_CLAIM_SURFACE, *T12_CLAIM_SURFACE))
 )
 
 
@@ -122,7 +175,7 @@ def test_final_hash_manifest_covers_complete_spec_26_6_scope(tmp_path: Path) -> 
 
 
 def test_final_claim_and_secret_scan_is_clean() -> None:
-    claim_paths = [ROOT / relative for relative in NON_PUBLICATION_SURFACE]
+    claim_paths = [ROOT / relative for relative in FINAL_CLAIM_SURFACE]
     assert scan_claim_surfaces(claim_paths) == []
     assert scan_repository_legacy_uris(ROOT) == []
     assert scan_repository_secrets(ROOT) == []
@@ -158,12 +211,56 @@ def test_make_target_runs_source_verification_tests_and_locked_ruff() -> None:
     assert "pip install -e" not in target
 
 
+def test_make_target_wires_complete_publication_and_format_gates() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    target = makefile.split("research-verify:", 1)[1].split("\n\n", 1)[0]
+    assert "check-publication-formats" in target
+    assert "check-yaml" in target
+    assert "tests/unit/test_documentation_contract.py" in target
+    assert "tests/research/test_contracts.py" in target
+    assert "tests/research/test_result_artifact.py" in target
+
+
 def test_ci_installs_hashed_third_party_lock_and_runs_research_verify() -> None:
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert "pip==25.2" in workflow
     assert "--require-hashes -r constraints/py312.txt" in workflow
     assert "make PYTHON=.venv/bin/python research-verify" in workflow
     assert "pip install -e" not in workflow
+
+
+def test_ci_uses_dedicated_research_job_and_bounded_post_install_gate() -> None:
+    workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert "research-verify:" in workflow
+    assert "timeout-minutes: 10" in workflow
+    assert "timeout 120s make PYTHON=.venv/bin/python research-verify" in workflow
+
+
+def test_reproducibility_comparison_allows_supported_environment_variation() -> None:
+    artifact = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+    fresh = deepcopy(artifact)
+    fresh["environment"]["python_version"] = "3.12.11"
+    fresh["environment"]["platform_machine"] = "x86_64"
+
+    evidence = compare_result_artifacts(
+        artifact,
+        fresh,
+        ROOT,
+        runtime_environment=fresh["environment"],
+    )
+
+    assert evidence["environment_match"] is False
+    assert evidence["recorded_environment"] == artifact["environment"]
+    assert evidence["current_environment"] == fresh["environment"]
+
+
+def test_reproducibility_comparison_rejects_deterministic_drift() -> None:
+    artifact = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+    fresh = deepcopy(artifact)
+    fresh["per_query"][0]["observed_status"] = "EXECUTION_ERROR"
+
+    with pytest.raises(ValueError, match="deterministic"):
+        compare_result_artifacts(artifact, fresh, ROOT)
 
 
 def test_explicit_answer_evaluation_uses_evidence_checked_executor(monkeypatch: pytest.MonkeyPatch) -> None:

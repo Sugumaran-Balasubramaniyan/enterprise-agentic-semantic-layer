@@ -1,5 +1,5 @@
 version: "1.0.0"
-owner: SAP SE
+owner: repository-maintained synthetic contract
 rules:
   - id: ciferp:QualifyingPosting
     name: Qualifying Posting

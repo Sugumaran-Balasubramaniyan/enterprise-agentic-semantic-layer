@@ -41,7 +41,7 @@ def test_vocabulary_retains_document_governance_metadata() -> None:
     vocabulary = load_vocabulary(VOCABULARY)
     assert vocabulary.version == "1.0.0"
     assert vocabulary.namespace == "ciferp"
-    assert vocabulary.owner == "SAP SE"
+    assert vocabulary.owner == "repository-maintained synthetic contract"
     assert vocabulary.metadata.version == "1.0.0"
 
 

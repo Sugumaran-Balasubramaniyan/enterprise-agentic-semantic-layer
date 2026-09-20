@@ -3,8 +3,9 @@ on:
   push:
   pull_request:
 jobs:
-  test:
+  research-verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -13,4 +14,4 @@ jobs:
       - run: python -m venv .venv
       - run: .venv/bin/python -m pip install --upgrade pip==25.2
       - run: .venv/bin/python -m pip install --require-hashes -r constraints/py312.txt
-      - run: make PYTHON=.venv/bin/python research-verify
+      - run: timeout 120s make PYTHON=.venv/bin/python research-verify
