@@ -72,38 +72,22 @@ LEGACY_URI_CONTROL_DOCUMENTS = frozenset(
         "docs/research/cifre-hardening-baseline.md",
     }
 )
-_NEGATION_PREFIX = re.compile(
+_ADJACENT_PREFIX = re.compile(
     r"\b(?:not|no|never|without|isn't|aren't|wasn't|weren't|doesn't|don't|didn't|"
-    r"cannot|can't|won't|wouldn't|couldn't)\b",
+    r"cannot|can't|won't|wouldn't|couldn't|future|proposed|planned|hypothetical|"
+    r"would|could|may|might|should)\b(?:\s+\w+){0,1}\s*$",
     re.IGNORECASE,
 )
-_FUTURE_PREFIX = re.compile(
-    r"\b(?:future|proposed|planned|hypothetical)\b(?:\s+\w+){0,4}\s*$|"
-    r"\b(?:would|could|may|might|should)\s+(?:be\s+)?$",
-    re.IGNORECASE,
-)
-_NEGATION_SUFFIX = re.compile(
+_ADJACENT_SUFFIX = re.compile(
+    r"^\s*(?:(?:[A-Za-z][A-Za-z0-9_-]*|[,()\[\]&])\s*){0,3}(?:"
     r"\b(?:is|are|was|were|be|been|being|does|do|did|will|would|could|may|might|"
     r"should|can|has|have|had)\s+(?:not|never)\b|"
     r"\b(?:isn't|aren't|wasn't|weren't|doesn't|don't|didn't|won't|wouldn't|"
-    r"couldn't|can't|cannot)\b|\b(?:not|never)\s+(?:be\s+)?\w+\b",
-    re.IGNORECASE,
-)
-_FUTURE_SUFFIX = re.compile(
-    r"\b(?:future|proposed|planned|hypothetical)\b(?:\s+\w+){0,4}\b|"
+    r"couldn't|can't|cannot)\b|\b(?:not|never)\s+(?:be\s+)?\w+\b|"
+    r"\b(?:future|proposed|planned|hypothetical)\b|"
     r"\b(?:will|would|could|may|might|should)\s+(?:be\s+)?"
     r"(?:future|proposed|planned|hypothetical)\b|"
-    r"\b(?:is|are|was|were)\s+(?:a\s+)?(?:future|proposed|planned|hypothetical)\b",
-    re.IGNORECASE,
-)
-
-
-_PROPOSITION_BOUNDARY = re.compile(
-    r"[;.\n]|"
-    r",[ \t]*(?=(?:(?-i:[A-Z][A-Za-z0-9_-]*\b)|[a-z_][A-Za-z0-9_-]*\s*:))|"
-    r"\b(?:and|or|but|yet|although)\b|"
-    r"\bhowever\b(?=[ \t]*(?:,[ \t]*)?(?:(?-i:[A-Z][A-Za-z0-9_-]*\b)|"
-    r"[a-z_][A-Za-z0-9_-]*\s*:|no\b|never\b|without\b))",
+    r"\b(?:is|are|was|were)\s+(?:a\s+)?(?:future|proposed|planned|hypothetical)\b)",
     re.IGNORECASE,
 )
 
@@ -115,20 +99,29 @@ def _relative(path: Path) -> str:
         return path.as_posix()
 
 
-def _claim_is_non_claim(text: str, start: int, end: int) -> bool:
-    """Allow only a denied/future proposition local to the matched claim span."""
+def _claim_is_non_claim(
+    text: str,
+    start: int,
+    end: int,
+    claim_spans: Sequence[tuple[int, int]] = (),
+) -> bool:
+    """Allow only negation/future grammar adjacent to the matched claim span."""
 
-    boundaries = tuple(_PROPOSITION_BOUNDARY.finditer(text))
-    preceding = [boundary.end() for boundary in boundaries if boundary.end() <= start]
-    following = [boundary.start() for boundary in boundaries if boundary.start() >= end]
-    clause_start = max(preceding, default=0)
-    clause_end = min(following, default=len(text))
-    clause_prefix = text[clause_start:start]
-    if _NEGATION_PREFIX.search(clause_prefix) or _FUTURE_PREFIX.search(clause_prefix):
+    # Neighboring detected spans bound the proposition without naming connectors.
+    preceding = [span_end for _, span_end in claim_spans if span_end <= start]
+    following = [span_start for span_start, _ in claim_spans if span_start >= end]
+    local_start = max(preceding, default=0)
+    local_end = min(following, default=len(text))
+    local_prefix = text[local_start:start]
+    local_suffix = text[end:local_end]
+    if _ADJACENT_PREFIX.search(local_prefix) or _ADJACENT_SUFFIX.match(local_suffix):
         return True
 
-    suffix = text[end:clause_end]
-    return bool(_NEGATION_SUFFIX.search(suffix) or _FUTURE_SUFFIX.search(suffix))
+    previous = [span for span in claim_spans if span[1] == local_start]
+    if previous and not text[local_start:start].strip(" \t,()[]&"):
+        previous_start, previous_end = previous[-1]
+        return _claim_is_non_claim(text, previous_start, previous_end, claim_spans)
+    return False
 
 
 def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
@@ -204,9 +197,23 @@ def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
                 for uri in LEGACY_URI_FAMILIES:
                     if uri in line:
                         findings.append(f"{relative}:{number}:legacy-uri:{uri}")
+            claim_spans = tuple(
+                sorted(
+                    {
+                        (match.start(), match.end())
+                        for _, pattern in patterns
+                        for match in pattern.finditer(line)
+                    }
+                )
+            )
             for category, pattern in patterns:
                 for match in pattern.finditer(line):
-                    if _claim_is_non_claim(line, match.start(), match.end()):
+                    if _claim_is_non_claim(
+                        line,
+                        match.start(),
+                        match.end(),
+                        claim_spans,
+                    ):
                         continue
                     excerpt = " ".join(line.strip().split())[:140]
                     findings.append(f"{relative}:{number}:{category}:{excerpt}")
@@ -441,6 +448,133 @@ def test_claim_scan_classifies_each_conjoined_proposition_locally(
     expected_findings: tuple[tuple[str, str], ...],
 ) -> None:
     fixture = tmp_path / "conjoined_claims.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert len(findings) == len(expected_findings)
+    for expected_category, expected_excerpt in expected_findings:
+        assert any(
+            expected_category in finding and expected_excerpt in finding
+            for finding in findings
+        )
+
+
+@pytest.mark.parametrize(
+    ("text", "expected_findings"),
+    (
+        (
+            "SAP SE is not owner as well as SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "No SAP publication while SAP sponsorship.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP SE is not owner whereas SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP SE is not owner in addition to SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP SE is not owner plus SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP SE is not owner & SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP SE is not owner, SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP SE is not owner (SAP Labs owner).",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP SE is not owner with arbitrary filler before SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP Labs owner as well as SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP sponsorship while SAP publication is not asserted.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP Labs owner whereas SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP Labs owner in addition to SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP Labs owner plus SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP Labs owner & SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP Labs owner, SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP Labs owner (SAP SE is not owner).",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP Labs owner with arbitrary filler before SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "publisher: SAP while SAP publication is not asserted.",
+            (("external-publication", "publisher: SAP"),),
+        ),
+        (
+            "SAP SE is not owner as well as SAP Labs is not owner.",
+            (),
+        ),
+        (
+            "SAP publication is not asserted while SAP sponsorship isn't claimed.",
+            (),
+        ),
+        (
+            "SAP publication is not asserted and SAP sponsorship is not claimed.",
+            (),
+        ),
+        (
+            "SAP SE owner as well as SAP Labs owner.",
+            (("external-ownership", "SAP SE"), ("external-ownership", "SAP Labs")),
+        ),
+        (
+            "SAP publication and SAP sponsorship.",
+            (
+                ("external-publication", "SAP publication"),
+                ("external-publication", "SAP sponsorship"),
+            ),
+        ),
+        ("No affiliation with SAP.", ()),
+        ("SAP publication is not asserted.", ()),
+        ("SAP publication will be proposed.", ()),
+        ("future Vector RAG baseline proposed.", ()),
+        ("future production deployment.", ()),
+    ),
+)
+def test_claim_scan_uses_match_adjacent_grammar_without_connector_lists(
+    tmp_path: Path,
+    text: str,
+    expected_findings: tuple[tuple[str, str], ...],
+) -> None:
+    fixture = tmp_path / "adjacent_grammar.txt"
     fixture.write_text(text + "\n", encoding="utf-8")
 
     findings = scan_claim_surfaces([fixture])
