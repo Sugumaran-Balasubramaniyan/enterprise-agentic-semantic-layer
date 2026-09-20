@@ -6,12 +6,13 @@ from dataclasses import dataclass
 
 import pytest
 
+from semantic_layer.reasoning.query_planner import PREREQUISITE_CLOSURE
 from semantic_layer.reasoning.reflective_agent import (
     AQRReflectiveAgent,
     RepairOperation,
     sanitize_diagnostic,
 )
-from semantic_layer.research.contracts import ReasonCode, Status
+from semantic_layer.research.contracts import ReasonCode, Status, sha256_bytes
 
 
 @dataclass
@@ -33,9 +34,17 @@ class FakeKnowledgeGraph:
 
 def test_bounded_execution_records_initial_and_three_repairs() -> None:
     kg = FakeKnowledgeGraph(
-        [RuntimeError("password=super-secret token=Bearer abcdef")] * 4
+        [
+            RuntimeError("Unknown prefix cifsup password=super-secret token=Bearer abcdef"),
+            RuntimeError("Unknown prefix xsd"),
+            RuntimeError("Unknown prefix rdf"),
+            RuntimeError("Unknown prefix rdfs"),
+        ]
     )
-    result = AQRReflectiveAgent(kg).run(
+    agent = AQRReflectiveAgent(kg)
+    malformed = "SELECT DISTINCT ?note WHERE { ?note cifsup:noteNumber ?noteNumber . }"
+    agent.compiler.compile = lambda plan: malformed  # type: ignore[method-assign]
+    result = agent.run(
         "Find notes for alert TIME_OUT in component MM-PUR-PO at SP05"
     )
 
@@ -67,17 +76,20 @@ def test_no_reflection_empty_is_final_strict_empty() -> None:
     assert result.attempts == 1
     assert result.repair.recovered is False
     assert [op.attempt_index for op in result.repair.operations] == [0]
-    assert result.answer_scope == "none"
+    assert result.answer_scope == "strict"
 
 
 def test_syntax_repair_can_recover_strict_bindings() -> None:
     kg = FakeKnowledgeGraph(
         [
-            SyntaxError("fixed parser diagnostic"),
+            SyntaxError("unknown prefix cifsup"),
             [{"note": "urn:note:3345100", "noteNumber": "3345100", "title": "Synthetic note"}],
         ]
     )
-    result = AQRReflectiveAgent(kg).run("Which note resolves alert TIME_OUT?")
+    agent = AQRReflectiveAgent(kg)
+    malformed = "SELECT DISTINCT ?note WHERE { ?note cifsup:noteNumber ?noteNumber . }"
+    agent.compiler.compile = lambda plan: malformed  # type: ignore[method-assign]
+    result = agent.run("Which note resolves alert TIME_OUT?")
 
     assert result.status is Status.SUCCESS
     assert result.reason_code is ReasonCode.NONE
@@ -112,6 +124,16 @@ def test_relaxed_candidates_never_become_strict_success() -> None:
     assert result.relaxed_candidates[0]["noteNumber"] == "3201440"
     assert result.original_constraints["support_package"] == [5]
     assert result.original_constraints["component_code"] == ["MM-PUR-PO"]
+    assert result.original_constraints["predicates"] == sorted(
+        {
+            "cifsup:affectsComponent/cifsup:parentComponent*",
+            "cifsup:alertCode",
+            "cifsup:componentCode",
+            "cifsup:maxSupportPackage",
+            "cifsup:minSupportPackage",
+            "cifsup:resolvesAlert",
+        }
+    )
     assert [op.changed_constraints for op in result.repair.operations] == [
         [],
         ["support_package"],
@@ -120,9 +142,8 @@ def test_relaxed_candidates_never_become_strict_success() -> None:
 
 
 def test_no_op_repair_is_explicit_and_diagnostic_is_bounded() -> None:
-    kg = FakeKnowledgeGraph([SyntaxError("syntax error")])
+    kg = FakeKnowledgeGraph([SyntaxError("opaque parser diagnostic code=17")])
     agent = AQRReflectiveAgent(kg)
-    agent._repair_syntax_error = lambda sparql, error: sparql  # type: ignore[method-assign]
 
     result = agent.run("Which SAP Note resolves alert TIME_OUT?")
 
@@ -130,7 +151,68 @@ def test_no_op_repair_is_explicit_and_diagnostic_is_bounded() -> None:
     assert result.reason_code is ReasonCode.NO_OP_REPAIR
     assert result.attempts == 1
     assert result.repair.operations[-1].reason_code is ReasonCode.NO_OP_REPAIR
+    assert len(kg.calls) == 1
+    assert result.repair.operations[0].sparql_text == result.repair.operations[1].sparql_text
+    assert result.repair.operations[1].sparql_sha256 == result.repair.operations[0].sparql_sha256
     assert len(sanitize_diagnostic("x" * 600)) == 512
+
+
+def test_default_repairer_restores_missing_approved_prefix() -> None:
+    malformed = "SELECT DISTINCT ?note WHERE { ?note cifsup:noteNumber ?noteNumber . }"
+    kg = FakeKnowledgeGraph(
+        [
+            SyntaxError("unknown prefix cifsup"),
+            [{"note": "urn:note:3345100", "noteNumber": "3345100", "title": "Synthetic note"}],
+        ]
+    )
+    agent = AQRReflectiveAgent(kg)
+    agent.compiler.compile = lambda plan: malformed  # type: ignore[method-assign]
+
+    result = agent.run("Which SAP Note resolves alert TIME_OUT?")
+
+    repaired = "PREFIX cifsup: <https://example.org/cifre-kg/support#>\n" + malformed
+    assert result.status is Status.SUCCESS
+    assert result.reason_code is ReasonCode.NONE
+    assert result.attempts == 2
+    assert kg.calls == [malformed, repaired]
+    assert result.sparql_initial == malformed
+    assert result.sparql_final == repaired
+    assert [op.attempt_index for op in result.repair.operations] == [0, 1]
+    assert [op.sparql_text for op in result.repair.operations] == [malformed, repaired]
+    assert [op.sparql_sha256 for op in result.repair.operations] == [
+        sha256_bytes(malformed.encode("utf-8")),
+        sha256_bytes(repaired.encode("utf-8")),
+    ]
+    assert all("# repaired" not in (op.sparql_text or "") for op in result.repair.operations)
+
+
+@pytest.mark.parametrize(
+    ("query", "expected_predicates"),
+    [
+        (
+            "Find notes alert TIME_OUT in component MM-PUR-PO on S/4HANA 2023.",
+            [
+                "cifppms:versionCode",
+                "cifsup:affectsComponent/cifsup:parentComponent*",
+                "cifsup:alertCode",
+                "cifsup:componentCode",
+                "cifsup:resolvesAlert",
+                "cifsup:validForProductVersion",
+            ],
+        ),
+        (
+            "What prerequisite notes are required for SAP Note 3109922?",
+            [PREREQUISITE_CLOSURE, "cifsup:noteNumber"],
+        ),
+    ],
+)
+def test_original_constraints_preserve_exact_plan_predicates(
+    query: str, expected_predicates: list[str]
+) -> None:
+    result = AQRReflectiveAgent(FakeKnowledgeGraph([[]])).run(query, max_repairs=0)
+
+    assert result.original_constraints["predicates"] == sorted(expected_predicates)
+    assert result.to_dict()["original_constraints"]["predicates"] == sorted(expected_predicates)
 
 
 @pytest.mark.parametrize(

@@ -213,6 +213,7 @@ class ReasoningResult:
             "support_package": list(self.grounding.support_packages),
             "note_number": list(self.grounding.note_numbers),
             "priority": list(self.grounding.priorities),
+            "predicates": _original_constraint_predicates(self.plan),
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -238,6 +239,66 @@ class ReasoningResult:
             "provenance": dict(self.provenance),
             "answer": self.answer,
         }
+
+
+def _original_constraint_predicates(plan: LogicalQueryPlan | None) -> list[str]:
+    """Return sorted predicates that encode the original plan constraints.
+
+    Projection scaffolding (``rdf:type``, title, and unfiltered note number)
+    is not a user constraint.  Filter variables are traced backwards through
+    the original typed plan so joins such as alert/component/version retain
+    every predicate in their path.  Literal anchor patterns cover note lookup
+    and prerequisite targets.  The helper is intentionally given only the
+    original plan; relaxed plans can therefore never replace this evidence.
+    """
+
+    if plan is None:
+        return []
+
+    patterns = [*plan.patterns, *plan.optional_patterns]
+    reverse_edges: dict[str, list[tuple[str, str]]] = {}
+    incoming: set[str] = set()
+    for pattern in patterns:
+        subject = pattern.subject
+        object_value = pattern.object_val
+        if subject.startswith("?") and object_value.startswith("?"):
+            reverse_edges.setdefault(object_value, []).append((subject, pattern.predicate))
+            incoming.add(object_value)
+
+    roots: set[str] = set()
+    if plan.target_var not in incoming:
+        roots.add(plan.target_var)
+    roots.update(
+        pattern.subject
+        for pattern in patterns
+        if pattern.subject.startswith("?") and pattern.subject not in incoming
+    )
+    constrained_variables: set[str] = set()
+    for expression in plan.filters:
+        constrained_variables.update(re.findall(r"\?[A-Za-z_][A-Za-z0-9_]*", expression))
+
+    predicates: set[str] = {
+        pattern.predicate
+        for pattern in patterns
+        if pattern.object_val.startswith('"')
+    }
+    for variable in sorted(constrained_variables):
+        stack: list[tuple[str, tuple[str, ...]]] = [(variable, ())]
+        visited: set[tuple[str, tuple[str, ...]]] = set()
+        while stack:
+            current, path = stack.pop()
+            state = (current, path)
+            if state in visited:
+                continue
+            visited.add(state)
+            if current in roots:
+                predicates.update(path)
+                continue
+            for parent, predicate in reverse_edges.get(current, []):
+                if len(path) < len(patterns):
+                    stack.append((parent, (*path, predicate)))
+
+    return sorted(predicates)
 
 
 def _grounding_payload(grounding: GroundedEntities | None) -> dict[str, Any] | None:
@@ -667,7 +728,10 @@ class AQRReflectiveAgent:
             relaxation_attempted=relaxation.attempted,
             operations=operations,
         )
-        if final_status is not Status.SUCCESS and answer_scope != "relaxed_candidates":
+        if final_status in {Status.SUCCESS, Status.EMPTY_RESULT}:
+            if answer_scope != "relaxed_candidates":
+                answer_scope = "strict"
+        else:
             answer_scope = "none"
         rows_for_answer = strict_bindings if answer_scope == "strict" else relaxed_candidates
         answer = self._synthesize(rows_for_answer, entities, answer_scope, provenance)
@@ -918,20 +982,41 @@ class AQRReflectiveAgent:
         return plan, sparql, operations, rows, used
 
     @staticmethod
-    def _repair_syntax_error(sparql: str, error_msg: str) -> str:
-        """Make a deterministic, harmless syntax-repair candidate."""
+    def _repair_allowlisted_structure(sparql: str, error_msg: str) -> str:
+        """Apply only an explicitly diagnosed, approved structural repair."""
 
-        marker = "# aqr syntax repair "
-        current = len(re.findall(re.escape(marker), sparql)) + 1
-        return f"{sparql}\n{marker}{current}"
+        diagnostic = str(error_msg)
+        prefix_alias: str | None = None
+        for pattern in (
+            r"(?i)\b(?:unknown|undefined|undeclared|missing)\s+prefix\s*[:=]?\s*['\"`]?([A-Za-z][\w-]*)",
+            r"(?i)\bprefix\s+['\"`]?([A-Za-z][\w-]*)['\"`]?\s+(?:is\s+)?(?:not\s+defined|undefined|unknown|missing)",
+        ):
+            match = re.search(pattern, diagnostic)
+            if match:
+                prefix_alias = match.group(1).casefold()
+                break
+        if prefix_alias is None:
+            return sparql
 
-    @staticmethod
-    def _repair_execution_error(sparql: str, error_msg: str) -> str:
-        """Make a deterministic execution-repair candidate."""
+        prefix_uri = TextToSPARQLEngine.STANDARD_PREFIXES.get(prefix_alias)
+        if prefix_uri is None:
+            return sparql
+        if re.search(rf"(?im)^\s*PREFIX\s+{re.escape(prefix_alias)}\s*:", sparql):
+            return sparql
+        prefix_line = f"PREFIX {prefix_alias}: <{prefix_uri}>"
+        return f"{prefix_line}\n{sparql}"
 
-        marker = "# aqr execution repair "
-        current = len(re.findall(re.escape(marker), sparql)) + 1
-        return f"{sparql}\n{marker}{current}"
+    @classmethod
+    def _repair_syntax_error(cls, sparql: str, error_msg: str) -> str:
+        """Repair a diagnosed missing approved prefix, otherwise no-op."""
+
+        return cls._repair_allowlisted_structure(sparql, error_msg)
+
+    @classmethod
+    def _repair_execution_error(cls, sparql: str, error_msg: str) -> str:
+        """Repair a diagnosed missing approved prefix, otherwise no-op."""
+
+        return cls._repair_allowlisted_structure(sparql, error_msg)
 
     def _synthesize(
         self,
