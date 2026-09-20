@@ -98,6 +98,16 @@ _FUTURE_SUFFIX = re.compile(
 )
 
 
+_PROPOSITION_BOUNDARY = re.compile(
+    r"[;.\n]|"
+    r",[ \t]*(?=(?:(?-i:[A-Z][A-Za-z0-9_-]*\b)|[a-z_][A-Za-z0-9_-]*\s*:))|"
+    r"\b(?:and|or|but|yet|although)\b|"
+    r"\bhowever\b(?=[ \t]*(?:,[ \t]*)?(?:(?-i:[A-Z][A-Za-z0-9_-]*\b)|"
+    r"[a-z_][A-Za-z0-9_-]*\s*:|no\b|never\b|without\b))",
+    re.IGNORECASE,
+)
+
+
 def _relative(path: Path) -> str:
     try:
         return path.resolve().relative_to(ROOT.resolve()).as_posix()
@@ -106,16 +116,17 @@ def _relative(path: Path) -> str:
 
 
 def _claim_is_non_claim(text: str, start: int, end: int) -> bool:
-    """Allow only the specific denied/future claim span, not its whole line."""
+    """Allow only a denied/future proposition local to the matched claim span."""
 
-    prefix = text[:start]
-    clause_start = max(prefix.rfind(";"), prefix.rfind("."), prefix.rfind("\n")) + 1
-    clause_prefix = prefix[clause_start:]
+    boundaries = tuple(_PROPOSITION_BOUNDARY.finditer(text))
+    preceding = [boundary.end() for boundary in boundaries if boundary.end() <= start]
+    following = [boundary.start() for boundary in boundaries if boundary.start() >= end]
+    clause_start = max(preceding, default=0)
+    clause_end = min(following, default=len(text))
+    clause_prefix = text[clause_start:start]
     if _NEGATION_PREFIX.search(clause_prefix) or _FUTURE_PREFIX.search(clause_prefix):
         return True
 
-    clause_ends = [position for delimiter in ";.\n" if (position := text.find(delimiter, end)) >= 0]
-    clause_end = min(clause_ends, default=len(text))
     suffix = text[end:clause_end]
     return bool(_NEGATION_SUFFIX.search(suffix) or _FUTURE_SUFFIX.search(suffix))
 
@@ -349,6 +360,97 @@ def test_claim_scan_keeps_positive_claims_in_other_clauses(tmp_path: Path, text:
     findings = scan_claim_surfaces([fixture])
 
     assert findings
+
+
+@pytest.mark.parametrize(
+    ("text", "expected_findings"),
+    (
+        (
+            "SAP SE is not owner but SAP Labs owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "No SAP publication is made but publisher: SAP.",
+            (("external-publication", "publisher: SAP"),),
+        ),
+        (
+            "SAP publication is not claimed, but SAP sponsorship.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP publication is not claimed; however, SAP sponsorship.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP publication is not claimed yet SAP sponsorship.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "No affiliation with SAP, but SAP SE owns the project.",
+            (("external-ownership", "SAP SE"),),
+        ),
+        (
+            "SAP Labs owner but SAP SE is not owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "publisher: SAP but no SAP publication is made.",
+            (("external-publication", "publisher: SAP"),),
+        ),
+        (
+            "SAP sponsorship, although SAP publication is not claimed.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP sponsorship, however, SAP publication isn't claimed.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP sponsorship yet SAP publication isn't claimed.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP Labs owns the project, although SAP SE is not an owner.",
+            (("external-ownership", "SAP Labs"),),
+        ),
+        (
+            "SAP publication is not claimed and SAP sponsorship is not claimed.",
+            (),
+        ),
+        (
+            "SAP publication isn't real and SAP sponsorship isn't claimed.",
+            (),
+        ),
+        (
+            "SAP publication, however, is not claimed.",
+            (),
+        ),
+        (
+            "Although SAP publication is not claimed, SAP sponsorship.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+        (
+            "SAP sponsorship, although SAP publication isn't real.",
+            (("external-publication", "SAP sponsorship"),),
+        ),
+    ),
+)
+def test_claim_scan_classifies_each_conjoined_proposition_locally(
+    tmp_path: Path,
+    text: str,
+    expected_findings: tuple[tuple[str, str], ...],
+) -> None:
+    fixture = tmp_path / "conjoined_claims.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert len(findings) == len(expected_findings)
+    for expected_category, expected_excerpt in expected_findings:
+        assert any(
+            expected_category in finding and expected_excerpt in finding
+            for finding in findings
+        )
 
 
 def test_claim_scan_detects_publication_field_and_phrase_forms_but_not_nonclaims(tmp_path: Path) -> None:
