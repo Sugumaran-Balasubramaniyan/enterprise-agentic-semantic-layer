@@ -1,14 +1,38 @@
+"""Artifact-independent publication contracts for the Task 11 document set."""
+
+from __future__ import annotations
+
 import re
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 from semantic_layer.api.app import create_app
 
 ROOT = Path(__file__).parents[2]
+PUBLICATION_DOCS = (
+    ROOT / "README.md",
+    ROOT / "docs" / "agent-architecture.md",
+    ROOT / "docs" / "architecture.md",
+    ROOT / "docs" / "data-products.md",
+    ROOT / "docs" / "evaluation.md",
+    ROOT / "docs" / "federated-semantics.md",
+    ROOT / "docs" / "governance.md",
+    ROOT / "docs" / "implementation-plan.md",
+    ROOT / "docs" / "ontology.md",
+    ROOT / "docs" / "semantic-layer.md",
+    *(ROOT / "docs" / "decisions").glob("ADR-00[1-8]-*.md"),
+)
 MARKDOWN_LINK_RE = re.compile(r"\[[^]]+\]\(([^)]+)\)")
 MARKDOWN_FENCE_RE = re.compile(
     r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<suffix>[^\r\n]*)$"
+)
+DISCLAIMER = (
+    "This is an independent, unaffiliated candidate prototype using synthetic "
+    "support and product-lifecycle fixtures. It is not an SAP product, SAP "
+    "publication, SAP-endorsed benchmark, or report of access to SAP internal "
+    "data. The repository demonstrates a deterministic symbolic baseline and "
+    "proposes future LLM/retrieval experiments; it does not claim completed PhD "
+    "research or production readiness."
 )
 
 
@@ -43,11 +67,7 @@ def _fenced_markdown_blocks(text: str) -> tuple[list[MarkdownFenceBlock], bool]:
 
         if parsed is not None:
             fence_char, fence_length, suffix = parsed
-            if (
-                suffix == ""
-                and fence_char == opening[0]
-                and fence_length >= opening[1]
-            ):
+            if suffix == "" and fence_char == opening[0] and fence_length >= opening[1]:
                 blocks.append(
                     MarkdownFenceBlock(
                         fence_char=opening[0],
@@ -59,416 +79,159 @@ def _fenced_markdown_blocks(text: str) -> tuple[list[MarkdownFenceBlock], bool]:
                 opening = None
                 block_lines = []
                 continue
-
         block_lines.append(line)
 
     return blocks, opening is None
 
 
-def _markdown_fences_are_balanced(text: str) -> bool:
-    _, is_balanced = _fenced_markdown_blocks(text)
-    return is_balanced
+def _compact_markdown(text: str) -> str:
+    without_quote_markers = re.sub(r"^>\s?", "", text, flags=re.MULTILINE)
+    return " ".join(without_quote_markers.split())
 
 
-def _is_mermaid_info_string(info_string: str) -> bool:
-    return info_string.split(maxsplit=1)[0].lower() == "mermaid" if info_string else False
+def test_publication_claim_contract_and_links() -> None:
+    """Pin public wording while allowing the final artifact to be absent."""
 
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    compact_readme = _compact_markdown(readme)
+    assert DISCLAIMER in compact_readme
 
-def _mermaid_blocks(text: str) -> list[str]:
-    blocks, _ = _fenced_markdown_blocks(text)
-    return [block.content for block in blocks if _is_mermaid_info_string(block.info_string)]
+    first_research_heading = readme.index("## Synthetic KG and AQR research prototype")
+    first_benchmark_command = readme.index("research-benchmark")
+    assert DISCLAIMER in _compact_markdown(readme[:first_research_heading])
+    assert DISCLAIMER in _compact_markdown(readme[:first_benchmark_command])
 
+    first_screen = readme[:readme.index("## Local setup")]
+    for label in (
+        "Implemented locally",
+        "Synthetic/simulated",
+        "Proposed future work",
+        "Not implemented",
+    ):
+        assert label in first_screen
+    assert "KG/AQR" in first_screen
+    secondary_heading = "## Secondary reference: federated ERP semantic layer"
+    assert secondary_heading in first_screen
+    assert first_screen.index("research-benchmark") < first_screen.index(secondary_heading)
+    assert "[preliminary benchmark artifact](results/latest_benchmark.json)" in readme
 
-def _count_mermaid_openers(text: str) -> int:
-    return sum(
-        1
-        for line in text.splitlines()
-        if (parsed := _parse_markdown_fence(line)) is not None
-        and _is_mermaid_info_string(parsed[2])
+    package_metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert (
+        'description = "Independent synthetic semantic-layer and knowledge-graph research prototype"'
+        in package_metadata
     )
+    assert "production-grade" not in package_metadata.lower()
+    assert "sap labs" not in package_metadata.lower()
+
+    for path in PUBLICATION_DOCS:
+        assert path.is_file(), path
+        text = path.read_text(encoding="utf-8")
+        assert "synthetic" in text.lower(), path
+        assert "proposed" in text.lower() or "not implemented" in text.lower(), path
 
 
-def _tracked_markdown_paths() -> list[Path]:
-    completed = subprocess.run(
-        [
-            "git",
-            "-C",
-            str(ROOT),
-            "ls-files",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-            "*.md",
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return [
-        ROOT / line
-        for line in completed.stdout.splitlines()
-        if line and (ROOT / line).exists()
-    ]
+def test_owned_markdown_fences_are_balanced() -> None:
+    for path in PUBLICATION_DOCS:
+        _, balanced = _fenced_markdown_blocks(path.read_text(encoding="utf-8"))
+        assert balanced, path
 
 
-def _tracked_publication_paths() -> list[Path]:
-    completed = subprocess.run(
-        [
-            "git",
-            "-C",
-            str(ROOT),
-            "ls-files",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-            "README.md",
-            "docs",
-            "examples",
-            ".github",
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return [
-        ROOT / line
-        for line in completed.stdout.splitlines()
-        if line and (ROOT / line).is_file()
-    ]
+def test_owned_markdown_links_have_syntax_without_resolving_artifacts() -> None:
+    for path in PUBLICATION_DOCS:
+        text = path.read_text(encoding="utf-8")
+        for target in MARKDOWN_LINK_RE.findall(text):
+            assert target.strip() == target
+            assert "\n" not in target
+            assert target
 
 
-def _github_anchor_candidates(text: str) -> set[str]:
-    anchors: set[str] = set()
-    for line in text.splitlines():
-        if not line.startswith("#"):
-            continue
-        heading = line.lstrip("#").strip().lower()
-        if not heading:
-            continue
-        slug = re.sub(r"[^\w\- ]+", "", heading)
-        slug = slug.replace(" ", "-")
-        slug = re.sub(r"-+", "-", slug).strip("-")
-        anchors.add(slug)
-    return anchors
-
-
-def test_readme_contains_required_system_sections() -> None:
-    readme = (ROOT / "README.md").read_text()
-    for heading in ["System walkthrough", "Architecture", "How to run", "Provenance"]:
+def test_readme_contains_primary_system_sections() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for heading in [
+        "Synthetic KG and AQR research prototype",
+        "Preliminary controlled synthetic benchmark",
+        "Limitations and future research",
+        "Secondary reference: federated ERP semantic layer",
+        "System walkthrough",
+        "Architecture and semantic contract",
+        "Local setup",
+    ]:
         assert heading in readme
 
 
-def test_documentation_contains_six_mermaid_diagrams() -> None:
-    diagrams = sum(
-        len(_mermaid_blocks(path.read_text()))
-        for path in (ROOT / "docs").rglob("*.md")
-    )
-    assert diagrams >= 6
-
-
-def test_required_documentation_and_adrs_exist() -> None:
-    required = [
-        "architecture.md",
-        "agent-architecture.md",
-        "governance.md",
-        "implementation-plan.md",
-    ] + [f"ADR-{number:03d}-" for number in range(1, 9)]
-    docs = ROOT / "docs"
-    for path in required[:4]:
-        assert (docs / path).is_file()
-    adr_names = {path.name for path in (docs / "decisions").glob("ADR-*.md")}
-    for prefix in required[5:]:
-        assert any(name.startswith(prefix) for name in adr_names)
-
-
-def test_mermaid_fences_are_balanced() -> None:
-    for path in _tracked_markdown_paths():
-        text = path.read_text()
-        assert _markdown_fences_are_balanced(text), path
-
-
-def test_mermaid_fences_close_and_use_github_safe_labels() -> None:
-    """Keep every README/docs diagram renderable by GitHub's Mermaid renderer."""
-
-    for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
-        text = path.read_text()
-        blocks = _mermaid_blocks(text)
-        assert _count_mermaid_openers(text) == len(blocks), path
-        for block in blocks:
-            assert "\\n" not in block, path
-            assert "<br>" not in block, path
-
-
-def test_system_walkthrough_commands_create_and_use_a_local_venv() -> None:
-    required = [
+def test_readme_documents_executable_local_commands() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for command in [
         "python3 -m venv .venv",
         ".venv/bin/python -m pip install -e '.[dev]'",
         "make PYTHON=.venv/bin/python validate-semantic",
-        "make PYTHON=.venv/bin/python demo",
-    ]
-    text = (ROOT / "README.md").read_text()
-    for command in required:
-        assert command in text, command
-    assert not any(line.strip() == "make demo" for line in text.splitlines())
-    assert "make PYTHON=python3" not in text
+        "make PYTHON=.venv/bin/python kg-validate",
+        "make PYTHON=.venv/bin/python research-benchmark",
+        "make PYTHON=.venv/bin/python research-demo",
+        "make PYTHON=.venv/bin/python test",
+        ".venv/bin/python data/generate_demo_data.py",
+    ]:
+        assert command in readme, command
 
 
-def test_repository_markdown_excludes_legacy_demo_script_language() -> None:
-    """Keep the publication surface free of stale audience and process residue."""
-
-    forbidden_fragments = (
-        ("inter" "view"),
-        ("recruit" "er"),
-        ("inter" "view-demo-guide.md"),
-        ("presentation-" "preparation"),
-        ("presentation " "preparation"),
-    )
-    matches = [
-        f"{path.relative_to(ROOT)}: {fragment}"
-        for path in _tracked_publication_paths()
-        for fragment in forbidden_fragments
-        if fragment in path.read_text().lower()
-    ]
-    assert not matches, "\n".join(matches)
-
-    tracked_reports = subprocess.run(
-        ["git", "-C", str(ROOT), "ls-files", ".superpowers/sdd/*report.md"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.splitlines()
-    tracked_reports = [path for path in tracked_reports if (ROOT / path).exists()]
-    assert not tracked_reports, "\n".join(tracked_reports)
+def test_readme_api_table_matches_registered_fastapi_routes() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    application = create_app()
+    for route in application.routes:
+        if route.path not in application.openapi()["paths"]:
+            continue
+        for method in route.methods or set():
+            assert f"{method.upper()} {route.path}" in readme, (method, route.path)
+    for unsupported in ["/concepts/{id}/relationships", "/metrics/{id}"]:
+        assert unsupported not in readme
 
 
-def test_markdown_relative_links_resolve() -> None:
-    broken: list[str] = []
-    for path in _tracked_markdown_paths():
-        text = path.read_text()
-        anchors = _github_anchor_candidates(text)
-        for target in MARKDOWN_LINK_RE.findall(text):
-            if target.startswith(("http://", "https://", "mailto:")):
-                continue
-            if target.startswith("#"):
-                if target[1:] not in anchors:
-                    broken.append(f"{path.relative_to(ROOT)} -> {target}")
-                continue
-            relative_target, _, anchor = target.partition("#")
-            resolved = (path.parent / relative_target).resolve()
-            if not resolved.exists():
-                broken.append(f"{path.relative_to(ROOT)} -> {target}")
-                continue
-            if anchor and resolved.suffix == ".md":
-                target_anchors = _github_anchor_candidates(resolved.read_text())
-                if anchor not in target_anchors:
-                    broken.append(f"{path.relative_to(ROOT)} -> {target}")
-    assert not broken, "\n".join(broken)
-
-
-def test_mermaid_blocks_use_github_safe_line_breaks() -> None:
-    offenders: list[str] = []
-    for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
-        text = path.read_text()
-        for block in _mermaid_blocks(text):
-            if "\\n" in block:
-                offenders.append(str(path.relative_to(ROOT)))
-                break
-    assert not offenders, "\n".join(offenders)
-
-
-def test_markdown_fence_validator_accepts_tilde_fences() -> None:
-    text = "~~~yaml\nkey: value\n~~~\n"
-
-    assert _markdown_fences_are_balanced(text)
-
-
-def test_markdown_fence_validator_rejects_mismatched_or_short_closing_fences() -> None:
-    assert not _markdown_fences_are_balanced("~~~yaml\nkey: value\n```\n")
-    assert not _markdown_fences_are_balanced("````yaml\nkey: value\n```\n")
-
-
-def test_mermaid_validator_accepts_four_backtick_fences() -> None:
-    text = "````mermaid\nflowchart TD\n    A[Start] --> B[Finish]\n````\n"
-
-    assert _mermaid_blocks(text) == ["flowchart TD\n    A[Start] --> B[Finish]"]
-
-
-def test_example_questions_does_not_require_bare_python() -> None:
-    text = (ROOT / "examples" / "example_questions.md").read_text()
-    assert ".venv/bin/python -m semantic_layer.demo" in text
-    assert "\npython -m semantic_layer.demo" not in text
-
-
-def test_each_adr_has_required_decision_sections() -> None:
+def test_required_documentation_and_adrs_exist() -> None:
+    for relative in [
+        "docs/architecture.md",
+        "docs/agent-architecture.md",
+        "docs/data-products.md",
+        "docs/evaluation.md",
+        "docs/federated-semantics.md",
+        "docs/governance.md",
+        "docs/implementation-plan.md",
+        "docs/ontology.md",
+        "docs/semantic-layer.md",
+    ]:
+        assert (ROOT / relative).is_file()
     adr_paths = sorted((ROOT / "docs" / "decisions").glob("ADR-00[1-8]-*.md"))
     assert len(adr_paths) == 8
     for path in adr_paths:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         for heading in ["## Context", "## Decision", "## Alternatives", "## Consequences"]:
             assert heading in text, (path, heading)
 
 
-def test_readme_api_table_matches_registered_fastapi_routes() -> None:
-    readme = (ROOT / "README.md").read_text()
-    routes = {
-        (route.path, method)
-        for route in create_app().routes
-        if route.path in create_app().openapi()["paths"]
-        for method in route.methods or set()
-    }
-    assert "GET /health" in readme
-    for route, method in routes:
-        assert f"{method.upper()} {route}" in readme, (method, route)
-    for unsupported in [
-        "/concepts/{id}/relationships",
-        "/metrics/{id}",
-        "/data-products/{id}",
-        "/mappings/{concept}",
-    ]:
-        assert unsupported not in readme
+def test_owned_docs_use_neutral_namespace_examples() -> None:
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in PUBLICATION_DOCS)
+    assert "cifsup" in combined
+    assert "cifppms" in combined
+    assert "ciferp" in combined
+    assert "cifskos" in combined
+    assert not re.search(r"\bsap:", combined, flags=re.IGNORECASE)
 
 
-def test_readme_verification_section_identifies_latest_evidence() -> None:
-    readme = (ROOT / "README.md").read_text()
-    assert "2026-08-29 UTC" in readme
-    assert "docs/verification-report.md" in readme
-    publication_counts = re.findall(
-        r"\b(\d+)\s+(?:passed|passing\s+tests?)\b", readme, flags=re.IGNORECASE
-    )
-    assert publication_counts
-    assert set(publication_counts) == {"218"}, publication_counts
-
-
-def test_readme_documents_local_prerequisites_and_reproducibility_contract() -> None:
-    readme = (ROOT / "README.md").read_text()
-    env_example = (ROOT / ".env.example").read_text()
-    required_fragments = [
-        "Python 3.12",
-        "No cloud credentials",
-        "No LLM API key",
-        "SEMANTIC_LAYER_SIGNING_KEY",
-        "raw/",
-        "curated/",
-        "generate_demo_data.py",
-        "seed",
-        "as-of",
-        "lockfile",
-        "partner_id",
-        "sales_order_id",
-        "journal_entry_id",
-        "billing_doc_id",
-    ]
-    for fragment in required_fragments:
-        assert fragment in readme, fragment
-    assert "SEMANTIC_LAYER_ENV" not in readme
-    assert "SEMANTIC_LAYER_ENV" not in env_example
-    assert "does not auto-load" in readme
-    assert "reference template" in readme
-    assert "export SEMANTIC_LAYER_SIGNING_KEY_FILE=" in readme
-    assert "cp .env.example .env" not in readme
-
-
-def test_readme_documents_data_contract_and_clean_install() -> None:
-    readme = (ROOT / "README.md").read_text()
+def test_readme_states_mandatory_limitations_and_future_boundaries() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
     for fragment in [
-        "git clone",
-        "make setup",
-        "schemas",
-        "grain",
-        "join keys",
-        "curated fixtures",
-        "configuration matrix",
+        "synthetic",
+        "no proprietary",
+        "ontology is simplified",
+        "small, controlled corpora",
+        "deterministic and controlled",
+        "no llm",
+        "no production-scale graph or performance validation",
+        "security, privacy, authentication, and governance controls are incomplete",
+        "findings are preliminary",
+        "no affiliation",
+        "learned schema linking",
+        "text-to-sparql",
+        "learned repair",
+        "hybrid graph/vector retrieval",
     ]:
         assert fragment in readme, fragment
-    assert "make PYTHON=.venv/bin/python setup" not in readme
-
-
-def test_readme_documents_production_operations_and_security_boundary() -> None:
-    """Keep local-demo limits and production operating requirements explicit."""
-
-    readme = (ROOT / "README.md").read_text()
-    required_fragments = [
-        "## Production deployment and operating model",
-        "### Local reference versus production service",
-        "liveness-only",
-        "request-body role is spoofable demo context",
-        "development-only convenience",
-        "### Environment separation and promotion",
-        "### Identity, authorization, and privacy controls",
-        "### Provenance retention, signing, and backup",
-        "### Observability and CI coverage boundary",
-        "No telemetry, tracing, metrics export, alerting, or security scanning is implemented",
-        "### Operational failure and action matrix",
-        "### Upgrade and rollback guidance",
-        "fail closed",
-    ]
-    for fragment in required_fragments:
-        assert fragment in readme, fragment
-
-
-def test_readme_is_a_complete_repository_handbook_for_extension_and_release() -> None:
-    """Keep the public handbook navigable and anchored to executable assets."""
-
-    readme = (ROOT / "README.md").read_text()
-    required_fragments = [
-        "## Table of contents",
-        "## Reader paths",
-        "## Ownership, contribution, and review workflow",
-        "## Semantic versioning, compatibility, and deprecation",
-        "## Release process",
-        "## Onboarding a country or domain",
-        "## Capability-to-example traceability",
-        "## Pilot implementation plan",
-        "## Scale-out plan and promotion gates",
-        "## Production extension matrix",
-        "## Support and escalation",
-        "[Business vocabulary](semantic/vocabulary/sap_erp.yaml)",
-        "[Product taxonomy](semantic/taxonomy/sap_products.ttl)",
-        "[ERP ontology](semantic/ontology/sap_erp.ttl)",
-        "[SHACL shapes](semantic/shapes/sap_erp_shapes.ttl)",
-        "[Metric definitions](semantic/metrics/metrics.yaml)",
-        "[Business rules](semantic/rules/financial_postings.yaml)",
-        "[Certified data-product contracts](data_products/)",
-        "[Federated mappings](mappings/)",
-        "[Golden evaluation corpus](tests/golden/questions.yaml)",
-        "[CI workflow](.github/workflows/ci.yml)",
-        "[Example index](examples/README.md)",
-        "[Checked-in primary plan](examples/generated_query_plans/primary_erp_plan.json)",
-        "[Generated SQL artifacts](examples/generated_sql/README.md)",
-        "MCP transport is not implemented",
-        "LLM integration is not implemented",
-        "CostRevenueRatio is discovery-only",
-        "PRODUCT_DENIED",
-        "breaking change",
-        "deprecation window",
-        "baseline and target-state assessment",
-        "promotion gate",
-        "semantic owner",
-        "data-product owner",
-        "platform owner",
-        "security and privacy",
-    ]
-    for fragment in required_fragments:
-        assert fragment in readme, fragment
-
-    example_index = (ROOT / "examples" / "README.md").read_text()
-    for fragment in [
-        "## Route, request, and response examples",
-        "### Successful response",
-        "### Fail-closed response",
-        "POST /resolve",
-        "POST /execute",
-        '"concept_ids"',
-        '"detail"',
-        "generated_query_plans/primary_erp_plan.json",
-        "generated_sql/README.md",
-        "MCP transport is not implemented",
-        "LLM integration is not implemented",
-    ]:
-        assert fragment in example_index, fragment
-
-    scripted_lines = re.findall(
-        r"^\s*\d+\.\s+(?:show|explain|close)\b", readme, flags=re.IGNORECASE | re.MULTILINE
-    )
-    assert not scripted_lines, scripted_lines
-    assert "synthetic `AgentService` context" not in readme

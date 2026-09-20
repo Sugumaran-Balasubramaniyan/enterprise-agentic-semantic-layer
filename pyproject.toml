@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "enterprise-agentic-semantic-layer"
 version = "0.1.0"
-description = "A locally runnable federated semantic layer reference implementation"
+description = "Independent synthetic semantic-layer and knowledge-graph research prototype"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {file = "LICENSE"}
