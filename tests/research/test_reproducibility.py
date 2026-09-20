@@ -12,11 +12,13 @@ from rdflib import Graph, Literal, Namespace
 
 from semantic_layer.validation import (
     _validated_metadata,
+    _parse_worker_payload,
     assert_graph_isomorphic,
     run_asset_verification,
 )
 from semantic_layer.semantic_validation import validate_graph
 import semantic_layer.research.benchmark_runner as benchmark_runner
+import semantic_layer.validation as validation_module
 
 ROOT = Path(__file__).resolve().parents[2]
 CIFDATA = Namespace("https://example.org/cifre-kg/data/")
@@ -143,7 +145,10 @@ def test_asset_verification_reports_complete_validation_evidence() -> None:
     assert algorithm[0]["depth_limit"] == 16
     assert algorithm[0]["truncated"] is False
     assert algorithm[0]["status"] == "SUCCESS"
+    assert algorithm[0]["reason"] is None
     assert algorithm[1]["fixture"] == "support-prerequisite-depth17.ttl"
+    assert algorithm[1]["cycle_detected"] is False
+    assert algorithm[1]["cycle_edges"] == []
     assert algorithm[1]["reachable_unique"] == [f"N{index}" for index in range(1, 17)]
     assert algorithm[1]["target_excluded"] is True
     assert algorithm[1]["depth_limit"] == 16
@@ -225,3 +230,28 @@ def test_asset_verification_rejects_a_non_python_executable() -> None:
 
     assert report.returncode != 0
     assert any("Python 3.12" in error for error in report.errors)
+
+
+@pytest.mark.parametrize("payload", ["{}", "[]", '{"returncode": 0, "extra": true}'])
+def test_worker_payload_parser_rejects_malformed_contract(payload: str) -> None:
+    with pytest.raises(ValueError, match="payload"):
+        _parse_worker_payload(payload, sys.executable)
+
+
+def test_controller_fails_on_malformed_worker_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_run = validation_module.subprocess.run
+
+    def fake_worker(command, *args, **kwargs):
+        if "--asset-worker" in command:
+            return validation_module.subprocess.CompletedProcess(
+                command, 0, stdout="{}\n", stderr=""
+            )
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(validation_module.subprocess, "run", fake_worker)
+    report = run_asset_verification(ROOT, sys.executable)
+
+    assert report.returncode != 0
+    assert any("payload keys" in error for error in report.errors)

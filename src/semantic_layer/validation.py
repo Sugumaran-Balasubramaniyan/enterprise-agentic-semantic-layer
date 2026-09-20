@@ -157,6 +157,50 @@ _EXPECTED_ASSET_SHA256 = {
     "semantic/data/support-prerequisite-depth17.ttl": "b38b8bc49bc421704535d60e89616e4f77ee5688e5ea63523c63fccb3e99d42d",
 }
 
+_WORKER_KEYS = {
+    "returncode",
+    "errors",
+    "parity",
+    "validation",
+    "worker_interpreter",
+    "scope",
+}
+_PARITY_KEYS = {
+    "generated_path",
+    "checked_in_path",
+    "generated_triples",
+    "checked_in_triples",
+    "generated_reloaded",
+    "worker_interpreter",
+    "isomorphic",
+}
+_SHACL_ROW_KEYS = {
+    "check_id",
+    "data_paths",
+    "shape_paths",
+    "inference",
+    "expected_conforms",
+    "observed_conforms",
+    "conforms",
+    "violation_count",
+    "data_sha256",
+    "shape_sha256",
+    "provenance_dataset_id",
+    "result",
+    "scope",
+}
+_ALGORITHM_ROW_KEYS = _SHACL_ROW_KEYS | {"algorithm_cases"}
+_COMBINED_GRAPH_KEYS = {
+    "data_paths",
+    "shape_paths",
+    "construction_order",
+    "combined_graph_sha256",
+    "combined_shapes_sha256",
+    "inference",
+    "conforms",
+    "violation_count",
+}
+
 
 def _validated_metadata(root: Path, metadata: dict[str, Any]) -> dict[str, Any]:
     """Attach scope evidence and fail closed on stale or unexpected evidence."""
@@ -247,6 +291,7 @@ def run_asset_worker(root: Path) -> dict[str, Any]:
             "parity": None,
             "validation": None,
             "worker_interpreter": sys.executable,
+            "scope": "assets",
         }
     return {
         "returncode": 0,
@@ -254,7 +299,59 @@ def run_asset_worker(root: Path) -> dict[str, Any]:
         "parity": result["parity"],
         "validation": result["validation"],
         "worker_interpreter": sys.executable,
+        "scope": "assets",
     }
+
+
+def _parse_worker_payload(stdout: str, expected_interpreter: str) -> dict[str, Any]:
+    """Validate the worker's exact success contract before consuming evidence."""
+
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as error:
+        raise ValueError("asset worker payload is not valid JSON") from error
+    if not isinstance(payload, dict) or set(payload) != _WORKER_KEYS:
+        raise ValueError("asset worker payload keys do not match the exact contract")
+    if payload["scope"] != "assets":
+        raise ValueError("asset worker payload has an unexpected scope")
+    if type(payload["returncode"]) is not int or payload["returncode"] != 0:
+        errors = payload["errors"]
+        detail = "; ".join(errors) if isinstance(errors, list) else "invalid worker errors"
+        raise ValueError(f"asset worker did not report success: {detail}")
+    if payload["worker_interpreter"] != expected_interpreter:
+        raise ValueError("asset worker interpreter does not match the supplied interpreter")
+    if payload["errors"] != []:
+        raise ValueError("successful asset worker returned errors")
+
+    parity = payload["parity"]
+    if not isinstance(parity, dict) or set(parity) != _PARITY_KEYS:
+        raise ValueError("asset worker parity evidence is incomplete")
+    if parity["worker_interpreter"] != expected_interpreter:
+        raise ValueError("asset parity interpreter does not match the supplied interpreter")
+    if parity["generated_reloaded"] is not True or parity["isomorphic"] is not True:
+        raise ValueError("asset worker parity evidence is not successful")
+
+    validation = payload["validation"]
+    if not isinstance(validation, dict) or set(validation) != {"checks", "combined_graph"}:
+        raise ValueError("asset worker validation evidence is incomplete")
+    checks = validation["checks"]
+    expected_ids = list(_VALIDATION_SCOPES)
+    if not isinstance(checks, list) or not all(isinstance(row, dict) for row in checks):
+        raise ValueError("asset worker validation rows are incomplete or out of order")
+    if [row.get("check_id") for row in checks] != expected_ids:
+        raise ValueError("asset worker validation rows are incomplete or out of order")
+    for row in checks:
+        expected_keys = (
+            _ALGORITHM_ROW_KEYS
+            if row.get("check_id") == "PREREQUISITE_CYCLE_DEPTH"
+            else _SHACL_ROW_KEYS
+        )
+        if set(row) != expected_keys:
+            raise ValueError(f"asset worker validation row is incomplete: {row.get('check_id')}")
+    combined = validation["combined_graph"]
+    if not isinstance(combined, dict) or set(combined) != _COMBINED_GRAPH_KEYS:
+        raise ValueError("asset worker combined graph evidence is incomplete")
+    return payload
 
 
 def _asset_verification(
@@ -287,9 +384,7 @@ def _asset_verification(
                 f"asset worker failed ({worker.returncode}): "
                 f"{worker.stderr.strip() or worker.stdout.strip()}"
             )
-        payload = json.loads(worker.stdout)
-        if payload.get("returncode"):
-            raise RuntimeError("; ".join(payload.get("errors", ())) or "asset worker failed")
+        payload = _parse_worker_payload(worker.stdout, interpreter)
         parity = payload.get("parity")
         validation = payload.get("validation")
 
