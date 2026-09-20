@@ -332,6 +332,30 @@ def _verify_canonical_inputs() -> None:
         raise ValueError("canonical historical/archive inputs must be byte-identical")
 
 
+def _validate_output_paths(v1: Path, v2: Path, manifest: Path) -> None:
+    """Reject input destinations and aliases before any migration work or write."""
+    outputs = (("v1", v1), ("v2", v2), ("manifest", manifest))
+    canonical_paths = {HISTORICAL_PATH.resolve(), ARCHIVAL_PATH.resolve()}
+    resolved_outputs: list[Path] = []
+    for label, path in outputs:
+        resolved = path.resolve(strict=False)
+        if resolved in canonical_paths:
+            raise ValueError(
+                f"{label} output cannot overwrite canonical historical/archive input"
+            )
+        for canonical_path in (HISTORICAL_PATH, ARCHIVAL_PATH):
+            try:
+                if path.exists() and path.samefile(canonical_path):
+                    raise ValueError(
+                        f"{label} output cannot overwrite canonical historical/archive input"
+                    )
+            except OSError:
+                pass
+        resolved_outputs.append(resolved)
+    if len(set(resolved_outputs)) != len(resolved_outputs):
+        raise ValueError("migration output paths must be distinct")
+
+
 def _verify_canonical_source(source: Path) -> None:
     """Verify the caller selected one of the canonical paths and exact bytes."""
 
@@ -452,6 +476,7 @@ def migrate_benchmark(source: Path, v1: Path, v2: Path, manifest: Path) -> None:
     v1 = Path(v1)
     v2 = Path(v2)
     manifest = Path(manifest)
+    _validate_output_paths(v1, v2, manifest)
     _verify_canonical_source(source)
     historical = _read_legacy(source)
     graph = _load_graph()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import shutil
 from pathlib import Path
 
 import pytest
@@ -211,6 +212,118 @@ def test_migration_rejects_modified_alternate_source_before_writing_outputs(
         migrate_benchmark(alternate, *outputs)
 
     assert all(not path.exists() for path in outputs)
+
+
+@pytest.mark.parametrize(
+    ("output_name", "canonical_path"),
+    [
+        (output_name, canonical_path)
+        for output_name in ("v1", "v2", "manifest")
+        for canonical_path in (HISTORICAL, LEGACY)
+    ],
+)
+def test_migration_rejects_canonical_output_paths_before_any_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output_name: str,
+    canonical_path: Path,
+) -> None:
+    outputs = {
+        "v1": tmp_path / "v1.yaml",
+        "v2": tmp_path / "v2.yaml",
+        "manifest": tmp_path / "manifest.yaml",
+    }
+    outputs[output_name] = canonical_path
+    sentinel_paths = {
+        path: f"sentinel:{name}".encode("utf-8")
+        for name, path in outputs.items()
+        if path not in {HISTORICAL, LEGACY}
+    }
+    for path, contents in sentinel_paths.items():
+        path.write_bytes(contents)
+    canonical_before = {path: path.read_bytes() for path in (HISTORICAL, LEGACY)}
+    writes: list[Path] = []
+    monkeypatch.setattr(
+        _MODULE,
+        "_write_yaml",
+        lambda path, _value: writes.append(Path(path)),
+    )
+
+    with pytest.raises(ValueError, match="cannot overwrite canonical historical/archive"):
+        migrate_benchmark(LEGACY, outputs["v1"], outputs["v2"], outputs["manifest"])
+
+    assert writes == []
+    assert {path: path.read_bytes() for path in (HISTORICAL, LEGACY)} == canonical_before
+    assert {path: path.read_bytes() for path in sentinel_paths} == sentinel_paths
+
+
+@pytest.mark.parametrize(
+    "duplicate_names",
+    [("v1", "v2"), ("v1", "manifest"), ("v2", "manifest")],
+)
+def test_migration_rejects_duplicate_output_paths_before_any_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    duplicate_names: tuple[str, str],
+) -> None:
+    shared = tmp_path / "shared-output.yaml"
+    outputs = {
+        "v1": tmp_path / "v1.yaml",
+        "v2": tmp_path / "v2.yaml",
+        "manifest": tmp_path / "manifest.yaml",
+    }
+    outputs[duplicate_names[0]] = shared
+    outputs[duplicate_names[1]] = shared
+    sentinels = {
+        path: f"sentinel:{name}".encode("utf-8")
+        for name, path in outputs.items()
+        if path not in {shared}
+    }
+    sentinels[shared] = b"sentinel:shared"
+    for path, contents in sentinels.items():
+        path.write_bytes(contents)
+    writes: list[Path] = []
+    monkeypatch.setattr(
+        _MODULE,
+        "_write_yaml",
+        lambda path, _value: writes.append(Path(path)),
+    )
+
+    with pytest.raises(ValueError, match="output paths must be distinct"):
+        migrate_benchmark(LEGACY, outputs["v1"], outputs["v2"], outputs["manifest"])
+
+    assert writes == []
+    assert {path: path.read_bytes() for path in sentinels} == sentinels
+
+
+def test_canonical_hash_mismatch_is_checked_in_an_isolated_copy(tmp_path: Path) -> None:
+    isolated_root = tmp_path / "isolated-repository"
+    isolated_script = isolated_root / "scripts/migrate_benchmark_v1.py"
+    isolated_graph = isolated_root / "semantic/data/sap_support_graph.ttl"
+    isolated_historical = isolated_root / "tests/research/benchmark_dataset.yaml"
+    isolated_archive = isolated_root / "tests/research/benchmark_dataset_legacy.yaml"
+    isolated_script.parent.mkdir(parents=True)
+    isolated_graph.parent.mkdir(parents=True)
+    isolated_historical.parent.mkdir(parents=True)
+    shutil.copy2(ROOT / "scripts/migrate_benchmark_v1.py", isolated_script)
+    shutil.copy2(GRAPH_PATH, isolated_graph)
+    isolated_historical.write_bytes(LEGACY.read_bytes() + b"\n# isolated mutation\n")
+    shutil.copy2(LEGACY, isolated_archive)
+
+    spec = importlib.util.spec_from_file_location(
+        "isolated_migrate_benchmark_v1", isolated_script
+    )
+    assert spec and spec.loader
+    isolated_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(isolated_module)
+
+    with pytest.raises(
+        ValueError, match="canonical historical benchmark bytes do not match the pinned hash"
+    ):
+        isolated_module._verify_canonical_inputs()
+
+    assert HISTORICAL.read_bytes() == isolated_archive.read_bytes()
+    assert LEGACY.read_bytes() == isolated_archive.read_bytes()
 
 
 def test_canonical_historical_input_is_accepted_and_matches_archive(tmp_path: Path) -> None:
