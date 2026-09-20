@@ -25,6 +25,7 @@ import jsonschema
 import yaml
 from pyshacl import validate as shacl_validate
 from rdflib import RDF, Graph, Namespace
+from rdflib.compare import to_canonical_graph
 
 from semantic_layer.kg.loader import SAPKnowledgeGraph
 from semantic_layer.reasoning.query_planner import (
@@ -672,11 +673,11 @@ def _reject_metadata_nulls(value: Mapping[str, Any]) -> None:
     for section in ("environment", "namespace_registry", "validation", "hash_manifest"):
         if section not in value:
             raise ValueError(f"result missing metadata section: {section}")
-        if section != "hash_manifest" and any(
-            str(key).casefold() in {"timestamp", "generated_at", "created_at"}
-            for key in _walk_mapping_keys(value[section])
-        ):
-            raise ValueError(f"timestamp key is forbidden in {section}")
+    if any(
+        str(key).casefold() in {"timestamp", "generated_at", "created_at"}
+        for key in _walk_mapping_keys(value)
+    ):
+        raise ValueError("timestamp key is forbidden in result artifact")
 
 
 def _validate_result_mapping(result: Mapping[str, Any]) -> None:
@@ -741,7 +742,7 @@ def _load_rdf_graph(root: Path, paths: Sequence[str]) -> Graph:
 
 
 def _canonical_graph_sha256(graph: Graph) -> str:
-    serialized = graph.serialize(format="nt")
+    serialized = to_canonical_graph(graph).serialize(format="nt")
     text = serialized.decode("utf-8") if isinstance(serialized, bytes) else str(serialized)
     lines = sorted(line.strip() for line in text.splitlines() if line.strip())
     return hashlib.sha256(("\n".join(lines) + "\n").encode("utf-8")).hexdigest()
@@ -825,7 +826,14 @@ def _prerequisite_algorithm_case(root: Path, fixture: str, target: str) -> dict[
     }
 
 
-def _validation_metadata(root: Path) -> dict[str, Any]:
+def build_validation_metadata(root: Path) -> dict[str, Any]:
+    """Build the single-source validation evidence consumed by the artifact.
+
+    The benchmark artifact and later repository verification must call this
+    interface rather than reimplementing the SHACL matrix or prerequisite
+    cycle/depth evidence.
+    """
+
     combined_data_paths = (*_VALIDATION_DATA_PATHS, _VALIDATION_SAMPLE_DATA_PATH)
     combined_shape_paths = _VALIDATION_SHAPE_PATHS
     combined_graph = _load_rdf_graph(root, combined_data_paths)
@@ -1131,7 +1139,7 @@ class BenchmarkRunner:
                 **NAMESPACE_REGISTRY,
                 "legacy_uris_rejected": list(_LEGACY_URIS),
             },
-            "validation": _validation_metadata(self.root),
+            "validation": build_validation_metadata(self.root),
             "corpus_runs": corpus_runs,
             "per_query": per_query,
         }
@@ -1154,6 +1162,7 @@ __all__ = [
     "QueryRecord",
     "aggregate_metrics",
     "build_hash_manifest",
+    "build_validation_metadata",
     "score_query",
     "validate_hash_manifest",
     "validate_result_id_references",

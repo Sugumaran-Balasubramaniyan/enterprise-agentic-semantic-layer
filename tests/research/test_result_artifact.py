@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
+import semantic_layer.research.benchmark_runner as benchmark_runner_module
 from semantic_layer.kg.loader import SAPKnowledgeGraph
 from semantic_layer.research.benchmark_runner import (
     _VALIDATION_DATA_PATHS,
     _VALIDATION_SHAPE_PATHS,
     BenchmarkRunner,
     _reject_metadata_nulls,
-    _validation_metadata,
+    build_validation_metadata,
     validate_result_id_references,
 )
 from semantic_layer.research.contracts import CONDITIONS, load_and_validate_result
@@ -33,7 +34,21 @@ def _knowledge_graph() -> SAPKnowledgeGraph:
     return graph
 
 
-def test_runner_builds_schema_valid_v1_v2_two_condition_artifact(tmp_path: Path) -> None:
+def test_runner_builds_schema_valid_v1_v2_two_condition_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    validation_calls: list[Path] = []
+    original_validation_builder = benchmark_runner_module.build_validation_metadata
+
+    def record_validation_builder(root: Path) -> dict[str, object]:
+        validation_calls.append(root)
+        return original_validation_builder(root)
+
+    monkeypatch.setattr(
+        benchmark_runner_module,
+        "build_validation_metadata",
+        record_validation_builder,
+    )
     result_path = tmp_path / "cifre-benchmark-result.json"
     runner = BenchmarkRunner(
         _knowledge_graph(),
@@ -64,6 +79,7 @@ def test_runner_builds_schema_valid_v1_v2_two_condition_artifact(tmp_path: Path)
     validate_result_id_references(result)
     loaded = load_and_validate_result(result_path)
     assert loaded == result
+    assert validation_calls == [ROOT]
 
 
 def test_result_metadata_is_deterministic_and_has_no_timestamp_or_nan(
@@ -90,7 +106,8 @@ def test_result_metadata_is_deterministic_and_has_no_timestamp_or_nan(
 
 
 def test_validation_metadata_records_truthful_complete_matrix() -> None:
-    metadata = _validation_metadata(ROOT)
+    metadata = build_validation_metadata(ROOT)
+    assert build_validation_metadata(ROOT) == metadata
     rows = {row["check_id"]: row for row in metadata["checks"]}
 
     assert list(rows) == [
@@ -192,6 +209,20 @@ def test_result_allows_legitimate_json_nulls_recursively() -> None:
     }
 
     _reject_metadata_nulls(metadata)
+
+
+@pytest.mark.parametrize("timestamp_key", ["timestamp", "generated_at", "created_at"])
+def test_result_rejects_nested_timestamp_keys_across_artifact(timestamp_key: str) -> None:
+    metadata = {
+        "environment": {},
+        "namespace_registry": {},
+        "validation": {},
+        "hash_manifest": {},
+        "per_query": [{"provenance": {timestamp_key: "2026-09-20T00:00:00Z"}}],
+    }
+
+    with pytest.raises(ValueError, match="timestamp key"):
+        _reject_metadata_nulls(metadata)
 
 
 def test_cli_output_path_is_caller_supplied_and_not_canonical(tmp_path: Path) -> None:
