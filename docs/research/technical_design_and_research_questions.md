@@ -50,6 +50,11 @@ future hashes or metrics.
 | Retrieval | Graph traversal only | A real vector-retrieval condition alongside graph constraints |
 | Answers | Strict binding-derived fields and synthetic provenance | Human-reviewed explanatory text with evidence and provenance |
 
+The `Not implemented` boundary covers LLM or embedding calls, a vector index,
+proprietary or external data, an external graph service, production
+integration, and human-evaluation results. Those omissions are not hidden
+inside the proposed column.
+
 ## Typed interfaces
 
 The current pipeline passes typed values between stages rather than passing an
@@ -177,12 +182,17 @@ learned self-correction result.
 
 ### Unknown entities
 
-The linker checks entity cues against finite lists. An unknown alert after an
-alert cue, an unknown component after a component cue, an unknown note number,
-or a malformed support-package token sets a stable reason such as
-`UNKNOWN_ENTITY`. Unknown filler or grammar words can produce `UNKNOWN_TOKEN`.
-The reasoner returns `UNSUPPORTED` with no plan, SPARQL, binding, or factual
-answer; it does not invent an IRI, parent, note, or product version.
+The linker checks alert, component, priority, product, software-component, and
+support-package cues against finite vocabularies. An unknown alert after an
+alert cue, an unknown component after a component cue, an unknown priority, or
+a malformed support-package token sets a stable reason such as
+`UNKNOWN_ENTITY`. Note identifiers use a seven-digit decimal syntax rule rather
+than a finite vocabulary: a syntactically valid but absent note is accepted,
+planned, and executed, then returns `EMPTY_RESULT`; a malformed or
+non-seven-digit note value is rejected as `UNKNOWN_ENTITY`. Unknown filler or
+grammar words can produce `UNKNOWN_TOKEN`. The reasoner returns `UNSUPPORTED`
+with no plan, SPARQL, binding, or factual answer for a rejected request; it does
+not invent an IRI, parent, note, or product version.
 
 ### Ambiguous entities
 
@@ -241,13 +251,31 @@ full model-facing protocol is proposed work.
 declared store/runtime. It can be true even when a query returns the wrong
 relation or extra notes. **Exact-set accuracy** asks whether the strict
 predicted note-number set equals the gold set for the question and expected
-status. The benchmark also records syntax validity, execution success, status
-accuracy, precision, recall, F1, relation/path correctness, and repair
-outcomes. A relaxed candidate set never replaces the strict set for scoring.
+status. The current artifact records syntax validity, execution success, status
+accuracy, status counts, exact-set precision/recall/F1, recovery attempts and
+successes, strict-empty rate, unsupported rejection, and optional-binding
+rate. A relaxed candidate set never replaces the strict set for scoring.
 
 String-level exact match of a SPARQL serialization is useful for deterministic
 regression, but it is not a sufficient semantic measure: equivalent queries
 can serialize differently, and an executable query can still be wrong.
+
+### Current artifact metric fields
+
+The current runner and JSON Schema expose exactly these metric fields: status
+counts (`status_counts`), status correctness (`status_accuracy`), strict
+answer-set fields (`exact_set`, `precision`, `recall`, `f1`), and operational
+fields (`syntax_success_rate`, `execution_success_rate`,
+`recovery_attempt_rate`, `recovery_success_rate`, `strict_empty_rate`,
+`unsupported_rejection_rate`, and `optional_binding_rate`). This is the
+complete current metric surface; the final values remain Task 13 evidence.
+
+Future-only metric fields, not emitted by the current artifact, are
+`relation_path_correctness`, `groundedness`, `provenance_completeness`,
+`latency`, `token_count`, `cost`, `robustness`, and
+`human_unsupported_answer_rate`. Relation/path, groundedness, provenance,
+latency, token/cost, robustness, and human unsupported-answer measurements
+require a separately implemented future experiment.
 
 ### Corpus and artifact
 

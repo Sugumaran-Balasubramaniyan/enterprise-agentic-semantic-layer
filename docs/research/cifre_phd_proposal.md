@@ -178,11 +178,15 @@ synthetic ontology/data fixtures
   -> per-query metrics and hashed artifact
 ```
 
-`SchemaLinker` recognizes finite lists of component codes, alert codes,
-product versions, software components, support packages, note numbers, and
-priorities. It emits a `GroundedEntities` value or a failure reason; it does
-not call an LLM or invent an IRI. `QueryPlanner` maps accepted slots to typed
-triple patterns. Component hierarchy uses the path
+`SchemaLinker` uses finite vocabularies for component codes, alert codes,
+product versions, software components, support packages, and priorities. Note
+identifiers follow a separate syntax rule: any seven-digit decimal token can
+be accepted, even when that identifier is absent from the checked-in graph. A
+valid absent note is planned and executed, then produces `EMPTY_RESULT`; a
+malformed or non-seven-digit note value is rejected as `UNKNOWN_ENTITY`. The
+linker emits a `GroundedEntities` value or a failure reason; it does not call
+an LLM or invent an IRI. `QueryPlanner` maps accepted slots to typed triple
+patterns. Component hierarchy uses the path
 `cifsup:affectsComponent/cifsup:parentComponent*`. Prerequisite planning uses
 a finite union of one through sixteen repeated
 `cifsup:hasPrerequisiteNote` edges, while a separate traversal routine records
@@ -235,6 +239,24 @@ attempts, repair operations, strict bindings, separately labelled relaxed
 candidates, provenance, and hashes. Strict predictions are never replaced by
 relaxed candidates. Both-empty exact-set precision/recall/F1 is defined by the
 metric contract; one-empty/one-nonempty is not a success.
+
+### Current artifact metric fields
+
+The current runner and JSON Schema expose exactly these metric fields: status
+counts (`status_counts`), status correctness (`status_accuracy`), strict
+answer-set fields (`exact_set`, `precision`, `recall`, `f1`), and operational
+fields (`syntax_success_rate`, `execution_success_rate`,
+`recovery_attempt_rate`, `recovery_success_rate`, `strict_empty_rate`,
+`unsupported_rejection_rate`, and `optional_binding_rate`). This is the
+complete current metric surface; the final values remain Task 13 evidence.
+
+### Future-only metric fields
+
+The following future-only metric fields are not emitted by current artifact:
+`relation_path_correctness`, `groundedness`,
+`provenance_completeness`, `latency`, `token_count`, `cost`, `robustness`, and
+`human_unsupported_answer_rate`. They require a separately implemented and
+reviewed experiment rather than prose or a zero placeholder.
 
 The final canonical JSON at `results/latest_benchmark.json` is owned by Task
 13. Until that task runs the final verification command, this proposal does not

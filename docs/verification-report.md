@@ -17,6 +17,32 @@ comparative numbers remain historical evidence in
 [`cifre-hardening-baseline.md`](research/cifre-hardening-baseline.md); they are
 not reused as current results.
 
+## Implemented/proposed/not-implemented boundary
+
+| Status | Boundary |
+| --- | --- |
+| Implemented locally | Synthetic RDF/Turtle fixtures; deterministic grounding, typed plans, SPARQL compilation, RDFLib execution, scoped SHACL reports, bounded repair, and binding-derived provenance. |
+| Proposed future work | Learned grounding, constrained Text-to-SPARQL, vector retrieval alongside the graph, learned repair, scale, drift, and human evaluation. |
+| Not implemented | LLM or embedding calls, vector index, proprietary data, external stores, production integration, and a completed final benchmark artifact. |
+
+## Current artifact metric fields
+
+The current runner and JSON Schema expose exactly these metric fields: status
+counts (`status_counts`), status correctness (`status_accuracy`), strict
+answer-set fields (`exact_set`, `precision`, `recall`, `f1`), and operational
+fields (`syntax_success_rate`, `execution_success_rate`,
+`recovery_attempt_rate`, `recovery_success_rate`, `strict_empty_rate`,
+`unsupported_rejection_rate`, and `optional_binding_rate`). These are the only
+current artifact metrics; Task 13 owns their final values.
+
+## Future-only metric fields
+
+The following fields are not emitted by the current artifact and remain
+proposed future work: `relation_path_correctness`, `groundedness`,
+`provenance_completeness`, `latency`, `token_count`, `cost`, `robustness`, and
+`human_unsupported_answer_rate`. They require a separately implemented
+experiment and evidence protocol.
+
 ## Evidence fields
 
 The exact values below are intentionally not invented. Task 13 owns the final
@@ -77,7 +103,7 @@ Task 13 fields above.
 | AQR planner/repair/provenance/metric contracts | `30 passed` when run with read-only system package paths added for the missing `jsonschema` dependency; no environment files were changed. |
 | Targeted Ruff (`tests/unit/test_documentation_contract.py`) | `All checks passed!` |
 | `git diff --check` | Exit status 0; no whitespace errors. |
-| Full repository pytest | `370 passed, 47 failed`; failures are outside this documentation task and include the branch's federated namespace/asset expectations and the shared-environment import boundary. Task 13 must reassess the complete gate. |
+| Full repository pytest | No authoritative Task 12 count is recorded: the shared environment lacks the declared `jsonschema` dependency, and the read-only workaround exposed unrelated federated namespace/asset expectations. Task 13 must run the complete gate in the locked environment. |
 
 The direct shared `.venv` invocation of source-level tests cannot import
 `jsonschema` in this checkout. The final verification must use the declared

@@ -38,22 +38,28 @@ completes, commit identity, hashes, and final metric values are pending.
 ## Five source-verifiable implementation statements
 
 1. The [`schema linker`](../../src/semantic_layer/reasoning/schema_linker.py)
-   uses a finite grammar and finite entity vocabularies. Unknown tokens,
-   unknown entities, and ambiguous input are represented as stable failure
+   and its [grounding contract tests](../../tests/research/test_grounding_contract.py) use a
+   finite grammar and finite vocabularies for alerts, components, and
+   priorities. Declared note fixtures preserve canonical seven-digit
+   identifiers, while unknown and ambiguous inputs return stable failure
    reasons instead of invented identifiers.
 2. The [`query planner`](../../src/semantic_layer/reasoning/query_planner.py)
-   emits a typed logical plan, uses a component hierarchy property path, and
-   bounds prerequisite traversal to a finite depth with cycle/depth evidence.
+   and its [planner tests](../../tests/unit/test_aqr_query_planner.py) emit a
+   typed logical plan, use a component hierarchy property path, and bound
+   prerequisite traversal to a finite depth with cycle/depth evidence.
 3. The [`SPARQL compiler`](../../src/semantic_layer/reasoning/text_to_sparql.py)
-   rejects an unbound required projection before emitting deterministic
+   and its [projection tests](../../tests/unit/test_aqr_query_planner.py)
+   reject an unbound required projection before emitting deterministic
    `SELECT DISTINCT` text.
 4. The [`bounded reasoner`](../../src/semantic_layer/reasoning/reflective_agent.py)
-   records each attempt and permits at most three repairs. Support-package
+   and its [failure-state-machine tests](../../tests/research/test_failure_state_machine.py)
+   record each attempt and permit at most three repairs. Support-package
    removal and component widening remain disclosed relaxed candidates rather
    than strict success.
 5. The [`knowledge-graph loader`](../../src/semantic_layer/kg/loader.py)
-   loads RDF/Turtle into RDFLib and returns a scoped `ValidationReport` for
-   SHACL validation; support-only validation is not silently called complete.
+   and its [loader and graph tests](../../tests/semantic/test_sap_kg.py) load RDF/Turtle
+   into RDFLib and return a scoped `ValidationReport`; support-only validation
+   is not silently called complete.
 
 ## What is implemented, proposed, and absent
 
@@ -65,14 +71,23 @@ completes, commit identity, hashes, and final metric values are pending.
 
 ## Metric handoff
 
-The final artifact is the source for exact baseline fields. Task 13 must fill
-and verify, per corpus and condition: syntax-success rate, execution-success
-rate, status accuracy, exact note-set accuracy, precision/recall/F1,
-relation/path correctness, strict-empty rate, unsupported rejection,
-repair/recovery attempts and successes, groundedness/provenance fields,
-latency, token/cost fields where applicable, and robustness slices. No old
-proposal number is reused; Task 13 must provide the evidence before any
-unsupported-answer rate is discussed.
+### Current artifact metric fields
+
+The current runner and JSON Schema expose exactly these metric fields: status
+counts (`status_counts`), status correctness (`status_accuracy`), strict
+answer-set fields (`exact_set`, `precision`, `recall`, `f1`), and operational
+fields (`syntax_success_rate`, `execution_success_rate`,
+`recovery_attempt_rate`, `recovery_success_rate`, `strict_empty_rate`,
+`unsupported_rejection_rate`, and `optional_binding_rate`). The final values
+must come from the schema-valid Task 13 artifact.
+
+### Future-only metric fields
+
+The following fields are not emitted by the current artifact and remain
+proposed future work: `relation_path_correctness`, `groundedness`,
+`provenance_completeness`, `latency`, `token_count`, `cost`, `robustness`, and
+`human_unsupported_answer_rate`. No old proposal number is reused; each future
+measurement needs its own implementation and evidence protocol.
 
 ## Limitations to state in an interview
 

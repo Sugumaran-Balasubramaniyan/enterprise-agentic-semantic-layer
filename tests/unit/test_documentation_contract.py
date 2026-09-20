@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 
 from semantic_layer.api.app import create_app
+from semantic_layer.kg.loader import SAPKnowledgeGraph
+from semantic_layer.reasoning.query_planner import QueryPlanner
+from semantic_layer.reasoning.reflective_agent import AQRReflectiveAgent
+from semantic_layer.reasoning.schema_linker import SchemaLinker
+from semantic_layer.research.contracts import ReasonCode, Status
 
 ROOT = Path(__file__).parents[2]
 PUBLICATION_DOCS = (
@@ -34,12 +41,47 @@ RESEARCH_HANDOFF_DOCS = (
     ROOT / "docs" / "research" / "cifre-interview-brief.md",
     ROOT / "docs" / "verification-report.md",
 )
+RESEARCH_METRIC_DOCS = RESEARCH_HANDOFF_DOCS
 RESEARCH_SOURCE_LINKS = (
     "../../src/semantic_layer/reasoning/schema_linker.py",
     "../../src/semantic_layer/reasoning/query_planner.py",
     "../../src/semantic_layer/reasoning/text_to_sparql.py",
     "../../src/semantic_layer/reasoning/reflective_agent.py",
     "../../src/semantic_layer/kg/loader.py",
+)
+RESEARCH_TEST_LINKS = (
+    "../../tests/research/test_grounding_contract.py",
+    "../../tests/unit/test_aqr_query_planner.py",
+    "../../tests/unit/test_aqr_query_planner.py",
+    "../../tests/research/test_failure_state_machine.py",
+    "../../tests/semantic/test_sap_kg.py",
+)
+CURRENT_ARTIFACT_METRIC_FIELDS = frozenset(
+    {
+        "exact_set",
+        "precision",
+        "recall",
+        "f1",
+        "status_accuracy",
+        "status_counts",
+        "syntax_success_rate",
+        "execution_success_rate",
+        "recovery_attempt_rate",
+        "recovery_success_rate",
+        "strict_empty_rate",
+        "unsupported_rejection_rate",
+        "optional_binding_rate",
+    }
+)
+FUTURE_ONLY_METRIC_FIELDS = (
+    "relation_path_correctness",
+    "groundedness",
+    "provenance_completeness",
+    "latency",
+    "token_count",
+    "cost",
+    "robustness",
+    "human_unsupported_answer_rate",
 )
 DISCLAIMER = (
     "This is an independent, unaffiliated candidate prototype using synthetic "
@@ -48,6 +90,21 @@ DISCLAIMER = (
     "data. The repository demonstrates a deterministic symbolic baseline and "
     "proposes future LLM/retrieval experiments; it does not claim completed PhD "
     "research or production readiness."
+)
+# Anchor the append-only baseline without consulting repository history.
+BASELINE_HANDOFF_SEPARATOR = b"\n## Final handoff pointer (appended by Task 12)\n"
+BASELINE_HISTORICAL_PREFIX_LENGTH = 17218
+BASELINE_HISTORICAL_PREFIX_SHA256 = (
+    "a7e10bda613aaf6914fb78b037ee9d61dbf9b0f1677c613f0a91e74846e34acd"
+)
+BASELINE_HANDOFF_BODY = (
+    b"\nThe historical evidence above is unchanged. The current research handoff is\n"
+    b"now documented in the [proposal](cifre_phd_proposal.md),\n"
+    b"[technical design and research questions](technical_design_and_research_questions.md),\n"
+    b"[interview brief](cifre-interview-brief.md), and\n"
+    b"[verification report](../verification-report.md). Task 13 owns the final\n"
+    b"`results/latest_benchmark.json` artifact, exact commit and SHA-256 manifest,\n"
+    b"and final `make PYTHON=.venv/bin/python research-verify` result.\n"
 )
 
 
@@ -280,6 +337,91 @@ def test_research_handoff_contract_and_links() -> None:
     for link in RESEARCH_SOURCE_LINKS:
         assert f"]({link})" in brief, link
 
+    claim_blocks = [
+        block
+        for block in re.split(r"(?m)(?=^\d+\. )", brief)
+        if re.match(r"^\d+\. ", block)
+    ]
+    assert [re.match(r"^(\d+)\. ", block).group(1) for block in claim_blocks] == [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+    ]
+    assert len(claim_blocks) == len(RESEARCH_SOURCE_LINKS) == len(RESEARCH_TEST_LINKS)
+    for block, source_link, test_link in zip(
+        claim_blocks, RESEARCH_SOURCE_LINKS, RESEARCH_TEST_LINKS, strict=True
+    ):
+        assert f"]({source_link})" in block
+        assert f"]({test_link})" in block
+
+    schema = json.loads((ROOT / "tests" / "research" / "result_schema.json").read_text())
+    condition_aggregate = schema["$defs"]["condition_aggregate"]
+    operational_fields = set(
+        condition_aggregate["properties"]["operational_metrics"]["properties"]
+    )
+    assert operational_fields == {
+        "syntax_success_rate",
+        "execution_success_rate",
+        "recovery_attempt_rate",
+        "recovery_success_rate",
+        "strict_empty_rate",
+        "unsupported_rejection_rate",
+        "optional_binding_rate",
+    }
+    answer_fields = set(condition_aggregate["properties"]["answer_metrics"]["properties"])
+    assert {"exact_set", "precision", "recall", "f1"} <= answer_fields
+    assert {"status_accuracy", "status_counts"} <= set(condition_aggregate["properties"])
+    schema_metric_fields = (
+        operational_fields
+        | {"status_accuracy", "status_counts"}
+        | {"exact_set", "precision", "recall", "f1"}
+    )
+    assert CURRENT_ARTIFACT_METRIC_FIELDS == schema_metric_fields
+    assert CURRENT_ARTIFACT_METRIC_FIELDS.isdisjoint(FUTURE_ONLY_METRIC_FIELDS)
+    for path in RESEARCH_METRIC_DOCS:
+        text = path.read_text(encoding="utf-8")
+        assert "Current artifact metric fields" in text, path
+        assert "Future-only metric fields" in text, path
+        for field in CURRENT_ARTIFACT_METRIC_FIELDS:
+            assert f"`{field}`" in text, (path, field)
+        for field in FUTURE_ONLY_METRIC_FIELDS:
+            assert f"`{field}`" in text, (path, field)
+        assert re.search(r"not emitted by (?:the )?current artifact", text.lower()), path
+
+    boundary_labels = ("Implemented locally", "Proposed future work", "Not implemented")
+    for path in RESEARCH_HANDOFF_DOCS:
+        text = path.read_text(encoding="utf-8")
+        for label in boundary_labels:
+            assert label in text, (path, label)
+
+    linker = SchemaLinker()
+    valid_note = linker.ground("Retrieve the title and details for SAP Note 9999999.")
+    assert valid_note.failure_class is ReasonCode.NONE
+    assert valid_note.note_numbers == ["9999999"]
+    plan = QueryPlanner().plan(valid_note)
+    assert plan.intent == "NOTE_LOOKUP"
+
+    absent_note_result = AQRReflectiveAgent(SAPKnowledgeGraph()).run(
+        "Retrieve the title and details for SAP Note 9999999."
+    )
+    assert absent_note_result.status is Status.EMPTY_RESULT
+    assert absent_note_result.plan is not None
+    assert absent_note_result.sparql_initial
+    assert absent_note_result.attempts == 1
+
+    for malformed in ("123456", "12345678"):
+        result = linker.ground(f"Retrieve the title and details for SAP Note {malformed}.")
+        assert result.failure_class is ReasonCode.UNKNOWN_ENTITY
+    for finite_unknown in (
+        "Which note resolves alert NOT_A_REAL_ALERT?",
+        "What notes affect component NOT-A-COMPONENT?",
+        "Find notes for alert TIME_OUT in component BC-DB-HDB priority urgent",
+    ):
+        result = linker.ground(finite_unknown)
+        assert result.failure_class is ReasonCode.UNKNOWN_ENTITY
+
     verification = (ROOT / "docs" / "verification-report.md").read_text(
         encoding="utf-8"
     )
@@ -299,6 +441,15 @@ def test_research_handoff_contract_and_links() -> None:
         encoding="utf-8"
     )
     assert "final handoff" in baseline.lower()
+    current_bytes = (ROOT / "docs" / "research" / "cifre-hardening-baseline.md").read_bytes()
+    assert current_bytes.count(BASELINE_HANDOFF_SEPARATOR) == 1
+    historical_prefix, separator, handoff_body = current_bytes.partition(
+        BASELINE_HANDOFF_SEPARATOR
+    )
+    assert separator == BASELINE_HANDOFF_SEPARATOR
+    assert len(historical_prefix) == BASELINE_HISTORICAL_PREFIX_LENGTH
+    assert sha256(historical_prefix).hexdigest() == BASELINE_HISTORICAL_PREFIX_SHA256
+    assert handoff_body == BASELINE_HANDOFF_BODY
 
 
 def test_owned_markdown_fences_are_balanced() -> None:
