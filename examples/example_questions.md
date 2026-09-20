@@ -2,7 +2,7 @@
 
 The deterministic agent accepts business questions, not SQL. It resolves only
 registered terms, emits a typed logical plan, and fails closed for unsupported
-intent, invalid scope, uncertified products, or denied access.
+intent, invalid scope, quality-ineligible products, or denied access.
 
 ## Primary financial posting audit
 
@@ -25,10 +25,10 @@ Use the `FinancialControllerFR` role. The deterministic result contains `FR_001`
 - `Show the cost-revenue ratio for French automotive business partners in the current year.`
 
 Only the primary financial posting plan is compiled and executed by the local DuckDB
-adapter. Active-sales-order questions are discovery-only. `CostRevenueRatio` is also
-discovery-only and intentionally returns `PRODUCT_DENIED` during authorization:
-no local simulated role can access its complete `ACDOCAFinancials` and
-`BillingAnalytics` product set. A production implementation needs a reviewed
+adapter against repository-maintained synthetic data. Active-sales-order questions
+are discovery-only. `CostRevenueRatio` is also discovery-only and intentionally
+returns `PRODUCT_DENIED` during authorization: no local simulated role can access
+its complete `ACDOCAFinancials` and `BillingAnalytics` product set. A production implementation needs a reviewed
 aggregate-only workload role, a compiler, platform-native controls, and
 execution/evidence tests. Cloud mappings remain declared extension artifacts
 and are not executed by this repository.

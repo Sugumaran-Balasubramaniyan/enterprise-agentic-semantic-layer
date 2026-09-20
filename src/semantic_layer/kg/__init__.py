@@ -1,7 +1,7 @@
-"""SAP Knowledge Graph package.
+"""Synthetic SAP-inspired Knowledge Graph package.
 
 Provides RDF/OWL graph management, SPARQL 1.1 execution, SHACL validation,
-and high-fidelity enterprise dataset generation for SAP Service & Support.
+and deterministic synthetic dataset generation for SAP Service & Support concepts.
 """
 
 from semantic_layer.kg.loader import SAPKnowledgeGraph

@@ -1,11 +1,11 @@
 id: ACDOCAFinancials
 name: Universal Journal Financials (ACDOCA)
 version: "1.0.0"
-owner: SAP SE Financials and Controlling
-platform: Federated
-location: Group
+owner: repository-maintained synthetic contract
+platform: Local synthetic reference
+location: Repository
 grain: one row per financial posting
-sla: hourly, within 15 minutes of source update
+sla: not applicable to synthetic repository data
 classification: Restricted
 pii:
   - partner_id
@@ -16,7 +16,7 @@ quality:
     - posting_date is non-null and not in the future as of the query context
     - amount_in_company_currency_eur is non-negative
     - posting_status and country use governed values
-    - product resolves through a certified local mapping
+    - product resolves through an approved local mapping
 lineage:
   upstream:
     - local S/4HANA FI-GL/FI-AP/FI-AR engines in France, United Kingdom, and Germany
@@ -67,5 +67,5 @@ schema:
     nullable: false
 certification:
   status: CERTIFIED
-  certified_by: SAP Enterprise Financial Governance Board
+  certified_by: repository-maintained synthetic contract
   certified_at: "2026-08-28"

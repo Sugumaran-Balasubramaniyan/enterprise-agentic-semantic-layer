@@ -1,4 +1,4 @@
--- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Snowflake execution is disabled locally.
+-- UNEXECUTED SIMULATION (INCOMPLETE SQL FRAGMENT; NOT EQUIVALENT TO THE GOVERNED PLAN): Snowflake execution is disabled locally.
 -- Use the governed plan, approved United Kingdom mapping, and native Snowflake security.
 SELECT partner.partner_id, COUNT(DISTINCT posting.journal_entry_id) AS posting_count
 FROM S4HANA_UK.BP.PARTNERS AS partner

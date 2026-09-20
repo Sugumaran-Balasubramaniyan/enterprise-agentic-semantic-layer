@@ -13,8 +13,8 @@ from semantic_layer.reasoning.reflective_agent import AQRReflectiveAgent
 
 def run_demo() -> None:
     print("\n" + "=" * 80)
-    print("   SAP LABS FRANCE - AGENTIC AI & KNOWLEDGE GRAPH REASONING DEMO")
-    print("   Topic: Autonomous Query Reasoning over Heterogeneous SAP Data")
+    print("   SYNTHETIC SAP-INSPIRED AGENTIC AI & KNOWLEDGE GRAPH REASONING DEMO")
+    print("   Topic: Autonomous Query Reasoning over Synthetic SAP-Inspired Data")
     print("=" * 80 + "\n")
 
     kg = SAPKnowledgeGraph()
@@ -95,7 +95,7 @@ def run_demo() -> None:
         print()
 
     print("=" * 80)
-    print("   DEMO COMPLETED SUCCESSFULLY: 100% GROUNDED RETRIEVAL (0% HALLUCINATION)")
+    print("   DEMO COMPLETED: GROUNDED RETRIEVAL OVER THE SYNTHETIC SUPPORT GRAPH")
     print("=" * 80 + "\n")
 
 

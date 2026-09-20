@@ -1,4 +1,4 @@
-"""Governed, locally runnable semantic layer and Knowledge Graph reasoning for SAP SE."""
+"""Governed, locally runnable semantic layer and Knowledge Graph reasoning for a synthetic SAP-inspired domain."""
 
 __version__ = "0.1.0"
 

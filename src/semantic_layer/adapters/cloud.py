@@ -1,4 +1,4 @@
-"""Fail-closed placeholders for unconfigured cloud execution platforms."""
+"""Fail-closed local placeholders for unconfigured cloud execution platforms."""
 
 from __future__ import annotations
 

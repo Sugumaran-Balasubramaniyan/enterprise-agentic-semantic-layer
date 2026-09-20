@@ -1,6 +1,7 @@
+# Illustrative mapping only; this repository does not connect to Snowflake.
 id: SnowflakeUnitedKingdomMapping
 version: "1.0.0"
-owner: SAP United Kingdom Data Office
+owner: repository-maintained synthetic contract
 platform: Snowflake
 location: GB
 data_products:

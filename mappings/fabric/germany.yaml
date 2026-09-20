@@ -1,6 +1,7 @@
+# Illustrative mapping only; this repository does not connect to Microsoft Fabric.
 id: FabricGermanyMapping
 version: "1.0.0"
-owner: SAP Germany Data Office
+owner: repository-maintained synthetic contract
 platform: Microsoft Fabric
 location: DE
 data_products:

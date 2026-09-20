@@ -1,15 +1,15 @@
 # Example index
 
 This index separates executable local evidence from discovery contracts and
-unimplemented extension seams. The local runtime is deterministic and does not
-need a cloud account, MCP server, or LLM.
+unimplemented extension seams. The local runtime is deterministic synthetic
+behavior and does not need a cloud account, MCP server, or LLM.
 
 ## Checked-in artifacts
 
 | Artifact | Status | Purpose |
 | --- | --- | --- |
 | [Primary query plan](generated_query_plans/primary_erp_plan.json) | Checked in and exercised by the primary local path | Typed, SQL-free plan for the governed French financial postings question |
-| [Generated SQL index](generated_sql/README.md) | DuckDB is executed; cloud dialect files are incomplete documentation artifacts | Physical compiler output and bounded adapter examples |
+| [Generated SQL index](generated_sql/README.md) | DuckDB is executed; cloud dialect files are unexecuted simulation artifacts | Physical compiler output and bounded adapter examples |
 | [Governed questions](example_questions.md) | Primary question executes; active-sales-order and CostRevenueRatio examples are discovery-only | Supported grammar and explicit authorization/execution limits |
 
 ## Route, request, and response examples

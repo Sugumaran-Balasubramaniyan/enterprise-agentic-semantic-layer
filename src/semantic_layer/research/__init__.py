@@ -1,4 +1,4 @@
-"""Research contracts and empirical evaluation exports.
+"""Research contracts and deterministic synthetic evaluation exports.
 
 The benchmark runner is imported lazily so lightweight contract consumers do
 not create a reasoning-package cycle during module initialization.

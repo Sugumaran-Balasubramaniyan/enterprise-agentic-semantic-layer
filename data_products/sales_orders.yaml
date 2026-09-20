@@ -1,11 +1,11 @@
 id: SalesOrders
 name: Sales Orders (VBAK/VBAP)
 version: "1.0.0"
-owner: SAP SE Sales and Distribution
-platform: Federated
-location: Group
+owner: repository-maintained synthetic contract
+platform: Local synthetic reference
+location: Repository
 grain: one row per sales order
-sla: daily by 06:00 UTC
+sla: not applicable to synthetic repository data
 classification: Confidential
 pii:
   - partner_id
@@ -15,7 +15,7 @@ quality:
     - sales_order_id is non-null and unique
     - partner_id references BusinessPartners
     - order_status is RELEASED, CLOSED, or CANCELLED
-    - product resolves through a certified local mapping
+    - product resolves through an approved local mapping
 lineage:
   upstream:
     - local S/4HANA Sales systems in France, United Kingdom, and Germany
@@ -63,5 +63,5 @@ schema:
     nullable: false
 certification:
   status: CERTIFIED
-  certified_by: SAP Enterprise Data Governance Board
+  certified_by: repository-maintained synthetic contract
   certified_at: "2026-08-28"

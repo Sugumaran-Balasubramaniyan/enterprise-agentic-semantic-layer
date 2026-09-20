@@ -1,6 +1,7 @@
+# Illustrative mapping only; this repository does not connect to Databricks.
 id: DatabricksFranceMapping
 version: "1.0.0"
-owner: SAP France Data Office
+owner: repository-maintained synthetic contract
 platform: Databricks
 location: FR
 data_products:

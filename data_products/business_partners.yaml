@@ -1,11 +1,11 @@
 id: BusinessPartners
 name: Business Partner Master (BUT000)
 version: "1.0.0"
-owner: SAP SE Master Data Governance
-platform: Federated
-location: Group
+owner: repository-maintained synthetic contract
+platform: Local synthetic reference
+location: Repository
 grain: one row per business partner
-sla: daily by 06:00 UTC
+sla: not applicable to synthetic repository data
 classification: Restricted
 pii:
   - partner_id
@@ -45,5 +45,5 @@ schema:
     pii: true
 certification:
   status: CERTIFIED
-  certified_by: SAP Enterprise Data Governance Board
+  certified_by: repository-maintained synthetic contract
   certified_at: "2026-08-28"

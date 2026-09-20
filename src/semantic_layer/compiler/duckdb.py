@@ -1,4 +1,4 @@
-"""Trusted DuckDB compiler for one fully represented governed SAP ERP audit plan."""
+"""Local DuckDB compiler for one fully represented synthetic SAP ERP audit plan."""
 
 from __future__ import annotations
 

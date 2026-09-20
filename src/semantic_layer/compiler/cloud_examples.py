@@ -16,7 +16,7 @@ def documented_cloud_sql(query: CompiledQuery, platform: str) -> str:
     if platform not in {"Databricks", "Snowflake", "Microsoft Fabric"}:
         raise ValueError("unsupported documented cloud platform")
     return (
-        f"-- UNEXECUTED {platform} INCOMPLETE SQL FRAGMENT: not equivalent to the "
+        f"-- UNEXECUTED SIMULATION {platform} INCOMPLETE SQL FRAGMENT: not equivalent to the "
         "governed plan; review mapping, dialect, parameters, and native security before use\n"
         f"{query.sql}"
     )
