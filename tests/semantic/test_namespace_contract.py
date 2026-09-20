@@ -101,7 +101,24 @@ LOGICAL_CONSUMERS = (
     ROOT / "tests/unit/test_final_readiness.py",
     ROOT / "tests/unit/test_registry.py",
     ROOT / "tests/unit/test_resolver.py",
+    ROOT / "tests/integration/test_agent_e2e.py",
+    ROOT / "tests/integration/test_api.py",
+    ROOT / "tests/integration/test_duckdb_execution.py",
+    ROOT / "tests/unit/test_authorization.py",
+    ROOT / "tests/unit/test_execution_controls_security.py",
 )
+
+INTENTIONAL_LEGACY_FIXTURE_MARKERS = {
+    ROOT / "tests/unit/test_execution_controls_security.py": (
+        'Filter(concept_id="sap:PostingStatus", operator="!=", value="REVERSED")',
+        '"projected_dimensions": [*plan.projected_dimensions, "sap:SalesOrder"]',
+        'source="sap:BusinessPartner",',
+        'predicate="sap:hasSalesOrder",',
+        'target="sap:SalesOrder",',
+        '"DOC_1,SO_1,FR_001,FR,sap:ProductAutomotive,POSTED,2026-08-01,nan\\n",',
+        '"DE_DOC_1,DE_SO_1,DE_1,DE,sap:ProductCommercial,POSTED,2026-08-01,1.00\\n",',
+    ),
+}
 
 
 def _legacy_uris() -> tuple[str, ...]:
@@ -167,7 +184,11 @@ def test_runtime_and_yaml_assets_contain_no_legacy_uri_family() -> None:
 
 def test_logical_consumers_have_no_legacy_sap_aliases() -> None:
     legacy_alias = "".join((chr(115), chr(97), chr(112), ":"))
-    assert all(legacy_alias not in path.read_text(encoding="utf-8") for path in LOGICAL_CONSUMERS)
+    for path in LOGICAL_CONSUMERS:
+        text = path.read_text(encoding="utf-8")
+        for marker in INTENTIONAL_LEGACY_FIXTURE_MARKERS.get(path, ()):
+            text = text.replace(marker, "")
+        assert legacy_alias not in text, path
 
 
 def test_generated_graph_is_neutral_and_provenanced() -> None:

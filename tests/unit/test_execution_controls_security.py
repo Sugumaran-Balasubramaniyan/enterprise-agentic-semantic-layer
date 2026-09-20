@@ -73,7 +73,7 @@ def test_authorization_requires_authenticated_country_and_derives_pii_from_proje
     wrong_country = authorize(plan, CallerContext(role="ClaimsAnalystFR", country="DE"), registry)
     finance_plan = plan.model_copy(
         update={
-            "projected_dimensions": ["sap:BusinessPartner"],
+            "projected_dimensions": ["ciferp:BusinessPartner"],
             "selected_products": ["BillingAnalytics"],
             "caller": CallerContext(role="FinanceAnalyst"),
         }
@@ -209,7 +209,7 @@ def test_provenance_is_append_only_and_bound_to_the_actual_execution(tmp_path: P
     assert set(provenance.local_sources) == {"acdoca_financials.csv", "billing_documents.csv", "business_partners.csv", "sales_orders.csv"}
     assert provenance.mapping_evidence
     assert "field:amount_in_company_currency_eur" in provenance.field_evidence
-    assert "rule:sap:QualifyingPosting" in provenance.semantic_versions
+    assert "rule:ciferp:QualifyingPosting" in provenance.semantic_versions
     assert provenance.semantic_versions["policy:authorization"] == "1.0.0"
     assert provenance.authorization_outcome == "ALLOWED"
     assert not hasattr(store, "connection")

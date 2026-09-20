@@ -236,7 +236,7 @@ def test_migration_rejects_canonical_output_paths_before_any_write(
     }
     outputs[output_name] = canonical_path
     sentinel_paths = {
-        path: f"sentinel:{name}".encode("utf-8")
+        path: f"sentinel:{name}".encode()
         for name, path in outputs.items()
         if path not in {HISTORICAL, LEGACY}
     }
@@ -276,7 +276,7 @@ def test_migration_rejects_duplicate_output_paths_before_any_write(
     outputs[duplicate_names[0]] = shared
     outputs[duplicate_names[1]] = shared
     sentinels = {
-        path: f"sentinel:{name}".encode("utf-8")
+        path: f"sentinel:{name}".encode()
         for name, path in outputs.items()
         if path not in {shared}
     }
@@ -344,7 +344,7 @@ def test_migration_rejects_hardlinked_canonical_outputs_before_any_write(
     }
     outputs[output_name] = hardlink
     sentinel_paths = {
-        path: f"sentinel:{name}".encode("utf-8")
+        path: f"sentinel:{name}".encode()
         for name, path in outputs.items()
         if path != hardlink
     }
@@ -379,7 +379,7 @@ def test_migration_rejects_existing_symlink_destination_before_any_write(
         "v2": tmp_path / "v2.yaml",
         "manifest": tmp_path / "manifest.yaml",
     }
-    sentinels = {path: f"sentinel:{name}".encode("utf-8") for name, path in outputs.items()}
+    sentinels = {path: f"sentinel:{name}".encode() for name, path in outputs.items()}
     for path, contents in sentinels.items():
         if path != destination:
             path.write_bytes(contents)
