@@ -17,7 +17,6 @@ from typing import Any
 import yaml
 from rdflib import Graph, Namespace, URIRef
 
-
 RECORD_FIELDS = (
     "id",
     "corpus_id",
@@ -69,7 +68,12 @@ CHANGE_FIELDS = (
 )
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 GRAPH_PATH = REPOSITORY_ROOT / "semantic/data/sap_support_graph.ttl"
-LEGACY_PATH = REPOSITORY_ROOT / "tests/research/benchmark_dataset_legacy.yaml"
+HISTORICAL_PATH = REPOSITORY_ROOT / "tests/research/benchmark_dataset.yaml"
+ARCHIVAL_PATH = REPOSITORY_ROOT / "tests/research/benchmark_dataset_legacy.yaml"
+# Both checked-in inputs are intentionally byte-identical and immutable for
+# this migration contract.  A caller-supplied same-shaped copy is not enough.
+CANONICAL_SOURCE_SHA256 = "04bb3d5f7c0516c9eca400ea22026df7096281fa0df148b38cbfe81ce930307f"
+LEGACY_PATH = ARCHIVAL_PATH
 GRAPH_SHA256 = hashlib.sha256(GRAPH_PATH.read_bytes()).hexdigest()
 ZERO_SHA256 = "0" * 64
 MAX_PREREQUISITE_DEPTH = 16
@@ -310,6 +314,40 @@ def _read_legacy(source: Path) -> list[dict[str, Any]]:
     return [dict(item) for item in queries]
 
 
+def _verify_canonical_inputs() -> None:
+    """Require the checked-in historical and archival bytes to remain canonical."""
+
+    if Path(LEGACY_PATH).absolute() != ARCHIVAL_PATH.absolute():
+        raise ValueError("canonical historical/archive path identity changed")
+    try:
+        historical_bytes = HISTORICAL_PATH.read_bytes()
+        archival_bytes = ARCHIVAL_PATH.read_bytes()
+    except OSError as exc:
+        raise ValueError("canonical historical/archive inputs are unavailable") from exc
+    for label, data in (("historical", historical_bytes), ("archive", archival_bytes)):
+        digest = hashlib.sha256(data).hexdigest()
+        if digest != CANONICAL_SOURCE_SHA256:
+            raise ValueError(f"canonical {label} benchmark bytes do not match the pinned hash")
+    if historical_bytes != archival_bytes:
+        raise ValueError("canonical historical/archive inputs must be byte-identical")
+
+
+def _verify_canonical_source(source: Path) -> None:
+    """Verify the caller selected one of the canonical paths and exact bytes."""
+
+    _verify_canonical_inputs()
+    source_path = Path(source).absolute()
+    canonical_paths = {HISTORICAL_PATH.absolute(), ARCHIVAL_PATH.absolute()}
+    if source_path not in canonical_paths:
+        raise ValueError("source must be one of the canonical historical/archive paths")
+    try:
+        digest = hashlib.sha256(source_path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise ValueError("canonical historical/archive source is unavailable") from exc
+    if digest != CANONICAL_SOURCE_SHA256:
+        raise ValueError("source bytes do not match the canonical historical/archive hash")
+
+
 def _normalized_record(
     item: Mapping[str, Any],
     *,
@@ -414,6 +452,7 @@ def migrate_benchmark(source: Path, v1: Path, v2: Path, manifest: Path) -> None:
     v1 = Path(v1)
     v2 = Path(v2)
     manifest = Path(manifest)
+    _verify_canonical_source(source)
     historical = _read_legacy(source)
     graph = _load_graph()
     closure_results = _closure_results(graph)
@@ -502,6 +541,7 @@ def _require_keys(value: Mapping[str, Any], expected: Sequence[str], label: str)
 
 def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
     """Validate the closed, signed manifest contract before it is written."""
+    _verify_canonical_inputs()
     if not isinstance(manifest, Mapping):
         raise ValueError("manifest must be a mapping")
     _require_keys(manifest, MANIFEST_FIELDS, "manifest")
@@ -561,7 +601,7 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
     }
     if dict(change) != expected_change:
         raise ValueError("normalized_schema_v1 change evidence does not match the canonical policy")
-    historical = _read_legacy(LEGACY_PATH)
+    historical = _read_legacy(ARCHIVAL_PATH)
     closure_results = _closure_results(_load_graph())
     if not isinstance(manifest["records"], list) or len(manifest["records"]) != 40:
         raise ValueError("manifest must contain exactly 40 records")

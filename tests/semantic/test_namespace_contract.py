@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import MappingProxyType
 
+import pytest
 from rdflib import OWL, RDF, RDFS, Graph, Namespace, URIRef
 from rdflib.compare import isomorphic
 
@@ -125,6 +127,16 @@ def test_registry_exposes_exact_neutral_namespace_contract() -> None:
     assert CIFMETA == Namespace(NAMESPACE_REGISTRY["cifmeta"])
     assert CIFMETAID == Namespace(NAMESPACE_REGISTRY["cifmetaid"])
     assert LOADER_NAMESPACE_REGISTRY is GENERATOR_NAMESPACE_REGISTRY
+
+
+def test_namespace_registry_is_immutable_and_shared_by_loader_and_generator() -> None:
+    assert isinstance(LOADER_NAMESPACE_REGISTRY, MappingProxyType)
+    assert LOADER_NAMESPACE_REGISTRY is GENERATOR_NAMESPACE_REGISTRY
+
+    with pytest.raises(TypeError):
+        LOADER_NAMESPACE_REGISTRY["cifsup"] = "https://example.org/changed#"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        LOADER_NAMESPACE_REGISTRY["new"] = "https://example.org/new#"  # type: ignore[index]
 
 
 def test_tracked_rdf_assets_use_only_neutral_or_w3c_iris() -> None:

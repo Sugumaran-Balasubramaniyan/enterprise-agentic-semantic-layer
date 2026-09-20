@@ -79,7 +79,7 @@ _ADJACENT_PREFIX = re.compile(
     re.IGNORECASE,
 )
 _ADJACENT_SUFFIX = re.compile(
-    r"^\s*(?:(?:[A-Za-z][A-Za-z0-9_-]*|[,()\[\]&])\s*){0,3}(?:"
+    r"^\s*(?:(?:[A-Za-z][A-Za-z0-9_-]*|[,()\[\]&:—])\s*){0,3}(?:"
     r"\b(?:is|are|was|were|be|been|being|does|do|did|will|would|could|may|might|"
     r"should|can|has|have|had)\s+(?:not|never)\b|"
     r"\b(?:isn't|aren't|wasn't|weren't|doesn't|don't|didn't|won't|wouldn't|"
@@ -117,8 +117,13 @@ def _claim_is_non_claim(
     if _ADJACENT_PREFIX.search(local_prefix) or _ADJACENT_SUFFIX.match(local_suffix):
         return True
 
+    # A second detector match separated only by whitespace can be part of the
+    # same grammatical predicate (for example, ``not high-fidelity
+    # production-ready``).  Punctuation-only adjacency is a new proposition:
+    # do not recursively inherit the first match's suppression across commas,
+    # brackets, parentheses, or ampersands.
     previous = [span for span in claim_spans if span[1] == local_start]
-    if previous and not text[local_start:start].strip(" \t,()[]&"):
+    if previous and not text[local_start:start].strip():
         previous_start, previous_end = previous[-1]
         return _claim_is_non_claim(text, previous_start, previous_end, claim_spans)
     return False
@@ -246,16 +251,19 @@ STATUS = 'CERTIFIED'
 def test_claim_scan_reports_each_forbidden_claim_category(tmp_path: Path) -> None:
     fixture = tmp_path / "claims.txt"
     fixture.write_text(
-        """\
-SAP SE affiliation and SAP Labs ownership.
-Published by SAP; SAP-endorsed, officially sponsored by SAP, and in partnership with SAP.
-An official SAP sponsorship is asserted.
-This production-ready service is deployed and hosted as a live cloud connection.
-certified_by: SAP Enterprise Governance Board.
-100% grounded retrieval and 0% hallucination; zero-hallucination guarantee.
-Vector RAG superiority over the baseline solved the PhD problem.
-source: http://data.sap.com/legacy
-""",
+        "\n".join(
+            (
+                "SAP SE affiliation and SAP Labs ownership.",
+                "Published by SAP; SAP-endorsed, officially sponsored by SAP, and in partnership with SAP.",
+                "An official SAP sponsorship is asserted.",
+                "This production-ready service is deployed and hosted as a live cloud connection.",
+                "certified_by: SAP Enterprise Governance Board.",
+                "100% grounded retrieval and 0% hallucination; zero-hallucination guarantee.",
+                "Vector RAG superiority over the baseline solved the PhD problem.",
+                "source: " + LEGACY_URI_FAMILIES[0] + "legacy",
+            )
+        )
+        + "\n",
         encoding="utf-8",
     )
 
@@ -630,3 +638,59 @@ def test_claim_scan_reports_forbidden_legacy_uri_outside_control_documents(tmp_p
     findings = scan_claim_surfaces([fixture])
 
     assert any("legacy-uri" in finding for finding in findings)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected_excerpt"),
+    [
+        ("No SAP publication, SAP sponsorship.", "SAP sponsorship"),
+        ("No SAP publication (SAP sponsorship).", "SAP sponsorship"),
+        ("No SAP publication [SAP sponsorship].", "SAP sponsorship"),
+        ("No SAP publication & SAP sponsorship.", "SAP sponsorship"),
+    ],
+)
+def test_claim_scan_reports_positive_match_after_punctuation_only_negation(
+    tmp_path: Path, text: str, expected_excerpt: str
+) -> None:
+    fixture = tmp_path / "punctuation_propagation.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert len(findings) == 1
+    assert expected_excerpt in findings[0]
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "SAP publication: not claimed.",
+        "SAP publication — not claimed.",
+        "A future SAP publication: proposed comparison.",
+        "A future SAP publication — proposed comparison.",
+    ),
+)
+def test_claim_scan_accepts_colon_and_em_dash_nonclaims(tmp_path: Path, text: str) -> None:
+    fixture = tmp_path / "punctuation_nonclaims.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    assert scan_claim_surfaces([fixture]) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "No SAP publication; SAP sponsorship.",
+        "No SAP publication. SAP sponsorship.",
+    ),
+)
+def test_claim_scan_treats_semicolon_and_period_as_positive_clause_boundaries(
+    tmp_path: Path, text: str
+) -> None:
+    fixture = tmp_path / "punctuation_boundaries.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert len(findings) == 1
+    assert "SAP sponsorship" in findings[0]

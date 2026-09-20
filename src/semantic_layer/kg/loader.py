@@ -7,8 +7,10 @@ SHACL validation with pyshacl.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import pyshacl
@@ -167,7 +169,7 @@ class SAPKnowledgeGraph:
         return len(self.graph)
 
 
-def _load_namespace_registry() -> dict[str, str]:
+def _load_namespace_registry() -> Mapping[str, str]:
     """Load Task 2's registry, with a dependency-light local fallback.
 
     Importing ``semantic_layer.research.contracts`` normally exposes the
@@ -184,7 +186,7 @@ def _load_namespace_registry() -> dict[str, str]:
             raise
         provenance_path = Path(__file__).resolve().parents[3] / "semantic/provenance/synthetic_source.yaml"
         document = yaml.safe_load(provenance_path.read_text(encoding="utf-8"))
-        return dict(document["namespace_registry"])
+        return MappingProxyType(dict(document["namespace_registry"]))
     return NAMESPACE_REGISTRY
 
 

@@ -101,6 +101,19 @@ class SchemaLinker:
             return int(digits)
         return None
 
+    @classmethod
+    def _priority_value(cls, tokens: list[str], index: int) -> tuple[str | None, int]:
+        """Return a cued priority and the number of value tokens it consumes."""
+
+        value_index = index + 1
+        if value_index >= len(tokens):
+            return None, 0
+        first = tokens[value_index]
+        if first == "very" and value_index + 1 < len(tokens):
+            value = cls.KNOWN_PRIORITIES.get(f"{first} {tokens[value_index + 1]}")
+            return value, 2
+        return cls.KNOWN_PRIORITIES.get(first), 1
+
     @staticmethod
     def _add(values: list, value) -> None:
         if value not in values:
@@ -128,12 +141,10 @@ class SchemaLinker:
             if token not in {"alert", "component", "note", "priority"}:
                 continue
             value_index = index + 1
-            if token == "priority" and value_index < len(tokens):
-                value = tokens[value_index]
-                if value in self.KNOWN_PRIORITIES:
-                    consumed.update({index, value_index})
-                else:
-                    consumed.add(index)
+            if token == "priority":
+                priority, width = self._priority_value(tokens, index)
+                consumed.update(range(index, index + width + 1))
+                if priority is None:
                     failure = failure or ReasonCode.UNKNOWN_ENTITY
                 continue
             if value_index >= len(tokens):
@@ -187,11 +198,11 @@ class SchemaLinker:
                 if label in self._product_labels:
                     self._add(entities.product_versions, self._product_labels[label])
                     consumed.update({index, index + 1})
-            if token == "priority" and index + 1 < len(tokens):
-                priority = self.KNOWN_PRIORITIES.get(tokens[index + 1])
+            if token == "priority":
+                priority, width = self._priority_value(tokens, index)
                 if priority is not None:
                     self._add(entities.priorities, priority)
-                    consumed.update({index, index + 1})
+                    consumed.update(range(index, index + width + 1))
         return consumed
 
     def _recognized_entities(self, tokens: list[str]) -> list[tuple[str, int, bool]]:
@@ -224,12 +235,10 @@ class SchemaLinker:
                 records.append(("note_number", index, previous == "note"))
             if self._numeric_support(token) is not None:
                 records.append(("support_package", index, True))
-            if (
-                token == "priority"
-                and index + 1 < len(tokens)
-                and tokens[index + 1] in self.KNOWN_PRIORITIES
-            ):
-                records.append(("priority", index, True))
+            if token == "priority":
+                priority, _width = self._priority_value(tokens, index)
+                if priority is not None:
+                    records.append(("priority", index, True))
         return records
 
     def _match_declared_template(

@@ -7,19 +7,22 @@ import json
 from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import jsonschema
 
-NAMESPACE_REGISTRY: Mapping[str, str] = {
-    "cifsup": "https://example.org/cifre-kg/support#",
-    "cifppms": "https://example.org/cifre-kg/ppms#",
-    "cifdata": "https://example.org/cifre-kg/data/",
-    "ciferp": "https://example.org/cifre-kg/erp#",
-    "cifskos": "https://example.org/cifre-kg/vocabulary#",
-    "cifmeta": "https://example.org/cifre-kg/meta#",
-    "cifmetaid": "https://example.org/cifre-kg/id/meta/",
-}
+NAMESPACE_REGISTRY: Mapping[str, str] = MappingProxyType(
+    {
+        "cifsup": "https://example.org/cifre-kg/support#",
+        "cifppms": "https://example.org/cifre-kg/ppms#",
+        "cifdata": "https://example.org/cifre-kg/data/",
+        "ciferp": "https://example.org/cifre-kg/erp#",
+        "cifskos": "https://example.org/cifre-kg/vocabulary#",
+        "cifmeta": "https://example.org/cifre-kg/meta#",
+        "cifmetaid": "https://example.org/cifre-kg/id/meta/",
+    }
+)
 
 CONDITIONS = (
     "deterministic_no_reflection_ablation",

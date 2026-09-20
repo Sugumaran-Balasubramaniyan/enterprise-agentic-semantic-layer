@@ -60,6 +60,20 @@ def test_numeric_support_package_is_valid_but_named_unknown_is_not() -> None:
     assert invalid.failure_class == "UNKNOWN_ENTITY"
 
 
+def test_priority_fixtures_cover_two_token_casefolding_and_invalid_values() -> None:
+    fixtures = {fixture["id"]: fixture for fixture in GRAMMAR["fixtures"]}
+
+    valid = SchemaLinker().ground_or_abstain(fixtures["alert_resolution_very_high_priority"]["query"])
+    assert valid.failure_class == ReasonCode.NONE
+    assert valid.intent == "ALERT_RESOLUTION"
+    assert valid.priorities == ["Very High"]
+
+    invalid = SchemaLinker().ground_or_abstain(fixtures["invalid_very_low_priority"]["query"])
+    assert invalid.failure_class == ReasonCode.UNKNOWN_ENTITY
+    assert invalid.intent == "UNSUPPORTED"
+    assert invalid.priorities == []
+
+
 @pytest.mark.parametrize(
     ("query", "failure_class"),
     [

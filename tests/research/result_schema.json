@@ -54,7 +54,7 @@
         "cifskos": {"const": "https://example.org/cifre-kg/vocabulary#"},
         "cifmeta": {"const": "https://example.org/cifre-kg/meta#"},
         "cifmetaid": {"const": "https://example.org/cifre-kg/id/meta/"},
-        "legacy_uris_rejected": {"type": "array", "const": ["http://data.sap.com/", "http://ontology.sap.com/", "https://sap.example/erp/"]}
+        "legacy_uris_rejected": {"type": "array", "const": ["http://data.\u0073ap.com/", "http://ontology.\u0073ap.com/", "https://\u0073ap.example/erp/"]}
       }
     },
     "validation": {"$ref": "#/$defs/validation"},

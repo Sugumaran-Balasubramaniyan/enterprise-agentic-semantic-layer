@@ -134,6 +134,21 @@ fixtures:
     failure_class: NONE
     expected_status: SUCCESS
     note_numbers: ["3109922"]
+  - id: alert_resolution_very_high_priority
+    query: "Find notes for alert TIME_OUT in component MM-PUR-PO priority very high."
+    intent: ALERT_RESOLUTION
+    failure_class: NONE
+    expected_status: SUCCESS
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
+    priorities: [Very High]
+  - id: invalid_very_low_priority
+    query: "Find notes for alert TIME_OUT in component MM-PUR-PO priority VERY LOW."
+    intent: UNSUPPORTED
+    failure_class: UNKNOWN_ENTITY
+    expected_status: UNSUPPORTED
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
   - id: unsupported_unanchored_version
     query: "Find notes valid for S/4HANA 2023."
     intent: UNSUPPORTED

@@ -157,6 +157,69 @@ def test_no_op_repair_is_explicit_and_diagnostic_is_bounded() -> None:
     assert len(sanitize_diagnostic("x" * 600)) == 512
 
 
+@pytest.mark.parametrize(
+    ("diagnostic", "expected", "preserved"),
+    [
+        (
+            "Authorization: Basic dXNlcjpwYXNz",
+            "Authorization: Basic [REDACTED]",
+            None,
+        ),
+        ("basic dXNlcjpwYXNz", "Basic [REDACTED]", None),
+        (
+            "postgresql://alice:secret@db.internal/support",
+            "postgresql://[REDACTED]@db.internal/support",
+            None,
+        ),
+        (
+            "jdbc:postgresql://alice:secret@db.internal/support",
+            "jdbc:postgresql://[REDACTED]@db.internal/support",
+            None,
+        ),
+        (
+            "ftp://alice:secret@files.internal/report.csv",
+            "ftp://[REDACTED]@files.internal/report.csv",
+            None,
+        ),
+        (
+            "redis://:secret@cache.internal/0",
+            "redis://[REDACTED]@cache.internal/0",
+            None,
+        ),
+        (
+            "See https://example.org/support and urn:example:support",
+            "See https://example.org/support and urn:example:support",
+            "https://example.org/support",
+        ),
+    ],
+)
+def test_sanitize_diagnostic_redacts_basic_and_generic_uri_credentials(
+    diagnostic: str, expected: str, preserved: str | None
+) -> None:
+    sanitized = sanitize_diagnostic(diagnostic)
+    assert sanitized == expected
+    if preserved is not None:
+        assert preserved in sanitized
+
+
+def test_lifecycle_diagnostic_redaction_covers_basic_and_jdbc_credentials() -> None:
+    kg = FakeKnowledgeGraph(
+        [
+            RuntimeError(
+                "Authorization: Basic dXNlcjpwYXNz "
+                "jdbc:postgresql://alice:secret@db.internal/support"
+            )
+        ]
+    )
+    result = AQRReflectiveAgent(kg).run("Which SAP Note resolves alert TIME_OUT?")
+
+    diagnostic = result.repair.operations[0].diagnostic
+    assert "dXNlcjpwYXNz" not in diagnostic
+    assert "alice:secret" not in diagnostic
+    assert "Authorization: Basic [REDACTED]" in diagnostic
+    assert "jdbc:postgresql://[REDACTED]@db.internal/support" in diagnostic
+
+
 def test_default_repairer_restores_missing_approved_prefix() -> None:
     malformed = "SELECT DISTINCT ?note WHERE { ?note cifsup:noteNumber ?noteNumber . }"
     kg = FakeKnowledgeGraph(

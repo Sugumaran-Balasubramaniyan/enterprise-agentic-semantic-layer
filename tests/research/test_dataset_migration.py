@@ -189,6 +189,51 @@ def test_migration_is_byte_stable(tmp_path: Path) -> None:
     assert [path.read_bytes() for path in outputs] == first
 
 
+def test_migration_rejects_alternate_source_copy_before_writing_outputs(tmp_path: Path) -> None:
+    alternate = tmp_path / "benchmark_dataset.yaml"
+    alternate.write_bytes(LEGACY.read_bytes())
+    outputs = [tmp_path / name for name in ("v1.yaml", "v2.yaml", "manifest.yaml")]
+
+    with pytest.raises(ValueError, match="canonical historical/archive"):
+        migrate_benchmark(alternate, *outputs)
+
+    assert all(not path.exists() for path in outputs)
+
+
+def test_migration_rejects_modified_alternate_source_before_writing_outputs(
+    tmp_path: Path,
+) -> None:
+    alternate = tmp_path / "modified-benchmark_dataset.yaml"
+    alternate.write_bytes(LEGACY.read_bytes() + b"\n# altered copy\n")
+    outputs = [tmp_path / name for name in ("v1.yaml", "v2.yaml", "manifest.yaml")]
+
+    with pytest.raises(ValueError, match="canonical historical/archive"):
+        migrate_benchmark(alternate, *outputs)
+
+    assert all(not path.exists() for path in outputs)
+
+
+def test_canonical_historical_input_is_accepted_and_matches_archive(tmp_path: Path) -> None:
+    outputs = [tmp_path / name for name in ("v1.yaml", "v2.yaml", "manifest.yaml")]
+
+    migrate_benchmark(HISTORICAL, *outputs)
+
+    assert all(path.exists() for path in outputs)
+
+
+def test_manifest_validation_rejects_modified_canonical_archive(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = [tmp_path / name for name in ("v1.yaml", "v2.yaml", "manifest.yaml")]
+    migrate_benchmark(LEGACY, *paths)
+    modified_archive = tmp_path / "benchmark_dataset_legacy.yaml"
+    modified_archive.write_bytes(LEGACY.read_bytes() + b"\n# altered archive\n")
+    monkeypatch.setattr(_MODULE, "ARCHIVAL_PATH", modified_archive)
+
+    with pytest.raises(ValueError, match="canonical historical/archive"):
+        validate_migration_manifest(load_yaml(paths[2]))
+
+
 def test_manifest_validator_rejects_unsigned_or_incomplete_derivation(tmp_path: Path) -> None:
     paths = [tmp_path / name for name in ("v1.yaml", "v2.yaml", "manifest.yaml")]
     migrate_benchmark(LEGACY, *paths)

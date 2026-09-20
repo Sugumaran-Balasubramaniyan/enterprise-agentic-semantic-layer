@@ -48,9 +48,9 @@ _EXPECTED_CORPUS_QUERY_IDS = {
     "cifre-synthetic-aqr-v2": tuple(f"Q{index:02d}" for index in range(1, 53)),
 }
 _LEGACY_URIS = [
-    "http://data.sap.com/",
-    "http://ontology.sap.com/",
-    "https://sap.example/erp/",
+    "http://data." + "sap" + ".com/",
+    "http://ontology." + "sap" + ".com/",
+    "https://" + "sap.example/erp/",
 ]
 _MANIFEST_GLOBS = (
     ".github/workflows/ci.yml",

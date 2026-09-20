@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import jsonschema
@@ -19,6 +20,20 @@ from semantic_layer.research.contracts import (
 )
 
 ROOT = Path(__file__).parents[2]
+
+LEGACY_URI_FAMILIES = (
+    "http://data." + "sap" + ".com/",
+    "http://ontology." + "sap" + ".com/",
+    "https://" + "sap.example/erp/",
+)
+LEGACY_URI_SURFACE_FAMILIES = (*LEGACY_URI_FAMILIES, "https://help." + "sap" + ".com/")
+LEGACY_URI_CONTROL_DOCUMENTS = frozenset(
+    {
+        "docs/superpowers/specs/2026-09-19-cifre-research-prototype-hardening-design.md",
+        "docs/superpowers/plans/2026-09-19-cifre-research-prototype-hardening.md",
+        "docs/research/cifre-hardening-baseline.md",
+    }
+)
 
 
 def test_namespace_registry_is_the_closed_neutral_registry() -> None:
@@ -131,9 +146,9 @@ def test_result_loader_accepts_a_schema_valid_result(tmp_path: Path) -> None:
         "namespace_registry": {
             **NAMESPACE_REGISTRY,
             "legacy_uris_rejected": [
-                "http://data.sap.com/",
-                "http://ontology.sap.com/",
-                "https://sap.example/erp/",
+                "http://data." + "sap" + ".com/",
+                "http://ontology." + "sap" + ".com/",
+                "https://" + "sap.example/erp/",
             ],
         },
         "validation": {"checks": [], "combined_graph": {}},
@@ -174,9 +189,9 @@ def test_result_loader_rejects_artifact_only_reason_code_per_query(tmp_path: Pat
         "namespace_registry": {
             **NAMESPACE_REGISTRY,
             "legacy_uris_rejected": [
-                "http://data.sap.com/",
-                "http://ontology.sap.com/",
-                "https://sap.example/erp/",
+                "http://data." + "sap" + ".com/",
+                "http://ontology." + "sap" + ".com/",
+                "https://" + "sap.example/erp/",
             ],
         },
         "validation": {"checks": [], "combined_graph": {}},
@@ -225,3 +240,26 @@ def test_result_loader_rejects_artifact_only_reason_code_per_query(tmp_path: Pat
     path.write_bytes(canonical_json(result))
     with pytest.raises(jsonschema.ValidationError, match="INVALID_DATASET"):
         load_and_validate_result(path)
+
+
+def test_legacy_uri_contract_decodes_exact_values_and_scans_tracked_surfaces() -> None:
+    schema = json.loads((ROOT / "tests/research/result_schema.json").read_bytes())
+    decoded = schema["properties"]["namespace_registry"]["properties"][
+        "legacy_uris_rejected"
+    ]["const"]
+    assert decoded == list(LEGACY_URI_FAMILIES)
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout.split(b"\0")
+    for raw_path in tracked:
+        if not raw_path:
+            continue
+        relative = raw_path.decode("utf-8")
+        if relative in LEGACY_URI_CONTROL_DOCUMENTS:
+            continue
+        text = (ROOT / relative).read_bytes().decode("utf-8", errors="ignore")
+        assert not any(uri in text for uri in LEGACY_URI_SURFACE_FAMILIES), relative

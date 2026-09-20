@@ -42,18 +42,22 @@ def sanitize_diagnostic(text: str, limit: int = 512) -> str:
         raise ValueError("diagnostic limit must be a non-negative integer")
     value = str(text)
     value = re.sub(
-        r"(?i)(authorization\s*[:=]\s*bearer\s+)[^\s,;]+",
+        r"(?i)(authorization\s*[:=]\s*(?:bearer|basic)\s+)[^\s,;]+",
         r"\1[REDACTED]",
         value,
     )
-    value = re.sub(r"(?i)\bbearer\s+[^\s,;]+", "Bearer [REDACTED]", value)
+    value = re.sub(
+        r"(?i)\b(basic|bearer)\s+[^\s,;]+",
+        lambda match: f"{match.group(1).capitalize()} [REDACTED]",
+        value,
+    )
     value = re.sub(
         r"(?i)(\b(?:password|passwd|secret|token|api[_-]?key|credential)\s*[:=]\s*)[^\s,;]+",
         r"\1[REDACTED]",
         value,
     )
     value = re.sub(
-        r"(?i)(https?://)([^\s/@:]+):([^\s/@]+)@",
+        r"(?i)\b([a-z][a-z0-9+.-]*://)([^\s/@:]*):([^\s/@]+)@",
         r"\1[REDACTED]@",
         value,
     )
