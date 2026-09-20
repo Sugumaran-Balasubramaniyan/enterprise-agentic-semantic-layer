@@ -11,6 +11,7 @@ import pytest
 from rdflib import Graph, Literal, Namespace
 
 from semantic_layer.validation import (
+    _validated_metadata,
     assert_graph_isomorphic,
     run_asset_verification,
 )
@@ -45,13 +46,14 @@ def test_graph_parity_rejects_a_changed_generated_triple() -> None:
 
 
 def test_asset_verification_reports_complete_validation_evidence() -> None:
-    report = run_asset_verification(ROOT, ".venv/bin/python")
+    report = run_asset_verification(ROOT, sys.executable)
 
     assert report.returncode == 0
     assert report.scope == "assets"
-    assert report.interpreter == str((ROOT / ".venv/bin/python").absolute())
+    assert report.interpreter == sys.executable
     assert report.parity is not None
     assert report.parity["generated_reloaded"] is True
+    assert report.parity["worker_interpreter"] == sys.executable
     assert report.validation is not None
     rows = {row["check_id"]: row for row in report.validation["checks"]}
     assert list(rows) == [
@@ -137,8 +139,16 @@ def test_asset_verification_reports_complete_validation_evidence() -> None:
     assert algorithm[0]["cycle_detected"] is True
     assert algorithm[0]["cycle_edges"] == [["A", "B"], ["B", "C"], ["C", "A"]]
     assert algorithm[0]["reachable_unique"] == ["B", "C"]
+    assert algorithm[0]["target_excluded"] is True
+    assert algorithm[0]["depth_limit"] == 16
+    assert algorithm[0]["truncated"] is False
+    assert algorithm[0]["status"] == "SUCCESS"
     assert algorithm[1]["fixture"] == "support-prerequisite-depth17.ttl"
     assert algorithm[1]["reachable_unique"] == [f"N{index}" for index in range(1, 17)]
+    assert algorithm[1]["target_excluded"] is True
+    assert algorithm[1]["depth_limit"] == 16
+    assert algorithm[1]["truncated"] is True
+    assert algorithm[1]["status"] == "EMPTY_RESULT"
     assert algorithm[1]["reason"] == "PREREQUISITE_DEPTH_EXCEEDED"
 
 
@@ -184,10 +194,8 @@ def test_asset_verification_fails_closed_on_unexpected_validation_result(
         return metadata
 
     monkeypatch.setattr(benchmark_runner, "build_validation_metadata", failed_metadata)
-    report = run_asset_verification(ROOT, ".venv/bin/python")
-
-    assert report.returncode != 0
-    assert any("unexpected validation result" in error for error in report.errors)
+    with pytest.raises(ValueError, match="unexpected validation result"):
+        _validated_metadata(ROOT, failed_metadata(ROOT))
 
 
 def test_asset_verification_fails_on_hash_only_metadata_drift(
@@ -201,10 +209,8 @@ def test_asset_verification_fails_on_hash_only_metadata_drift(
         return metadata
 
     monkeypatch.setattr(benchmark_runner, "build_validation_metadata", stale_hash_metadata)
-    report = run_asset_verification(ROOT, ".venv/bin/python")
-
-    assert report.returncode != 0
-    assert any("hash mismatch" in error for error in report.errors)
+    with pytest.raises(ValueError, match="hash mismatch"):
+        _validated_metadata(ROOT, stale_hash_metadata(ROOT))
 
 
 def test_asset_verification_rejects_an_invalid_interpreter() -> None:
@@ -212,3 +218,10 @@ def test_asset_verification_rejects_an_invalid_interpreter() -> None:
 
     assert report.returncode != 0
     assert any("interpreter" in error for error in report.errors)
+
+
+def test_asset_verification_rejects_a_non_python_executable() -> None:
+    report = run_asset_verification(ROOT, "/bin/echo")
+
+    assert report.returncode != 0
+    assert any("Python 3.12" in error for error in report.errors)

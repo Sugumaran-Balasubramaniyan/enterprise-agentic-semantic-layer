@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -75,8 +77,20 @@ def assert_graph_isomorphic(generated: Graph, checked_in: Graph) -> None:
         )
 
 
+def _safe_environment(root: Path) -> dict[str, str]:
+    """Build the minimal environment used by worker and final subprocesses."""
+
+    return {
+        "PATH": os.environ.get("PATH", os.defpath),
+        "PYTHONPATH": str(root / "src"),
+        "PYTHONNOUSERSITE": "1",
+        "LC_ALL": "C",
+        "LANG": "C",
+    }
+
+
 def _validate_interpreter(python: str, root: Path) -> str:
-    """Resolve and execute the caller-supplied interpreter safely."""
+    """Resolve and execute the caller-supplied Python 3.12 interpreter safely."""
 
     candidate = Path(python).expanduser()
     if not candidate.is_absolute():
@@ -84,9 +98,16 @@ def _validate_interpreter(python: str, root: Path) -> str:
         candidate = rooted if rooted.is_file() else Path(shutil.which(python) or "")
     if not candidate.is_file() or not os.access(candidate, os.X_OK):
         raise ValueError(f"interpreter is not executable: {python}")
+    probe = (
+        "import importlib, json, sys; "
+        "[importlib.import_module(name) for name in "
+        "('rdflib', 'pyshacl', 'yaml', 'pydantic', 'jsonschema')]; "
+        "print(json.dumps({'version': list(sys.version_info[:2]), 'executable': sys.executable}))"
+    )
     completed = subprocess.run(
-        [str(candidate), "-c", "import sys; print(sys.executable)"],
+        [str(candidate), "-c", probe],
         cwd=root,
+        env=_safe_environment(root),
         capture_output=True,
         text=True,
         check=False,
@@ -97,6 +118,12 @@ def _validate_interpreter(python: str, root: Path) -> str:
             f"interpreter probe failed ({completed.returncode}): "
             f"{completed.stderr.strip() or completed.stdout.strip()}"
         )
+    try:
+        evidence = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise ValueError("interpreter is not compatible with Python 3.12") from error
+    if evidence.get("version") != [3, 12]:
+        raise ValueError(f"interpreter must be compatible with Python 3.12: {python}")
     # Preserve the virtual-environment path instead of resolving its Python
     # symlink to the system interpreter; site-packages are selected by the
     # supplied venv path.
@@ -181,6 +208,55 @@ def _validated_metadata(root: Path, metadata: dict[str, Any]) -> dict[str, Any]:
     return enriched
 
 
+def _run_asset_checks(root: Path) -> dict[str, Any]:
+    """Execute generation, parity, and validation inside the asset worker."""
+
+    from semantic_layer.kg.sap_dataset_generator import build_sap_support_graph
+    from semantic_layer.research.benchmark_runner import build_validation_metadata
+
+    checked_in_path = root / "semantic/data/sap_support_graph.ttl"
+    with TemporaryDirectory(prefix="cifre-asset-") as temporary:
+        generated_path = Path(temporary) / "sap_support_graph.ttl"
+        generated_graph = build_sap_support_graph()
+        generated_graph.serialize(destination=generated_path, format="turtle")
+        reloaded_generated_graph = Graph().parse(generated_path, format="turtle")
+        checked_in_graph = Graph().parse(checked_in_path, format="turtle")
+        assert_graph_isomorphic(reloaded_generated_graph, checked_in_graph)
+        parity = {
+            "generated_path": str(generated_path),
+            "checked_in_path": checked_in_path.relative_to(root).as_posix(),
+            "generated_triples": len(reloaded_generated_graph),
+            "checked_in_triples": len(checked_in_graph),
+            "generated_reloaded": True,
+            "worker_interpreter": sys.executable,
+            "isomorphic": True,
+        }
+        validation = _validated_metadata(root, build_validation_metadata(root))
+    return {"parity": parity, "validation": validation}
+
+
+def run_asset_worker(root: Path) -> dict[str, Any]:
+    """Private JSON worker entry point invoked under the supplied interpreter."""
+
+    try:
+        result = _run_asset_checks(Path(root).resolve())
+    except Exception as error:  # worker reports drift without mutating source
+        return {
+            "returncode": 1,
+            "errors": [f"{type(error).__name__}: {error}"],
+            "parity": None,
+            "validation": None,
+            "worker_interpreter": sys.executable,
+        }
+    return {
+        "returncode": 0,
+        "errors": [],
+        "parity": result["parity"],
+        "validation": result["validation"],
+        "worker_interpreter": sys.executable,
+    }
+
+
 def _asset_verification(
     root: Path, python: str, mode: Literal["assets", "final"]
 ) -> VerificationReport:
@@ -191,37 +267,35 @@ def _asset_verification(
     interpreter = python
     try:
         interpreter = _validate_interpreter(python, root)
-        from semantic_layer.kg.sap_dataset_generator import build_sap_support_graph
-        from semantic_layer.research.benchmark_runner import build_validation_metadata
+        worker_command = [
+            interpreter,
+            str(root / "scripts/research_verify.py"),
+            "--asset-worker",
+            "--root",
+            str(root),
+        ]
+        worker = subprocess.run(
+            worker_command,
+            cwd=root,
+            env=_safe_environment(root),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if worker.returncode:
+            raise RuntimeError(
+                f"asset worker failed ({worker.returncode}): "
+                f"{worker.stderr.strip() or worker.stdout.strip()}"
+            )
+        payload = json.loads(worker.stdout)
+        if payload.get("returncode"):
+            raise RuntimeError("; ".join(payload.get("errors", ())) or "asset worker failed")
+        parity = payload.get("parity")
+        validation = payload.get("validation")
 
-        checked_in_path = root / "semantic/data/sap_support_graph.ttl"
-        with TemporaryDirectory(prefix="cifre-asset-") as temporary:
-            generated_path = Path(temporary) / "sap_support_graph.ttl"
-            generated_graph = build_sap_support_graph()
-            generated_graph.serialize(destination=generated_path, format="turtle")
-            reloaded_generated_graph = Graph().parse(generated_path, format="turtle")
-            checked_in_graph = Graph().parse(checked_in_path, format="turtle")
-            assert_graph_isomorphic(reloaded_generated_graph, checked_in_graph)
-            parity = {
-                "generated_path": str(generated_path),
-                "checked_in_path": checked_in_path.relative_to(root).as_posix(),
-                "generated_triples": len(reloaded_generated_graph),
-                "checked_in_triples": len(checked_in_graph),
-                "generated_reloaded": True,
-                "isomorphic": True,
-            }
-            validation = _validated_metadata(root, build_validation_metadata(root))
-
-            if mode == "final":
-                # Final mode remains caller-owned: the artifact is temporary and
-                # never writes results/latest_benchmark.json.
-                import json
-                import os
-                import subprocess
-
+        if mode == "final":
+            with TemporaryDirectory(prefix="cifre-final-") as temporary:
                 result_path = Path(temporary) / "cifre-benchmark-result.json"
-                env = os.environ.copy()
-                env["PYTHONPATH"] = str(root / "src") + os.pathsep + env.get("PYTHONPATH", "")
                 command = [
                     interpreter,
                     "-m",
@@ -232,7 +306,7 @@ def _asset_verification(
                 completed = subprocess.run(
                     command,
                     cwd=root,
-                    env=env,
+                    env=_safe_environment(root),
                     capture_output=True,
                     text=True,
                     check=False,
@@ -242,10 +316,7 @@ def _asset_verification(
                         f"benchmark command failed ({completed.returncode}): "
                         f"{completed.stderr.strip() or completed.stdout.strip()}"
                     )
-                benchmark = {
-                    "command": command,
-                    "artifact": json.loads(result_path.read_text(encoding="utf-8")),
-                }
+                benchmark = {"command": command, "artifact": json.loads(result_path.read_text())}
     except Exception as error:  # verification must report drift, not mutate or raise
         errors.append(f"{type(error).__name__}: {error}")
 
