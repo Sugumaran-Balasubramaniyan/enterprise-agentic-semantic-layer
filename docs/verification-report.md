@@ -1,90 +1,145 @@
-# Final verification report
+# Research handoff verification report
 
-Evidence recorded on 2026-08-29 UTC from the local repository on branch
-`main`. All Python commands used the project virtual environment through
-`make PYTHON=.venv/bin/python`.
+**Evidence date:** 2026-09-20 UTC
+**Scope:** Task 12 documentation handoff
+**Status:** evidence-shaped handoff; final Task 13 verification is pending
 
-## Commands and results
+> This is an independent, unaffiliated candidate prototype using synthetic
+> support and product-lifecycle fixtures. It is not an SAP product, SAP
+> publication, SAP-endorsed benchmark, or report of access to SAP internal
+> data. The repository demonstrates a deterministic symbolic baseline and
+> proposes future LLM/retrieval experiments; it does not claim completed PhD
+> research or production readiness.
 
-The required verification matrix completed across both pillars:
+This report replaces the previous broad verification narrative with fields
+that can be filled from a fresh checkout. Historical commands and old
+comparative numbers remain historical evidence in
+[`cifre-hardening-baseline.md`](research/cifre-hardening-baseline.md); they are
+not reused as current results.
 
-| Command | Observed result |
+## Evidence fields
+
+The exact values below are intentionally not invented. Task 13 owns the final
+claim, artifact, hash, and reproducibility gate.
+
+| Field | Task 12 state |
 | --- | --- |
-| `make PYTHON=.venv/bin/python lint` | `ruff check .` reported `All checks passed!`. |
-| `make PYTHON=.venv/bin/python test` | Pytest collected 218 tests; `218 passed, 2 warnings in 22.13s`. The warnings are third-party FastAPI/Starlette deprecation notices. |
-| `make PYTHON=.venv/bin/python validate-semantic` | Loaded 14 vocabulary concepts; the valid RDF graph conformed and the deliberately invalid graph did not conform, as expected. |
-| `make PYTHON=.venv/bin/python kg-validate` | W3C SHACL graph validation of the SAP Support Knowledge Graph (`sap_support_graph.ttl`) passed (4/4 tests). |
-| `make PYTHON=.venv/bin/python research-benchmark` | Executed 40 golden multi-hop enterprise benchmark queries against `SAP-KGBench`: 100.0% Execution Accuracy (40/40), 0.0% Hallucination. |
-| `make PYTHON=.venv/bin/python evaluate` | `Golden evaluation: 31/31 cases passed` with every reported dimension at `31/31` and `discovery_only=10/10`. |
-| `make PYTHON=.venv/bin/python demo` | Completed the governed DuckDB SAP S/4HANA ERP financial postings demonstration described below. |
-| `git diff --check` | Exit status 0 with no whitespace errors reported. |
-| Scoped credential-pattern scan | Exit status 0; no secret values or credential assignments detected. |
+| Git commit | **Pending Task 13:** record the exact final commit SHA after all owned changes are integrated. |
+| Input SHA-256 hashes | **Pending Task 13:** record graph, shapes, corpora, code/config, and result-manifest digests from the final run. |
+| Dependency lock | `constraints/py312.txt` is the declared lock input; **pending Task 13:** record its exact SHA-256 and resolved package versions. |
+| Environment | **Pending Task 13:** record Python version, platform system/machine, pip version, and locked package versions from the final run. |
+| Canonical artifact | `results/latest_benchmark.json` is **not yet created** in this Task 12 checkout; Task 13 alone creates and validates it. |
+| Final command result | **Not yet run:** Task 13 must run `make PYTHON=.venv/bin/python research-verify` in the final checkout and record exit status and concise output. |
+| Final metrics | **Pending Task 13:** read only from the schema-valid canonical artifact; no aggregate values are asserted here. |
 
-Supplemental CI-aligned checks also completed: YAML parsing reported 12 files;
-mapping/quality checks had 42 passing tests; golden tests had 13 passing tests;
-compiler checks had 4 passing tests; and the documentation contract had 20
-passing tests.
+## Commands
 
-## Main end-to-end SAP S/4HANA ERP demonstration
+The single final command is:
 
-The local demo accepted the primary French automotive ERP question:
-> "Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000."
+```bash
+make PYTHON=.venv/bin/python research-verify
+```
 
-It resolved the governed concepts, selected `BusinessPartners`, `SalesOrders`, and
-`ACDOCAFinancials`, built a typed DuckDB plan, and returned two rows after a
-quality result of `PASS` with score 100:
+The final target is expected to generate temporary synthetic graph data, check
+generated/check-in graph isomorphism, validate declared SHACL scopes, validate
+v1/v2 corpus metadata and hashes, run the two deterministic conditions, write
+the canonical artifact, run tests, and run Ruff. It must fail on stale hashes,
+namespace drift, unexpected validation, schema/claim violations, test failure,
+or lint failure. This paragraph describes the required protocol; it is not a
+claim that the final target has passed.
 
-| partner_id | country | posting_count | total_debit_loss_eur |
-| --- | --- | ---: | ---: |
-| FR_001 | FR | 3 | 24000.0 |
-| FR_002 | FR | 3 | 25000.0 |
+Task 12 documentation checks are narrower and do not create the canonical
+artifact:
 
-The emitted plan used the `FinancialControllerFR` caller context, the
-`DatabricksFranceMapping` semantic mapping, parameterized DuckDB SQL, and a
-runtime provenance envelope. Runtime query IDs, timestamps, and digests vary
-per execution.
+```bash
+PYTHONPATH=src .venv/bin/python -m pytest \
+  tests/unit/test_documentation_contract.py::test_research_handoff_contract_and_links -q
+PYTHONPATH=src .venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q
+PYTHONPATH=src .venv/bin/python -m pytest tests/unit/test_claim_scan.py -q
+PYTHONPATH=src .venv/bin/ruff check tests/unit/test_documentation_contract.py
+git diff --check
+```
 
-## SAP Support Knowledge Graph and AQR reasoning
+The Markdown contract covers relative link syntax, GitHub-style anchors,
+balanced fences, and Mermaid safety. The claim scan and final full link check
+remain subject to the complete Task 13 surface and final artifact.
 
-The flagship research pillar was validated through:
-1. **Ontological Conformance:** Loading SAP PPMS (`sap_ppms.ttl`) and SAP Support
-   (`sap_support.ttl`) ontologies alongside 491 triples in `sap_support_graph.ttl`.
-2. **SHACL Validation:** Closed-world shape constraints in `sap_support_shapes.ttl`
-   confirmed that malformed notes and alerts are rejected.
-3. **Autonomous Query Reasoning (`AQR-Reflect`):** Validated property path expansion,
-   schema linking, and query relaxation across 40 complex enterprise queries.
+### Observed Task 12 checks
 
-## Golden evaluation
+These observations cover the documentation handoff only; they do not fill the
+Task 13 fields above.
 
-The fresh local semantic evaluation completed all 31 governed cases:
-`resolution=31/31`, `relationships=31/31`, `products=31/31`,
-`metrics=31/31`, `authorization=31/31`, and
-`deterministic_answers=31/31` with `discovery_only=10/10`. This is a deterministic local regression
-signal over the checked-in synthetic fixtures.
+| Check | Observed result |
+| --- | --- |
+| Focused `test_research_handoff_contract_and_links` | `1 passed` |
+| `tests/unit/test_documentation_contract.py` | `14 passed` |
+| `tests/unit/test_claim_scan.py` | `70 passed` |
+| AQR planner/repair/provenance/metric contracts | `30 passed` when run with read-only system package paths added for the missing `jsonschema` dependency; no environment files were changed. |
+| Targeted Ruff (`tests/unit/test_documentation_contract.py`) | `All checks passed!` |
+| `git diff --check` | Exit status 0; no whitespace errors. |
+| Full repository pytest | `370 passed, 47 failed`; failures are outside this documentation task and include the branch's federated namespace/asset expectations and the shared-environment import boundary. Task 13 must reassess the complete gate. |
 
-## Security and secret scan
+The direct shared `.venv` invocation of source-level tests cannot import
+`jsonschema` in this checkout. The final verification must use the declared
+locked environment rather than treating the read-only workaround above as the
+final environment evidence.
 
-A case-insensitive scan for credential-like assignment patterns,
-excluding lock files, returned only input-validation regex constants and parser tokens:
-- `src/semantic_layer/query_planner/service.py`: regular-expression constants (`_NUMBER_TOKEN`,
-  `_COUNTRY_TOKEN`, `_PRODUCT_TOKEN`, `_SUBJECT_TOKEN`, `_POSTINGS_TOKEN`, `_LOSS_TOKEN`).
-- `src/semantic_layer/models.py`: regular-expression constants used to recognize SQL-shaped input.
+## Implemented baseline evidence
 
-No API keys, passwords, or secret credentials were found.
+The current code supports the following locally inspectable path:
 
-## Documentation review
+```text
+synthetic ontology/data
+  -> namespace/schema and graph-parity checks
+  -> scoped SHACL validation
+  -> finite grounding
+  -> typed logical plan
+  -> deterministic SPARQL
+  -> RDFLib execution
+  -> bounded repair/relaxation ledger
+  -> strict status and binding-derived provenance
+```
 
-The documentation contract test suite passed with 20/20 tests:
-- All Markdown fences are balanced.
-- All Mermaid diagram blocks close properly and contain GitHub-safe labels.
-- All relative Markdown links resolve to real files on disk.
-- No obsolete audience-specific or legacy terminology remains in published documentation.
+The source boundaries are:
+
+* [`schema_linker.py`](../src/semantic_layer/reasoning/schema_linker.py):
+  finite grammar and explicit unknown/ambiguous failure classes;
+* [`query_planner.py`](../src/semantic_layer/reasoning/query_planner.py):
+  typed patterns, component hierarchy path, and bounded prerequisite evidence;
+* [`text_to_sparql.py`](../src/semantic_layer/reasoning/text_to_sparql.py):
+  deterministic compilation and required-projection validation;
+* [`reflective_agent.py`](../src/semantic_layer/reasoning/reflective_agent.py):
+  closed statuses, three-attempt repair cap, and strict/relaxed separation;
+* [`loader.py`](../src/semantic_layer/kg/loader.py): RDFLib loading and scoped
+  SHACL `ValidationReport`.
+
+The controlled corpora are `cifre-synthetic-aqr-v1` (40 records) and the v2
+fixture with explicit negative and strict-empty records. The future artifact
+must report each corpus and each condition separately; the previous proposal's
+Vector-RAG, hallucination, and broad comparative tables are not evidence.
+
+## Hash and artifact contract for Task 13
+
+The final report must include the exact SHA-256 values for the checked-in
+graph/shape inputs, generated/check-in parity inputs, corpus files, lock,
+tracked code/config manifest, and canonical result. It must include the
+artifact schema version, namespace registry, validation checks, per-corpus
+dataset hash and query IDs, condition IDs, per-query records, environment, and
+package lock metadata. A missing artifact, stale input hash, or unreviewed
+metric field is a failed handoff rather than a zero or pass value.
 
 ## Known limitations
 
-- DuckDB is the only executed relational adapter. Databricks, Snowflake, and Microsoft
-  Fabric adapters and SQL examples are unexecuted simulations that require
-  platform-native credentials and cloud infrastructure.
-- Deterministic business-language parsing is intentionally bounded to governed
-  vocabulary, synonym, and pattern coverage; unsupported phrasing fails closed.
-- The local dataset is synthetic and deterministic.
+* The graph and corpora are synthetic, small, and repository-authored. No
+  proprietary, customer, or external support data is represented.
+* Grounding is a finite deterministic grammar; unsupported phrasing fails
+  closed and is not evidence of general language understanding.
+* The reasoner has hand-written, bounded repair and uses RDFLib locally. No
+  LLM, embedding, vector retriever, external store, or neural baseline has
+  been executed.
+* Support/ERP validation scopes must be reported accurately; a support-only
+  SHACL run is partial rather than whole-repository conformance.
+* Scale to millions of documents, ontology evolution, model drift, privacy
+  controls, and deployment have not been evaluated.
+* Exact commit, final hashes, final metrics, canonical artifact, and final
+  command result are **not yet available** and remain Task 13 work.

@@ -28,6 +28,19 @@ MARKDOWN_FENCE_RE = re.compile(
     r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<suffix>[^\r\n]*)$"
 )
 DEFERRED_ARTIFACT_LINK = "results/latest_benchmark.json"
+RESEARCH_HANDOFF_DOCS = (
+    ROOT / "docs" / "research" / "cifre_phd_proposal.md",
+    ROOT / "docs" / "research" / "technical_design_and_research_questions.md",
+    ROOT / "docs" / "research" / "cifre-interview-brief.md",
+    ROOT / "docs" / "verification-report.md",
+)
+RESEARCH_SOURCE_LINKS = (
+    "../../src/semantic_layer/reasoning/schema_linker.py",
+    "../../src/semantic_layer/reasoning/query_planner.py",
+    "../../src/semantic_layer/reasoning/text_to_sparql.py",
+    "../../src/semantic_layer/reasoning/reflective_agent.py",
+    "../../src/semantic_layer/kg/loader.py",
+)
 DISCLAIMER = (
     "This is an independent, unaffiliated candidate prototype using synthetic "
     "support and product-lifecycle fixtures. It is not an SAP product, SAP "
@@ -190,6 +203,102 @@ def test_publication_claim_contract_and_links() -> None:
         text = path.read_text(encoding="utf-8")
         assert "synthetic" in text.lower(), path
         assert "proposed" in text.lower() or "not implemented" in text.lower(), path
+
+
+def test_research_handoff_contract_and_links() -> None:
+    """Keep the research handoff source-verifiable and explicit about evidence."""
+
+    for path in RESEARCH_HANDOFF_DOCS:
+        assert path.is_file(), path
+
+    proposal = (ROOT / "docs" / "research" / "cifre_phd_proposal.md").read_text(
+        encoding="utf-8"
+    )
+    for section in (
+        "Knowledge-Grounded Autonomous Query Reasoning for Enterprise Agentic AI",
+        "Context and motivation",
+        "Research gap",
+        "Central research question",
+        "Research questions and hypotheses",
+        "Current deterministic baseline",
+        "Controlled v1/v2 protocol",
+        "Methodology",
+        "Baselines and metrics",
+        "Expected contributions",
+        "Risks",
+        "Falsifiable outcomes",
+        "Three-year roadmap",
+        "Non-goals",
+    ):
+        assert section in proposal, section
+    for research_id in ("RQ1", "RQ2", "RQ3", "RQ4", "RQ5", "RQ6", "H1", "H2", "H3", "H4"):
+        assert research_id in proposal, research_id
+    assert DISCLAIMER in _compact_markdown(proposal)
+    assert "SAP Labs France" not in proposal
+    assert "100.0%" not in proposal
+    assert "0% hallucination" not in proposal.lower()
+
+    technical = (
+        ROOT / "docs" / "research" / "technical_design_and_research_questions.md"
+    ).read_text(encoding="utf-8")
+    for topic in (
+        "RDF vs property graph",
+        "OWL",
+        "SHACL",
+        "OWL vs SHACL",
+        "SPARQL",
+        "property paths",
+        "multi-hop",
+        "bounded query repair",
+        "unknown entities",
+        "ambiguous entities",
+        "constraining LLM-generated SPARQL",
+        "execution vs exact-match accuracy",
+        "vector RAG",
+        "millions of documents",
+        "ontology evolution",
+        "research contribution vs software engineering",
+    ):
+        assert topic.lower() in technical.lower(), topic
+    for research_id in ("RQ1", "RQ2", "RQ3", "RQ4", "RQ5"):
+        assert research_id in technical, research_id
+    assert "Implemented" in technical
+    assert "Proposed" in technical
+
+    brief = (ROOT / "docs" / "research" / "cifre-interview-brief.md").read_text(
+        encoding="utf-8"
+    )
+    for required in (
+        "cifre-synthetic-aqr-v1",
+        "results/latest_benchmark.json",
+        "make PYTHON=.venv/bin/python research-verify",
+        "independent",
+        "no affiliation",
+        "Task 13",
+    ):
+        assert required.lower() in brief.lower(), required
+    for link in RESEARCH_SOURCE_LINKS:
+        assert f"]({link})" in brief, link
+
+    verification = (ROOT / "docs" / "verification-report.md").read_text(
+        encoding="utf-8"
+    )
+    for field in (
+        "Commit",
+        "SHA-256",
+        "Commands",
+        "lock",
+        "Environment",
+        "Known limitations",
+        "Task 13",
+    ):
+        assert field.lower() in verification.lower(), field
+    assert re.search(r"(?i)not yet (?:created|available|final)", verification)
+
+    baseline = (ROOT / "docs" / "research" / "cifre-hardening-baseline.md").read_text(
+        encoding="utf-8"
+    )
+    assert "final handoff" in baseline.lower()
 
 
 def test_owned_markdown_fences_are_balanced() -> None:

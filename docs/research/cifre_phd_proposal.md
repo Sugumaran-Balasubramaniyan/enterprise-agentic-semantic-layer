@@ -1,272 +1,440 @@
-# Autonomous Query Reasoning over Multi-Source Enterprise Knowledge Graphs via Neurosymbolic Agentic Reflection
+# Knowledge-Grounded Autonomous Query Reasoning for Enterprise Agentic AI
 
-**Author / Candidate:** Sugumaran Balasubramaniyan  
-**Target PhD Track:** CIFRE Doctorate in Computer Science (3 Years)  
-**Industrial Host:** SAP Labs France, Sophia-Antipolis (Mougins Cedex)  
-**Academic Affiliations:** INRIA / CNRS / Université Côte d'Azur (I3S, Wimmics) / EURECOM  
-**Primary Research Topics:** Agentic AI, Knowledge Graphs (KG), Large Language Models (LLMs), Text-to-SPARQL, Neurosymbolic Reasoning  
-**Requisition ID:** 452538  
-**Repository Reference:** [`enterprise-agentic-semantic-layer`](https://github.com/Sugumaran-Balasubramaniyan/enterprise-agentic-semantic-layer)
+**Working title:** proposed and not approved.
+**Document status:** independent research-proposal outline; this is not an
+approved doctoral project, employment application, sponsorship statement, or
+report of completed research.
 
----
+> This is an independent, unaffiliated candidate prototype using synthetic
+> support and product-lifecycle fixtures. It is not an SAP product, SAP
+> publication, SAP-endorsed benchmark, or report of access to SAP internal
+> data. The repository demonstrates a deterministic symbolic baseline and
+> proposes future LLM/retrieval experiments; it does not claim completed PhD
+> research or production readiness.
 
-## Abstract
+## Scope and status boundary
 
-Enterprise technical support at scale requires navigating vast, heterogeneous, and constantly evolving software landscapes. In enterprise ecosystems such as SAP, service resolution demands precise reasoning across software product lifecycle metadata (the PPMS ontology: `ProductLine`, `Product`, `ProductVersion`, `SoftwareComponent`, `SupportPackage`, and `PatchLevel`), application component taxonomies, runtime system telemetry (ABAP short dumps), and semi-structured technical resolutions (SAP Notes/KBAs). While contemporary generative Large Language Models (LLMs) demonstrate fluent conversational capabilities, standard Dense Vector Retrieval-Augmented Generation (Vector RAG) catastrophically fails in enterprise support settings: it cannot enforce strict software version boundaries, hallucinates non-existent patches, and lacks the symbolic capability to traverse multi-hop dependency and prerequisite chains.
+This proposal uses enterprise support and product-lifecycle terminology because
+those terms make the research problem concrete. The checked-in graph, questions,
+and labels are repository-authored synthetic fixtures. No proprietary data,
+outside service, or private knowledge source is used for the current path. The
+proposal is intentionally written so that a reviewer can
+separate what is implemented locally from what would be evaluated later.
 
-In this research, we propose **Agentic Autonomous Query Reasoning (AQR)**, a neurosymbolic framework bridging formal Semantic Web standards (W3C RDF, OWL, SHACL, SPARQL 1.1) with the generative and reflective reasoning capabilities of modern LLMs. We formalize an enterprise-grade multi-source Knowledge Graph integrating the SAP PPMS lifecycle ontology, application components, and support notes. We introduce an autonomous query reasoner equipped with an **Engine-Reflective Self-Correction Loop (`AQR-Reflect`)** that leverages triplestore execution diagnostics to iteratively refine draft queries. We construct and release **`SAP-KGBench`**, an empirical evaluation benchmark comprising 40 multi-hop enterprise support queries across five complexity tiers. Our empirical findings demonstrate that while Naive Vector RAG achieves only 10.0% Execution Accuracy with a 90.0% hallucination rate, and Naive One-Shot Text-to-SPARQL attains 80.0%, our proposed Agentic AQR achieves **100.0% Execution Accuracy with 0% hallucination**, proving the necessity of symbolic graph grounding for enterprise support AI.
+| Boundary | Current statement |
+| --- | --- |
+| Implemented locally | Synthetic RDF/Turtle support and PPMS fixtures; scoped SHACL validation; fixed-vocabulary grounding; typed logical plans; deterministic SPARQL compilation; local RDFLib execution; bounded, logged repair; binding-derived answers and provenance fields. |
+| Synthetic/simulated | `cifre-synthetic-aqr-v1` and its v2 extension; SAP-shaped names used as fictional identifiers; future retrieval and model comparisons described in this proposal. |
+| Proposed future work | Learned schema/entity grounding, constrained Text-to-SPARQL, execution-guided policies, hybrid text retrieval plus graph traversal, scale experiments, drift studies, and human evaluation. |
+| Not implemented | LLM calls, embeddings, vector indexes/retrievers, external stores, production deployments, access to proprietary support data, or a neural benchmark result. |
 
----
+## Context and motivation
 
-## 1. Introduction & Industrial Motivation
+Enterprise support questions often combine several kinds of constraint: an
+alert code, a component hierarchy, a product version, a support-package
+bound, and a chain of prerequisite notes. A useful answer must preserve those
+constraints and identify the source rows from which it was derived. A text
+retriever can be helpful for explanatory prose, but a retrieval result alone
+does not define a typed relation, a transitive path, or the policy for an empty
+strict query.
 
-Modern enterprise resource planning (ERP) and cloud platforms operate as deeply interdependent software ecosystems. When enterprise systems encounter runtime exceptions (e.g., ABAP short dumps such as `TSV_TNEW_PAGE_ALLOC_FAILED` or `TIME_OUT`), diagnosing the root cause and deploying a corrective patch requires answering questions that span multiple distinct abstraction layers:
-1. **Runtime Telemetry Layer:** What dump code occurred on which host and application component?
-2. **Product Lifecycle Layer (PPMS):** What exact product version (e.g., *SAP S/4HANA 2023*) and software component version (e.g., *SAP_BASIS 758*, *S4CORE 108*) is deployed, and what is the current Support Package stack level (e.g., *SP01*)?
-3. **Resolution & Knowledge Layer:** Which official SAP Note resolves this dump for this specific component version, and what is the complete directed acyclic graph (DAG) of prerequisite notes that must be imported prior to applying the fix?
+The local prototype makes this problem inspectable with a small semantic graph.
+Its support and product-lifecycle ontologies use neutral `cifsup`, `cifppms`,
+and related `cif*` namespaces. It is a research instrument rather than a claim
+about any external organization or dataset. The motivation for a future
+agentic system is therefore methodological: study how language understanding,
+retrieval, and feedback can be added without losing semantic validity,
+abstention, reproducibility, or provenance.
 
-### The Failure Modes of Naive Vector RAG
-State-of-the-art enterprise conversational agents predominantly rely on Vector RAG, chunking unstructured text and retrieving chunks via dense cosine similarity. In enterprise service and support, this architecture suffers from fundamental structural limitations:
-- **Version Hallucination & Blindness:** Vector similarity cannot distinguish between `SAP_BASIS 757` and `SAP_BASIS 758`. It frequently suggests notes valid only for older releases, introducing system instability.
-- **Inability to Perform Multi-Hop Graph Traversal:** Resolving a prerequisite chain (e.g., Note $A \to$ Note $B \to$ Note $C$) requires transitive path traversal across relations, which is mathematically impossible for single-step or isolated multi-chunk vector lookups.
-- **Lack of Verifiable Provenance:** Generated natural language text cannot be audited against an authoritative enterprise truth source.
+## Research gap
 
-### The Neurosymbolic Alternative
-Knowledge Graphs (KGs) represent facts as formal RDF triples grounded in rigorously defined ontologies. By framing enterprise support as **Autonomous Query Reasoning over Knowledge Graphs via Text-to-SPARQL**, we combine the natural language comprehension of LLMs with the deterministic execution, verifiable provenance, and zero-hallucination guarantees of formal logic engines.
+The current baseline answers only a controlled grammar. That limitation is
+useful: it provides a deterministic reference against which learned components
+can be measured. The open research gap is a controlled comparison of:
 
----
+1. learned grounding and entity linking that can abstain on unknown or
+   ambiguous mentions;
+2. Text-to-SPARQL generation constrained by an ontology, a typed plan, and a
+   safe execution policy;
+3. execution-guided repair that records semantic changes instead of silently
+   changing the question; and
+4. hybrid retrieval in which unstructured evidence complements, rather than
+   replaces, graph constraints.
 
-## 2. Formal Problem Formulation
+The gap is not filled by calling a model or adding a vector index without a
+held-out protocol. Each future condition must have a versioned dataset,
+configuration, model/dependency identifiers, random seeds where applicable,
+cost accounting, and per-query failure evidence.
 
-Let an Enterprise Support Knowledge Graph be represented as a labeled directed property graph grounded in W3C RDF:
+## Central research question
 
-$$\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathcal{T})$$
+**How can an autonomous query reasoner combine learned language grounding,
+constrained formal query synthesis, and execution feedback with a knowledge
+graph so that broader enterprise questions are answered with measurable
+semantic validity, exact relation/path behaviour, calibrated abstention, and
+auditable provenance?**
 
-where:
-- $\mathcal{V} = \mathcal{V}_E \cup \mathcal{V}_L$ represents the set of nodes, partitioned into Entity IRIs ($\mathcal{V}_E$) and typed Literals ($\mathcal{V}_L$).
-- $\mathcal{E} \subseteq \mathcal{V}_E \times \mathcal{R} \times \mathcal{V}$ is the set of directed edges labeled with relation types $\mathcal{R}$ defined in the ontology $\mathcal{T}$.
-- $\mathcal{T} = \mathcal{T}_{\text{PPMS}} \cup \mathcal{T}_{\text{Support}}$ represents the formal TBox (terminological component) defining classes, properties, domains, ranges, and SHACL constraint shapes $\mathcal{S}$.
+The question is deliberately narrower than “build an autonomous support
+assistant.” It asks which additions improve a controlled measure, under which
+constraints, and at what latency and cost.
 
-### The Query Reasoning Mapping
-Given an arbitrary natural language query $q_{NL} \in \mathcal{Q}_{NL}$, the objective of the Autonomous Query Reasoner $\mathcal{M}$ is to induce an executable formal SPARQL 1.1 query $q_{SP} \in \mathcal{Q}_{SPARQL}$ such that:
+## Research questions and hypotheses
 
-$$q_{SP} = \mathcal{M}(q_{NL}, \mathcal{T})$$
+The following are hypotheses, not results. No hypothesis has been accepted or
+confirmed by the current repository.
 
-Execution of $q_{SP}$ over $\mathcal{G}$ via evaluation function $\llbracket q_{SP} \rrbracket_{\mathcal{G}}$ yields an exact solution set of variable bindings:
+### RQ1 / H1 — learned grounding and abstention
 
-$$\Omega = \llbracket q_{SP} \rrbracket_{\mathcal{G}} = \{ \mu \mid \mu \text{ satisfies the graph patterns of } q_{SP} \text{ over } \mathcal{G} \}$$
+**RQ1.** Can learned schema/entity grounding expand coverage over paraphrased
+questions while preserving the baseline's fail-closed handling of unknown and
+ambiguous entities?
 
-### Closed-Loop Reflective Formulation (AQR-Reflect)
-If initial execution fails, producing either an execution diagnostic exception $\epsilon_{\text{syntax}}$ or an unsatisfiable binding set $\Omega = \emptyset$ due to over-constrained parameter bounds, the agent invokes a reflective transition function $\Phi$:
+**H1.** A learned linker with an explicit confidence threshold and abstention
+policy will improve held-out entity recall at a fixed semantic-validity and
+false-acceptance budget relative to the finite grammar.
 
-$$q_{SP}^{(t+1)} = \Phi\left(q_{SP}^{(t)}, \epsilon^{(t)}, \mathcal{T}\right), \quad t \in \{1, \dots, K\}$$
+Falsifiable measures are entity precision/recall, unknown-entity rejection,
+ambiguous-entity rejection, calibration error, and the rate at which an
+accepted entity maps to the wrong class or identifier.
 
-where $K \le 3$ represents the maximum reflection budget.
+### RQ2 / H2 — constrained Text-to-SPARQL
 
----
+**RQ2.** Does generating a typed logical plan first, then constraining query
+construction to an allowlisted schema, improve Text-to-SPARQL validity over an
+unconstrained generator?
 
-## 3. Knowledge Graph Ontology & Multi-Source Architecture
+**H2.** Constrained generation will increase executable and semantically valid
+queries, especially for relation and path constraints, at the same question
+set and model budget as an unconstrained future baseline.
 
-```
-                    ┌──────────────────────────────────────────────┐
-                    │               ppms:ProductLine               │
-                    │            (e.g., SAP S/4HANA)               │
-                    └──────────────────────┬───────────────────────┘
-                                           │ ppms:hasProductVersion
-                                           ▼
-                    ┌──────────────────────────────────────────────┐
-                    │             ppms:ProductVersion              │
-                    │             (e.g., S/4HANA 2023)             │
-                    └──────────────┬───────────────────────────────┘
-                                   │ ppms:includesComponent
-                                   ▼
-                    ┌──────────────────────────────────────────────┐
-                    │        ppms:SoftwareComponentVersion         │
-                    │             (e.g., SAP_BASIS 758)            │
-                    └──────────────┬───────────────────────────────┘
-                                   │ ppms:hasSupportPackage
-                                   ▼
-                    ┌──────────────────────────────────────────────┐
-                    │             ppms:SupportPackage              │
-                    │              (e.g., SP00, SP01)              │
-                    └──────────────────────────────────────────────┘
-                                           ▲
-                                           │ sap:validForComponentVersion
-                                           │
-  ┌────────────────────────┐      ┌────────┴───────────────┐      ┌────────────────────────┐
-  │     sap:SystemAlert    │      │      sap:SAPNote       │      │sap:ApplicationComponent│
-  │  (TIME_OUT, TSV_PAGE)  │◄─────┤     (e.g., 3109922)    ├─────►│  (BC-CST-MM, FI-GL-GL) │
-  └────────────────────────┘ sap: └────────┬───────────────┘ sap: └────────────────────────┘
-                       resolvesAlert       │  affectsComponent
-                                           │ sap:hasPrerequisiteNote (Transitive)
-                                           ▼
-                                  ┌────────────────────────┐
-                                  │      sap:SAPNote       │
-                                  │     (e.g., 3098110)    │
-                                  └────────────────────────┘
-```
+Falsifiable measures are syntax-success rate, execution-success rate,
+ontology/predicate validity, projection-binding validity, relation/path exact
+match, exact note-set accuracy, and abstention precision. A syntactically valid
+query with the wrong relation is not a success.
 
-### 3.1 PPMS Ontology Modeling
-The SAP Product and Product Version Management System (PPMS) ontology defines the commercial and technical taxonomy of SAP software deliverables:
-- `ppms:ProductLine`: High-level offering umbrella (S/4HANA, NetWeaver).
-- `ppms:ProductVersion`: Distinct software release (S/4HANA 2023, S/4HANA 2022).
-- `ppms:SoftwareComponentVersion`: Physical code container (`SAP_BASIS 758`, `S4CORE 108`).
-- `ppms:SupportPackage`: Maintenance delivery vehicle (SP00, SP01, SP02).
+### RQ3 / H3 — execution-guided repair
 
-### 3.2 SAP Support Ontology
-The operational support ontology connects telemetry and support assets to the software landscape:
-- `sap:SAPNote`: Contains formal metadata including `noteNumber`, `title`, `priority`, `symptom`, `rootCause`, and `resolution`.
-- `sap:SystemAlert`: Runtime short dumps and telemetry events with `alertCode` and `severity`.
-- `sap:ApplicationComponent`: Hierarchical organizational structure (`BC` $\to$ `BC-DB` $\to$ `BC-DB-HDB`; `FI` $\to$ `FI-GL` $\to$ `FI-GL-GL`).
-- `sap:SimCatCategory`: Problem classification taxonomy.
+**RQ3.** When a valid request is empty or a draft query fails, which bounded
+execution feedback policies recover useful answers without disguising a
+relaxed answer as a strict answer?
 
-### 3.3 Structural Integrity via W3C SHACL
-To guarantee enterprise reliability, graph assets are strictly validated against W3C Shapes Constraint Language (SHACL) definitions:
-- Every `sap:SAPNote` is validated to possess an authoritative `noteNumber`, a valid `sap:priority` $\in \{\text{"Very High"}, \text{"High"}, \text{"Medium"}, \text{"Low"}\}$, and explicit links to an `ApplicationComponent` and `SoftwareComponentVersion`.
-- Automated regression test suites assert that invalid graph fixtures produce deterministic SHACL constraint violations.
+**H3.** An execution-guided policy with a finite budget and an operation ledger
+will improve recovery on pre-registered repair cases while preserving strict
+status and reducing unrecorded semantic drift relative to one-shot execution.
 
----
+Falsifiable measures are strict exact-set accuracy, recovery-attempt and
+recovery-success rates, repair-budget use, changed-constraint correctness,
+strict-versus-relaxed answer separation, diagnostic leakage, and the fraction
+of repairs that introduce a relation/path error.
 
-## 4. The Agentic Autonomous Query Reasoning (AQR) Engine
+### RQ4 / H4 — hybrid retrieval and grounded answers
 
-The AQR framework decomposes query resolution into five decoupled, deterministic, and verifiable phases:
+**RQ4.** Can graph constraints and provenance-preserving text retrieval work
+together for questions whose answer needs explanatory passages as well as
+entity and relation constraints?
 
-### Phase 1: Ontology Grounding & Schema Linking
-The natural language query is analyzed using boundary-safe lexical pattern matching grounded in the ontology TBox. Extracted entities are classified into:
-- Application Component codes ($\mathcal{C}_{\text{comp}}$)
-- System Alert dump codes ($\mathcal{C}_{\text{alert}}$)
-- Product & Component version strings ($\mathcal{C}_{\text{version}}$)
-- Target Support Package levels ($\mathcal{C}_{\text{SP}}$)
-- Reference Note IDs ($\mathcal{C}_{\text{note}}$)
+**H4.** A hybrid graph-plus-text condition will improve human-rated answer
+correctness and evidence completeness over graph-only or text-only conditions
+on text-rich questions, subject to a pre-registered latency and token budget.
 
-### Phase 2: Multi-Hop Logical Planning
-A formal `LogicalQueryPlan` is generated containing target projection variables, necessary join triples, and relational property paths. Notably, hierarchical component lookups leverage SPARQL 1.1 Property Paths:
-```sparql
-?note sap:affectsComponent/sap:parentComponent* ?comp .
-?comp sap:componentCode ?compCode .
-```
-This enables queries targeted at `FI-GL` to automatically resolve notes registered under child sub-components such as `FI-GL-GL` without explicit manual disjunctions.
+The falsifiable measures are answer correctness, groundedness and provenance
+completeness, relation/path correctness, unsupported-claim annotations from a
+human protocol, latency, token count, and cost. This hypothesis cannot be
+tested by the current repository because no text retriever or model is
+implemented.
 
-### Phase 3: Text-to-SPARQL Synthesis
-The logical plan is compiled into standardized W3C SPARQL 1.1 with prefix declarations, variable binding constraints, filter conditions, and deterministic ordering.
+### RQ5 — scale and robustness
 
-### Phase 4: Reflective Diagnostic Loop (`AQR-Reflect`)
-Unlike static one-shot text-to-code generators, AQR treats the triplestore as an active environment. If execution produces an empty result set on an over-constrained query (e.g., a support package filter that excludes valid general patches), the reflective agent diagnoses the failure, relaxes non-critical boundary constraints, and re-executes the query within a controlled iteration budget ($K \le 3$).
+How do grounding, planning, graph execution, and retrieval behave as document
+and entity counts grow toward millions of documents, and which index or
+partition choices preserve the same result contract? Measures include p50/p95
+latency, memory, throughput, query timeout rate, exact-set degradation, and
+cost per question across controlled scale points. The current fixture is not a
+million-document evaluation.
 
-### Phase 5: Grounded Answer Synthesis & Verifiable Provenance
-The returned variable bindings are transformed into structured natural language answers. Crucially, every factual claim is strictly bounded by the retrieved graph subgraph, with provenance citations directly referencing official SAP Note numbers. Hallucination rate is mathematically bounded to 0%.
+### RQ6 — ontology evolution and human trust
 
----
+How should an agent detect ontology evolution, map versioned schemas, and
+explain changes to a reviewer without silently changing query meaning? Measures
+include migration success, drift-detection precision/recall, broken-plan rate,
+provenance continuity, reviewer agreement, abstention quality, and time to
+repair a changed contract.
 
-## 5. Empirical Evaluation & Benchmark Results
+## Current deterministic baseline
 
-### 5.1 The `SAP-KGBench` Benchmark
-We established `SAP-KGBench`, an empirical evaluation benchmark consisting of 40 golden-annotated natural language queries categorized into five complexity tiers:
-- **Tier 1 (Single-Hop Factoid):** Direct entity retrieval (e.g., alerts to notes).
-- **Tier 2 (Multi-Hop Diagnostic):** Alert + Component joint intersection.
-- **Tier 3 (Version-Constrained):** Product version + component version filtering.
-- **Tier 4 (Prerequisite Chaining):** Transitive dependency traversal.
-- **Tier 5 (Reflective Relaxation):** Queries with over-constrained parameters requiring self-correction.
+The implemented pipeline is intentionally deterministic:
 
-### 5.2 Comparative Results
-We benchmarked three paradigms across all 40 queries:
-1. **Naive Vector RAG:** Unstructured text chunking and dense keyword/vector retrieval.
-2. **Naive One-Shot Text-to-SPARQL:** Static un-reflected generation.
-3. **Proposed Agentic AQR (Ours):** Schema grounding + multi-hop planner + reflective self-correction.
-
-| Paradigm | Overall EA (%) | Tier 1 (Factoid) | Tier 2 (Multi-Hop) | Tier 3 (Versions) | Tier 4 (Prereqs) | Tier 5 (Reflect) | VSR (%) | Hallucination (%) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Naive Vector RAG** | **10.0%** | 37.5% | 12.5% | 0.0% | 0.0% | 0.0% | 40.0% | 90.0% |
-| **Naive One-Shot Text-to-SPARQL** | **80.0%** | 100.0% | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% | 0.0% |
-| **Proposed: Agentic AQR (Ours)** | **100.0%** | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% | **0.0%** |
-
-*Table 1: Comparative empirical results on `SAP-KGBench`. EA = Execution Accuracy; VSR = Valid SPARQL Rate.*
-
-### 5.3 Discussion & Key Insights
-- **The Vector RAG Failure:** Naive Vector RAG scored 0.0% on Tiers 3, 4, and 5. In Tier 4 (prerequisites), vector retrieval retrieved documents discussing the parent note but failed to traverse the dependency graph to isolate the specific required prerequisite notes.
-- **The Power of Reflection:** One-shot Text-to-SPARQL achieved 80.0% but scored 0.0% on Tier 5. The reflective self-correction mechanism in AQR achieved a **100.0% Self-Correction Recovery Rate (SRR)**, bridging the reliability gap.
-
----
-
-## 6. Three-Year CIFRE PhD Research Roadmap
-
-This reference implementation establishes the experimental foundation for a 3-year CIFRE doctorate at SAP Labs France (Sophia-Antipolis) in collaboration with INRIA / CNRS (I3S, Wimmics) / EURECOM:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Year 1: Scalable Graph Ingestion & Dynamic Ontology Grounding                               │
-│ - Ingestion pipelines for millions of real-world SAP Notes, Help Docs, and SimCat taxonomies│
-│ - Zero-shot neural entity linking to PPMS IRIs using fine-tuned Small Language Models (SLMs)│
-│ - Deliverables: Scalable triplestore integration (Apache Jena / Oxigraph), ISWC/ESWC paper  │
-└──────────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                               │
-                                               ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Year 2: Multi-Agent Collaborative Reasoning & Constraint Solving                            │
-│ - Multi-agent debate and consensus protocols for ambiguous user queries                     │
-│ - Neurosymbolic constraint satisfaction combining SPARQL with SMT/SAT solvers               │
-│ - Complex aggregation and temporal reasoning over system telemetry streams                   │
-│ - Deliverables: Advanced AQR architecture, Publications at AAAI / The Web Conference (WWW)   │
-└──────────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                               │
-                                               ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Year 3: Industrial Deployment, Evaluation & Doctoral Defense                                │
-│ - Integration of AQR into SAP's production Support Assistant and Joule Copilot ecosystem    │
-│ - Human-in-the-loop validation with SAP support engineers at Sophia-Antipolis               │
-│ - Completion of doctoral dissertation and final defense                                     │
-│ - Deliverables: Industrial production pilot, Doctoral Dissertation, Journal Publication     │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+```text
+synthetic ontology/data fixtures
+  -> namespace and schema checks
+  -> graph generation and checked-in graph parity
+  -> scoped SHACL validation
+  -> finite vocabulary grounding (abstain on unsupported input)
+  -> typed LogicalQueryPlan
+  -> projection-safe deterministic SPARQL
+  -> RDFLib graph execution
+  -> bounded repair/relaxation with an operation ledger
+  -> strict status and binding-derived answer
+  -> per-query metrics and hashed artifact
 ```
 
----
+`SchemaLinker` recognizes finite lists of component codes, alert codes,
+product versions, software components, support packages, note numbers, and
+priorities. It emits a `GroundedEntities` value or a failure reason; it does
+not call an LLM or invent an IRI. `QueryPlanner` maps accepted slots to typed
+triple patterns. Component hierarchy uses the path
+`cifsup:affectsComponent/cifsup:parentComponent*`. Prerequisite planning uses
+a finite union of one through sixteen repeated
+`cifsup:hasPrerequisiteNote` edges, while a separate traversal routine records
+cycle and depth evidence. This bounded form is the actual implementation and
+is not a claim of unrestricted graph closure.
 
-## 7. Conclusion & Research Artifacts
+`TextToSPARQLEngine` validates that every required projection is bound by a
+mandatory pattern before rendering prefixes, `SELECT DISTINCT`, patterns,
+filters, ordering, and a limit. `SAPKnowledgeGraph` executes the resulting
+SPARQL locally with RDFLib. The loader's validation result includes a declared
+scope, such as support or ERP; a support-only run is partial validation, not a
+claim of whole-repository conformance.
 
-This repository provides an open, reproducible, and verifiable research baseline for enterprise agentic knowledge graphs. By grounding LLM reasoning in formal W3C ontologies (PPMS, SAP Support) and implementing closed-loop reflective query execution, the proposed framework eliminates hallucinations and solves the multi-hop reasoning challenges that defeat traditional Vector RAG.
+The typed lifecycle has five closed statuses: `SUCCESS`, `UNSUPPORTED`,
+`SYNTAX_ERROR`, `EXECUTION_ERROR`, and `EMPTY_RESULT`. Unknown entities,
+unknown tokens, ambiguous input, and unsupported intent abstain before query
+execution. Answers are synthesized from returned bindings and provenance
+fields; an error or abstention has no factual answer.
 
-### Reproducibility Contract
-All ontologies, datasets, agents, and benchmark suites can be reproduced locally with zero cloud costs or API keys:
-```bash
-git clone https://github.com/Sugumaran-Balasubramaniyan/enterprise-agentic-semantic-layer.git
-cd enterprise-agentic-semantic-layer
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e '.[dev]'
-make kg-validate
-make research-benchmark
-make research-demo
-```
+The bounded condition permits at most three repair transitions. An allowlisted
+missing-prefix repair is available for syntax or execution diagnostics. For an
+empty strict query, the semantic relaxation order is removal of the
+support-package bound and then widening a component to its parent. If a
+relaxed query finds candidates, the original status remains `EMPTY_RESULT`,
+the original constraints remain in the result, and the candidates are labelled
+outside the requested constraints. This makes repair observable rather than a
+hidden success claim.
 
----
+## Controlled v1/v2 protocol
 
-## 8. Academic References & Bibliography
+The corpus is named `cifre-synthetic-aqr-v1`, with stable query IDs and 40
+synthetic records retained as the first controlled version. The separate
+`cifre-synthetic-aqr-v2` corpus contains the v1 records plus explicit negative
+cases for unknown tokens, unknown entities, ambiguous input/intent, and strict
+empty results (52 records in the checked-in fixture). The records carry an
+expected status, exact gold note set, category, strict-constraint flag, and
+gold policy. The migration manifest records derivation evidence for changed
+gold sets; a legacy expectation is not silently treated as a new result.
 
-1. **Hogan, A., Blomqvist, E., Cochez, M., d'Amato, C., Melo, G. D., Gutierrez, C., ... & Zimmermann, A.** (2021). Knowledge Graphs. *ACM Computing Surveys (CSUR)*, 54(4), 1-37.
-2. **Pan, S., Luo, L., Wang, Y., Chen, C., Wang, J., & Wu, X.** (2024). Unifying Large Language Models and Knowledge Graphs: A Roadmap. *IEEE Transactions on Knowledge and Data Engineering (TKDE)*, 36(7), 3568-3589.
-3. **Ji, S., Pan, S., Cambria, E., Marttinen, P., & Yu, P. S.** (2021). A Survey on Knowledge Graphs: Representation, Acquisition, and Applications. *IEEE Transactions on Neural Networks and Learning Systems (TNNLS)*, 33(2), 494-514.
-4. **Yasunaga, M., Ren, H., Bosselut, A., Liang, P., & Leskovec, J.** (2021). QA-GNN: Reasoning with Language Models and Knowledge Graphs for Question Answering. *Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (NAACL-HLT)*, 535-546.
-5. **Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., & Cao, Y.** (2023). ReAct: Synergizing Reasoning and Acting in Language Models. *International Conference on Learning Representations (ICLR)*.
-6. **Madaan, A., Tandon, N., Gupta, P., Hallinan, S., Gao, L., Wiegreffe, S., ... & Clark, P.** (2023). Self-Refine: Iterative Refinement with Self-Feedback. *Advances in Neural Information Processing Systems (NeurIPS)*, 36, 46534-46594.
-7. **Shinn, N., Cassano, F., Gopinath, A., Narasimhan, K., & Yao, S.** (2023). Reflexion: Language Agents with Verbal Reinforcement Learning. *Advances in Neural Information Processing Systems (NeurIPS)*, 36, 8634-8652.
-8. **Edge, D., Trinh, H., Cheng, N., Bradley, J., Chao, A., Mody, A., ... & Larson, J.** (2024). From Local to Global: A Graph RAG Approach to Query-Focused Summarization. *arXiv preprint arXiv:2404.16130*.
-9. **Knublauch, H., & Kontokostas, D.** (2017). *Shapes Constraint Language (SHACL)*. W3C Recommendation, World Wide Web Consortium.
-10. **Harris, S., Seaborne, A., & Prud'hommeaux, E.** (2013). *SPARQL 1.1 Query Language*. W3C Recommendation, World Wide Web Consortium.
-11. **Cyganiak, R., Wood, D., & Lanthaler, M.** (2014). *RDF 1.1 Concepts and Abstract Syntax*. W3C Recommendation, World Wide Web Consortium.
-12. **W3C OWL Working Group.** (2012). *OWL 2 Web Ontology Language Document Overview*. W3C Recommendation, World Wide Web Consortium.
-13. **SAP SE.** (2023). *SAP Product and Product Version Management System (PPMS) Architecture & Software Logistics*. SAP Online Information System.
+The two measured conditions are:
 
----
+* `deterministic_no_reflection_ablation`: one deterministic grounding,
+  planning, compilation, and execution pass;
+* `deterministic_bounded_repair`: the same path with the bounded repair and
+  relaxation ledger enabled.
 
-## 9. How to Cite
+Each condition is scored separately for each corpus. A result record includes
+the question, grounding, plan, initial/final SPARQL, status, reason code,
+attempts, repair operations, strict bindings, separately labelled relaxed
+candidates, provenance, and hashes. Strict predictions are never replaced by
+relaxed candidates. Both-empty exact-set precision/recall/F1 is defined by the
+metric contract; one-empty/one-nonempty is not a success.
 
-If you use or reference this framework, ontologies, or benchmark in your research, please cite:
+The final canonical JSON at `results/latest_benchmark.json` is owned by Task
+13. Until that task runs the final verification command, this proposal does not
+report aggregate metric values, final input hashes, or a completed benchmark
+result.
 
-```bibtex
-@misc{balasubramaniyan2026sap_aqr,
-  author = {Balasubramaniyan, Sugumaran},
-  title = {{Agentic AI: Knowledge Graphs, LLMs \& Autonomous Query Reasoning for Enterprise Support}},
-  howpublished = {\url{https://github.com/Sugumaran-Balasubramaniyan/enterprise-agentic-semantic-layer}},
-  year = {2026},
-  note = {Doctoral Research Framework, SAP Labs France (Sophia-Antipolis) \& INRIA / Universit{\'e} C{\^o}te d'Azur}
-}
-```
+## Methodology
+
+The future programme is staged so that each learned capability can be compared
+with the deterministic baseline.
+
+### Phase 1 — formal KG and baseline
+
+Freeze the synthetic graph and ontology versions, run graph-isomorphism parity,
+run each declared SHACL scope with valid and invalid controls, and reproduce
+the v1/v2 deterministic conditions. Publish the schema, exact-set policy,
+status policy, hashes, environment, and per-query evidence together. This
+phase is the baseline, not a completed learned evaluation.
+
+### Phase 2 — learned schema/entity grounding and constrained Text-to-SPARQL
+
+Introduce a versioned linker interface with confidence, candidate sets, and an
+abstention decision. Evaluate lexical, learned, and hybrid grounding on
+paraphrases and deliberately unknown/ambiguous inputs. A model may propose a
+typed plan or query draft, but an allowlisted parser, ontology/schema check,
+projection check, and read-only execution gate must approve it before use.
+
+### Phase 3 — execution-guided repair
+
+Compare no repair, the current deterministic bounded policy, and learned
+diagnostic policies under the same maximum-attempt budget. Pre-register which
+constraints may be relaxed, preserve an append-only operation ledger, and score
+the strict request separately from any relaxed candidates. Include syntax,
+execution, empty-result, cycle, depth, and unsupported cases.
+
+### Phase 4 — hybrid RAG+KG retrieval
+
+Add a reproducible text collection and a real vector-retrieval baseline only
+after its corpus, embedding/index versions, retrieval depth, and cost are
+defined. Compare graph-only, text-only, and hybrid retrieval. Graph edges and
+typed constraints remain authoritative for entity/relation/path answers;
+retrieved text can supply explanations only when its provenance is retained.
+
+### Phase 5 — scale, robustness, and ontology drift
+
+Vary document/entity volume, graph topology, query paraphrase, missing data,
+and store/index implementations. Then introduce versioned ontology changes,
+deprecations, renamed predicates, and changed shapes. Measure whether the
+system detects drift and abstains or migrates explicitly rather than silently
+changing the answer space.
+
+## Baselines and metrics
+
+The comparison table describes planned conditions. Only the first two are
+implemented locally; the remaining rows are future baselines with no current
+scores.
+
+| Condition | Status | Controlled question |
+| --- | --- | --- |
+| Deterministic no-reflection | Implemented locally | What does finite grounding and one-pass typed SPARQL do? |
+| Deterministic bounded repair | Implemented locally | What does the logged three-attempt repair policy do? |
+| Vector retrieval alongside the KG | Proposed future baseline | Does text retrieval add useful passages without weakening graph constraints? |
+| Unconstrained LLM Text-to-SPARQL | Proposed future baseline | What fails when a model drafts queries without the typed/schema gate? |
+| Ontology-grounded LLM | Proposed future baseline | Does schema-aware prompting or constrained decoding improve semantic validity? |
+| Agentic execution feedback | Proposed future baseline | Does a learned feedback policy recover more valid strict cases under the same budget? |
+
+Every future run must report, at minimum:
+
+* **Execution accuracy and syntax:** executable-query rate, syntax validity,
+  execution success, and final status accuracy;
+* **Semantic and answer correctness:** ontology validity, exact-set answer
+  correctness, precision/recall/F1, relation/path correctness, and strict
+  empty-result handling;
+* **Repair:** attempted, recovered, budget used, operation validity, and
+  strict-versus-relaxed separation;
+* **Groundedness and provenance:** evidence coverage, provenance completeness,
+  human-reviewed unsupported-answer rate, and citation agreement;
+* **Efficiency:** p50/p95 latency, token count, model calls, memory, and cost;
+* **Robustness:** unknown/ambiguous rejection, paraphrase performance,
+  missing-data behaviour, graph noise, ontology drift, and scale curves.
+
+String equality of SPARQL is not the sole evaluation. Equivalent query forms
+should be judged by parsed structure, execution, projected bindings, and the
+declared relation/path policy. The eventual artifact is the source for exact
+baseline metric values; no values are copied from the historical proposal.
+
+## Data, privacy, provenance, and human evaluation
+
+The current data boundary is synthetic and repository-authored. It contains no
+proprietary documents, credentials, customer records, or external retrieval
+service. A future study would require documented data access approval, a
+privacy review, minimisation and retention rules, access controls, redaction,
+dataset and model cards, and a clear distinction between public, licensed,
+and confidential material. If proprietary constraints prevent release, the
+experiment must publish a reproducible synthetic or de-identified protocol
+without implying access that was not granted.
+
+Every future example must carry source identifiers and versioned graph/text
+provenance. Train/validation/test splits must be separated before indexing to
+prevent graph, question, template, or note leakage. Human evaluation should
+use blinded, pre-registered rubrics for answer correctness, evidence support,
+relation/path correctness, abstention appropriateness, and explanation
+usefulness, with inter-rater agreement and adjudication recorded.
+
+## Expected contributions
+
+If the programme is supported by the experiments, its contributions would be:
+
+1. a reproducible typed baseline and corpus protocol for constrained enterprise
+   query reasoning over synthetic RDF;
+2. an evaluation framework that separates syntax, execution, semantic
+   validity, exact answer sets, repair, provenance, and efficiency;
+3. controlled methods for inserting learned grounding, constrained query
+   synthesis, and execution feedback without hiding semantic relaxation; and
+4. evidence about when hybrid retrieval, scale techniques, or ontology-drift
+   handling help or hurt under explicit budgets.
+
+These are proposed contributions, not claims that the current repository has
+already made a scientific discovery.
+
+## Risks
+
+* **Data access and privacy:** real support data may be unavailable or too
+  sensitive; the study must stay synthetic or use approved de-identification.
+* **Leakage:** duplicated templates, graph facts, or retrieval indexes can
+  inflate scores; splits and provenance must be audited before each run.
+* **Nondeterminism:** model, retrieval, and store versions can change output;
+  record seeds, configurations, prompts, and per-query traces.
+* **Ontology maintenance:** evolving classes, predicates, shapes, and mappings
+  can invalidate old plans; version and migrate them explicitly.
+* **Proprietary constraints:** a method may be technically promising but not
+  publishable; publication boundaries must be set before collecting data.
+* **Scale:** millions of documents may expose latency, memory, indexing, and
+  cost limits that are absent from the small fixture.
+* **Model drift:** a model or embedding update can alter grounding, repair, or
+  answer style; drift detection and regression gates are required.
+
+## Falsifiable outcomes
+
+The project should report negative results as first-class outcomes. Examples:
+
+* Reject H1 if learned grounding does not improve held-out coverage at the
+  fixed validity and false-acceptance budget, or if abstention calibration is
+  worse than the finite grammar.
+* Reject H2 if constrained generation does not improve semantic or path
+  validity after accounting for syntax and execution failures.
+* Reject H3 if recovery gains disappear when strict exact-set scoring and
+  repair costs are included, or if the policy changes constraints without a
+  complete ledger.
+* Reject H4 if hybrid retrieval does not improve blinded evidence-supported
+  answers at the pre-registered latency/token/cost budget.
+
+No threshold is selected after seeing the results. A result that fails to meet
+the criterion is useful evidence about the boundary of the method.
+
+## Three-year roadmap
+
+### Year 1 — formal baseline and grounded language interface
+
+Freeze ontology, graph, corpus versions, provenance, and the v1/v2 protocol.
+Reproduce deterministic conditions, then evaluate learned schema/entity
+grounding with abstention and a constrained plan interface on held-out
+synthetic paraphrases. Deliverables are a reviewed protocol, data cards,
+reproducibility artifacts, and an initial error taxonomy.
+
+### Year 2 — constrained synthesis, repair, and hybrid retrieval
+
+Evaluate ontology-grounded and unconstrained future generators, execute only
+typed/allowlisted queries, and compare deterministic versus learned feedback
+under a fixed repair budget. Add a versioned text collection and graph-plus-
+text retrieval experiment with human evidence review. Deliverables are
+ablation reports, cost/latency accounting, and a falsifiable assessment of
+H1-H4.
+
+### Year 3 — scale, drift, robustness, and consolidation
+
+Run scale curves toward millions of documents where permitted, test alternative
+stores and index policies, and evaluate ontology evolution and model drift.
+Complete human evaluation, privacy/provenance audit, replication package, and
+thesis-quality negative-result analysis. Any deployment or external study would
+require separate authorization and is outside this repository's current scope.
+
+## Non-goals
+
+This document does not claim an external affiliation, host, sponsor,
+collaboration, official dataset, access to private systems, or an operational
+service. It does not claim doctoral completion, universal reasoning
+capability, or a measured model/retrieval result. It does not turn synthetic note numbers or SAP-shaped labels into
+official knowledge. It does not treat a relaxed candidate as an answer to the
+original strict request, and it does not replace a final artifact, hash
+manifest, or verification command with prose.
+
+## Repository evidence
+
+The implementation boundary can be inspected in the
+[`schema linker`](../../src/semantic_layer/reasoning/schema_linker.py),
+[`query planner`](../../src/semantic_layer/reasoning/query_planner.py),
+[`SPARQL compiler`](../../src/semantic_layer/reasoning/text_to_sparql.py),
+[`bounded reasoner`](../../src/semantic_layer/reasoning/reflective_agent.py),
+and [`knowledge-graph loader`](../../src/semantic_layer/kg/loader.py). The
+technical interview note and the short interview brief provide a more compact
+map of those contracts. Task 13 owns the final canonical benchmark artifact
+and the final claim/format/reproducibility gate.

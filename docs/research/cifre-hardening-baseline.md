@@ -287,3 +287,13 @@ zero-hallucination, fake-vector, and invented-final-metric language.
   recorded for the later documentation repair task.
 - No implementation, benchmark corpus, semantic asset, remote, or deployment
   state was changed by this baseline capture.
+
+## Final handoff pointer (appended by Task 12)
+
+The historical evidence above is unchanged. The current research handoff is
+now documented in the [proposal](cifre_phd_proposal.md),
+[technical design and research questions](technical_design_and_research_questions.md),
+[interview brief](cifre-interview-brief.md), and
+[verification report](../verification-report.md). Task 13 owns the final
+`results/latest_benchmark.json` artifact, exact commit and SHA-256 manifest,
+and final `make PYTHON=.venv/bin/python research-verify` result.
