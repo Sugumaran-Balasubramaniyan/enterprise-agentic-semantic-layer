@@ -80,6 +80,10 @@ TEXT_ASSETS = (
     ROOT / "tests/semantic/test_vocabulary.py",
 )
 LOGICAL_CONSUMERS = (
+    ROOT / "src/semantic_layer/compiler/duckdb.py",
+    ROOT / "src/semantic_layer/governance/policy.py",
+    ROOT / "src/semantic_layer/models.py",
+    ROOT / "src/semantic_layer/lineage/service.py",
     ROOT / "semantic/metrics/metrics.yaml",
     ROOT / "semantic/rules/financial_postings.yaml",
     ROOT / "semantic/vocabulary/sap_erp.yaml",
@@ -91,6 +95,12 @@ LOGICAL_CONSUMERS = (
     ROOT / "tests/semantic/test_mappings.py",
     ROOT / "tests/semantic/test_metric_rules.py",
     ROOT / "tests/semantic/test_vocabulary.py",
+    ROOT / "tests/golden/questions.yaml",
+    ROOT / "tests/golden/test_evaluation.py",
+    ROOT / "tests/unit/test_data_generation.py",
+    ROOT / "tests/unit/test_final_readiness.py",
+    ROOT / "tests/unit/test_registry.py",
+    ROOT / "tests/unit/test_resolver.py",
 )
 
 

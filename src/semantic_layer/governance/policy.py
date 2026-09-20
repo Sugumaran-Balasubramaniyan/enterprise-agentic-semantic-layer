@@ -7,7 +7,7 @@ from semantic_layer.models import CallerContext, SemanticQueryPlan
 from semantic_layer.query_planner import QueryDiscovery
 from semantic_layer.registry import SemanticRegistry
 
-_COUNTRY_CONCEPT = "sap:CompanyCode"
+_COUNTRY_CONCEPT = "ciferp:CompanyCode"
 _ROLE_PRODUCTS = {
     "ClaimsAnalystFR": {"BusinessPartners", "SalesOrders", "ACDOCAFinancials"},
     "ClaimsManagerGroup": {"BusinessPartners", "SalesOrders", "ACDOCAFinancials"},

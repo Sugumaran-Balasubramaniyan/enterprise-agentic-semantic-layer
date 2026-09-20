@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
-import shutil
 import hashlib
-from pathlib import Path
+import shutil
 import sys
+from pathlib import Path
 
 import pytest
 from rdflib import Graph, Literal, Namespace
 
+import semantic_layer.validation as validation_module
+from semantic_layer.research import benchmark_runner
+from semantic_layer.semantic_validation import validate_graph
 from semantic_layer.validation import (
-    _validated_metadata,
     _parse_worker_payload,
+    _validated_metadata,
     assert_graph_isomorphic,
     run_asset_verification,
 )
-from semantic_layer.semantic_validation import validate_graph
-import semantic_layer.research.benchmark_runner as benchmark_runner
-import semantic_layer.validation as validation_module
 
 ROOT = Path(__file__).resolve().parents[2]
 CIFDATA = Namespace("https://example.org/cifre-kg/data/")

@@ -14,10 +14,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Literal
 
-from .semantic_validation import ValidationResult, load_vocabulary, validate_graph
-
 from rdflib import Graph
 from rdflib.compare import isomorphic
+
+from .semantic_validation import ValidationResult, load_vocabulary, validate_graph
 
 __all__ = [
     "ValidationResult",
@@ -284,7 +284,8 @@ def run_asset_worker(root: Path) -> dict[str, Any]:
 
     try:
         result = _run_asset_checks(Path(root).resolve())
-    except Exception as error:  # worker reports drift without mutating source
+    # Broad handling is intentional: the subprocess worker must serialize every drift.
+    except Exception as error:  # noqa: BLE001
         return {
             "returncode": 1,
             "errors": [f"{type(error).__name__}: {error}"],
@@ -412,7 +413,8 @@ def _asset_verification(
                         f"{completed.stderr.strip() or completed.stdout.strip()}"
                     )
                 benchmark = {"command": command, "artifact": json.loads(result_path.read_text())}
-    except Exception as error:  # verification must report drift, not mutate or raise
+    # Broad handling is intentional: verification must report every drift, not raise.
+    except Exception as error:  # noqa: BLE001
         errors.append(f"{type(error).__name__}: {error}")
 
     return VerificationReport(

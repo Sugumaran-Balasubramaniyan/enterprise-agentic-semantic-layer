@@ -334,7 +334,8 @@ def _read_legacy(source: Path) -> list[dict[str, Any]]:
     except (OSError, yaml.YAMLError) as exc:
         raise ValueError(f"cannot read historical benchmark: {source}: {exc}") from exc
     if not isinstance(document, Mapping) or not isinstance(document.get("queries"), list):
-        raise ValueError("historical benchmark must contain a queries list")
+        # Preserve the public ValueError contract for malformed benchmark documents.
+        raise ValueError("historical benchmark must contain a queries list")  # noqa: TRY004
     queries = document["queries"]
     expected_ids = [f"Q{i:02d}" for i in range(1, 41)]
     if [item.get("id") if isinstance(item, Mapping) else None for item in queries] != expected_ids:
@@ -655,7 +656,8 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
     """Validate the closed, signed manifest contract before it is written."""
     _verify_canonical_inputs()
     if not isinstance(manifest, Mapping):
-        raise ValueError("manifest must be a mapping")
+        # Preserve the public ValueError contract for malformed manifests.
+        raise ValueError("manifest must be a mapping")  # noqa: TRY004
     _require_keys(manifest, MANIFEST_FIELDS, "manifest")
     if manifest["schema_version"] != "1.0":
         raise ValueError("schema_version must be 1.0")
@@ -672,7 +674,8 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
         raise ValueError("manifest must contain the normalized_schema_v1 change")
     change = manifest["changes"][0]
     if not isinstance(change, Mapping):
-        raise ValueError("manifest change must be a mapping")
+        # Preserve the public ValueError contract for malformed manifest changes.
+        raise ValueError("manifest change must be a mapping")  # noqa: TRY004
     _require_keys(change, CHANGE_FIELDS, "manifest change")
     if change["change_id"] != "normalized_schema_v1" or change["record_ids"] != expected_ids:
         raise ValueError("normalized_schema_v1 must cover Q01 through Q40")
@@ -687,7 +690,8 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
         raise ValueError("normalized_schema_v1 policy is invalid")
     change_derivation = change["derivation_query"]
     if not isinstance(change_derivation, Mapping):
-        raise ValueError("normalized_schema_v1 derivation_query is missing")
+        # Preserve the public ValueError contract for malformed derivation data.
+        raise ValueError("normalized_schema_v1 derivation_query is missing")  # noqa: TRY004
     _require_keys(change_derivation, DERIVATION_FIELDS, "normalized_schema_v1 derivation_query")
     if change_derivation["kind"] != "policy" or any(
         not isinstance(change_derivation[key], str)
@@ -721,7 +725,8 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
         expected_ids, historical, manifest["records"], strict=True
     ):
         if not isinstance(record, Mapping):
-            raise ValueError("manifest record must be a mapping")
+            # Preserve the public ValueError contract for malformed records.
+            raise ValueError("manifest record must be a mapping")  # noqa: TRY004
         _require_keys(record, MANIFEST_RECORD_FIELDS, f"manifest record {expected_id}")
         if record["id"] != expected_id:
             raise ValueError("manifest record IDs must be ordered Q01 through Q40")
@@ -737,7 +742,8 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
             raise ValueError(f"schema field/type contract failed for {expected_id}")
         derivation = record["derivation_query"]
         if not isinstance(derivation, Mapping):
-            raise ValueError(f"derivation_query missing for {expected_id}")
+            # Preserve the public ValueError contract for malformed derivation data.
+            raise ValueError(f"derivation_query missing for {expected_id}")  # noqa: TRY004
         _require_keys(derivation, DERIVATION_FIELDS, f"derivation_query {expected_id}")
         if derivation["kind"] not in {"canonical_sparql", "policy"}:
             raise ValueError(f"invalid derivation kind for {expected_id}")

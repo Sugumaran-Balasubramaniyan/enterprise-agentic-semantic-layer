@@ -219,10 +219,10 @@ class SemanticQueryPlan(SqlFreeSemanticModel):
         country_filters = [
             query_filter
             for query_filter in self.filters
-            if query_filter.concept_id not in ("sap:CompanyCode", "insurance:Country")
+            if query_filter.concept_id != "ciferp:CompanyCode"
         ]
         country_filters.append(
-            Filter(concept_id="sap:CompanyCode", operator="=", value=country)
+            Filter(concept_id="ciferp:CompanyCode", operator="=", value=country)
         )
         return self.model_copy(
             update={
