@@ -628,7 +628,9 @@ def _asset_verification(
                 canonical_path = root / "results/latest_benchmark.json"
                 if not canonical_path.is_file():
                     raise ValueError("canonical result artifact is missing")
-                canonical_artifact = load_and_validate_result(canonical_path)
+                canonical_artifact = load_and_validate_result(
+                    canonical_path, require_canonical_bytes=True
+                )
                 comparison = compare_result_artifacts(canonical_artifact, temporary_artifact, root)
                 benchmark = {
                     "command": command,

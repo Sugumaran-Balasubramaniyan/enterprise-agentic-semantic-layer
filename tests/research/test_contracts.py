@@ -164,6 +164,16 @@ def test_result_loader_accepts_a_schema_valid_result(tmp_path: Path) -> None:
     assert load_and_validate_result(path) == result
 
 
+def test_committed_result_loader_rejects_noncanonical_bytes(tmp_path: Path) -> None:
+    committed = ROOT / "results/latest_benchmark.json"
+    document = json.loads(committed.read_bytes())
+    reformatted = tmp_path / "reformatted-result.json"
+    reformatted.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="canonical"):
+        load_and_validate_result(reformatted, require_canonical_bytes=True)
+
+
 def test_result_loader_rejects_artifact_only_reason_code_per_query(tmp_path: Path) -> None:
     result = {
         "schema_version": "1.0.0",

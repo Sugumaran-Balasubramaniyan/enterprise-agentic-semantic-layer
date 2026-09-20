@@ -87,14 +87,24 @@ def _schema_path() -> Path:
     return Path(__file__).resolve().parents[3] / "tests/research/result_schema.json"
 
 
-def load_and_validate_result(path: Path) -> dict[str, Any]:
-    """Load and validate a deterministic result against the root schema."""
+def load_and_validate_result(
+    path: Path, *, require_canonical_bytes: bool = False
+) -> dict[str, Any]:
+    """Load and validate a deterministic result against the root schema.
 
-    document = json.loads(path.read_bytes())
+    ``require_canonical_bytes`` is reserved for checked-in publication
+    artifacts. Temporary fixtures may intentionally omit the final newline,
+    while a committed artifact must exactly match the canonical serializer.
+    """
+
+    raw = path.read_bytes()
+    document = json.loads(raw)
     schema = json.loads(_schema_path().read_bytes())
     jsonschema.Draft202012Validator(schema).validate(document)
     if not isinstance(document, dict):
         raise TypeError("research result root must be a JSON object")
+    if require_canonical_bytes and raw != canonical_json(document) + b"\n":
+        raise ValueError("result artifact bytes are not canonical UTF-8 JSON")
     return document
 
 

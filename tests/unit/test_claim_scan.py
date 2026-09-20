@@ -95,9 +95,11 @@ _NEGATED_INDEPENDENCE_LIST = re.compile(
     r"benchmark,\s+or\s+report\b",
     re.IGNORECASE,
 )
-_NEGATED_INDEPENDENCE_CONTINUATION = re.compile(
-    r"^\s*>\s*publication,\s+SAP[- ]endorsed\s+benchmark\b",
-    re.IGNORECASE,
+_VERIFIED_DISCLAIMER_PREFIX = (
+    "> support and product-lifecycle fixtures. It is not an SAP product, SAP"
+)
+_VERIFIED_DISCLAIMER_CONTINUATION = (
+    "> publication, SAP-endorsed benchmark, or report of access to SAP internal"
 )
 
 
@@ -113,6 +115,7 @@ def _claim_is_non_claim(
     start: int,
     end: int,
     claim_spans: Sequence[tuple[int, int]] = (),
+    disclaimer_continuation: bool = False,
 ) -> bool:
     """Allow only negation/future grammar adjacent to the matched claim span."""
 
@@ -121,7 +124,7 @@ def _claim_is_non_claim(
         for match in _NEGATED_INDEPENDENCE_LIST.finditer(text)
     ):
         return True
-    if _NEGATED_INDEPENDENCE_CONTINUATION.search(text):
+    if disclaimer_continuation:
         return True
 
     # Neighboring detected spans bound the proposition without naming connectors.
@@ -144,6 +147,15 @@ def _claim_is_non_claim(
         previous_start, previous_end = previous[-1]
         return _claim_is_non_claim(text, previous_start, previous_end, claim_spans)
     return False
+
+
+def _is_verified_disclaimer_continuation(previous_line: str, line: str) -> bool:
+    """Recognize only the known multiline repository disclaimer continuation."""
+
+    return (
+        previous_line.strip() == _VERIFIED_DISCLAIMER_PREFIX
+        and line.strip() == _VERIFIED_DISCLAIMER_CONTINUATION
+    )
 
 
 def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
@@ -214,7 +226,8 @@ def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
     for path in paths:
         relative = _relative(path)
         text = path.read_text(encoding="utf-8")
-        for number, line in enumerate(text.splitlines(), start=1):
+        lines = text.splitlines()
+        for number, line in enumerate(lines, start=1):
             if relative not in LEGACY_URI_CONTROL_DOCUMENTS:
                 for uri in LEGACY_URI_FAMILIES:
                     if uri in line:
@@ -235,6 +248,10 @@ def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
                         match.start(),
                         match.end(),
                         claim_spans,
+                        disclaimer_continuation=(
+                            number > 1
+                            and _is_verified_disclaimer_continuation(lines[number - 2], line)
+                        ),
                     ):
                         continue
                     excerpt = " ".join(line.strip().split())[:140]
@@ -275,6 +292,19 @@ def test_claim_scan_accepts_the_repository_independence_disclaimer(tmp_path: Pat
     )
 
     assert scan_claim_surfaces([fixture]) == []
+
+
+def test_claim_scan_rejects_standalone_disclaimer_continuation(tmp_path: Path) -> None:
+    fixture = tmp_path / "affirmative-continuation.md"
+    fixture.write_text(
+        "> publication, SAP-endorsed benchmark is officially supported by SAP.\n",
+        encoding="utf-8",
+    )
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert findings
+    assert any("external-publication" in finding for finding in findings)
 
 
 def test_claim_scan_reports_each_forbidden_claim_category(tmp_path: Path) -> None:
