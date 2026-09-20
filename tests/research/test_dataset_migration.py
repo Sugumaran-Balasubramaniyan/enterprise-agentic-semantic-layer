@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import os
 import shutil
 from pathlib import Path
 
@@ -294,6 +295,148 @@ def test_migration_rejects_duplicate_output_paths_before_any_write(
 
     assert writes == []
     assert {path: path.read_bytes() for path in sentinels} == sentinels
+
+
+def test_migration_rejects_hardlinked_output_paths_before_any_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    v1 = tmp_path / "v1.yaml"
+    v2 = tmp_path / "v2.yaml"
+    manifest = tmp_path / "manifest.yaml"
+    v1.write_bytes(b"shared-output")
+    os.link(v1, v2)
+    manifest.write_bytes(b"manifest-output")
+    before = {path: path.read_bytes() for path in (v1, v2, manifest)}
+    writes: list[Path] = []
+    monkeypatch.setattr(
+        _MODULE,
+        "_write_yaml",
+        lambda path, _value: writes.append(Path(path)),
+    )
+
+    with pytest.raises(ValueError, match="output paths must be distinct"):
+        migrate_benchmark(LEGACY, v1, v2, manifest)
+
+    assert writes == []
+    assert {path: path.read_bytes() for path in before} == before
+
+
+@pytest.mark.parametrize(
+    ("output_name", "canonical_path"),
+    [
+        (output_name, canonical_path)
+        for output_name in ("v1", "v2", "manifest")
+        for canonical_path in (HISTORICAL, LEGACY)
+    ],
+)
+def test_migration_rejects_hardlinked_canonical_outputs_before_any_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    output_name: str,
+    canonical_path: Path,
+) -> None:
+    hardlink = tmp_path / f"{output_name}-hardlink.yaml"
+    os.link(canonical_path, hardlink)
+    outputs = {
+        "v1": tmp_path / "v1.yaml",
+        "v2": tmp_path / "v2.yaml",
+        "manifest": tmp_path / "manifest.yaml",
+    }
+    outputs[output_name] = hardlink
+    sentinel_paths = {
+        path: f"sentinel:{name}".encode("utf-8")
+        for name, path in outputs.items()
+        if path != hardlink
+    }
+    for path, contents in sentinel_paths.items():
+        path.write_bytes(contents)
+    canonical_before = {path: path.read_bytes() for path in (HISTORICAL, LEGACY)}
+    writes: list[Path] = []
+    monkeypatch.setattr(
+        _MODULE,
+        "_write_yaml",
+        lambda path, _value: writes.append(Path(path)),
+    )
+
+    with pytest.raises(ValueError, match="cannot overwrite canonical historical/archive"):
+        migrate_benchmark(LEGACY, outputs["v1"], outputs["v2"], outputs["manifest"])
+
+    assert writes == []
+    assert {path: path.read_bytes() for path in (HISTORICAL, LEGACY)} == canonical_before
+    assert {path: path.read_bytes() for path in sentinel_paths} == sentinel_paths
+    assert hardlink.read_bytes() == canonical_before[canonical_path]
+
+
+def test_migration_rejects_existing_symlink_destination_before_any_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "noncanonical-target.yaml"
+    destination = tmp_path / "v1.yaml"
+    target.write_bytes(b"target-sentinel")
+    destination.symlink_to(target)
+    outputs = {
+        "v1": destination,
+        "v2": tmp_path / "v2.yaml",
+        "manifest": tmp_path / "manifest.yaml",
+    }
+    sentinels = {path: f"sentinel:{name}".encode("utf-8") for name, path in outputs.items()}
+    for path, contents in sentinels.items():
+        if path != destination:
+            path.write_bytes(contents)
+    writes: list[Path] = []
+    monkeypatch.setattr(
+        _MODULE,
+        "_write_yaml",
+        lambda path, _value: writes.append(Path(path)),
+    )
+
+    with pytest.raises(ValueError, match="symbolic link"):
+        migrate_benchmark(LEGACY, outputs["v1"], outputs["v2"], outputs["manifest"])
+
+    assert writes == []
+    assert destination.is_symlink()
+    assert target.read_bytes() == b"target-sentinel"
+    assert {path: path.read_bytes() for path in sentinels if path != destination} == {
+        path: data for path, data in sentinels.items() if path != destination
+    }
+
+
+def test_manifest_replace_failure_leaves_atomic_v1_v2_and_old_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    v1 = tmp_path / "v1.yaml"
+    v2 = tmp_path / "v2.yaml"
+    manifest = tmp_path / "manifest.yaml"
+    manifest.write_bytes(b"existing-manifest")
+    canonical_before = {path: path.read_bytes() for path in (HISTORICAL, LEGACY)}
+    real_replace = _MODULE.os.replace
+    replaced: list[Path] = []
+
+    def fail_manifest_replace(source: os.PathLike[str], destination: os.PathLike[str]) -> None:
+        destination_path = Path(destination)
+        if destination_path == manifest:
+            raise OSError("induced manifest replacement failure")
+        replaced.append(destination_path)
+        real_replace(source, destination)
+
+    real_write_text = Path.write_text
+
+    def fail_legacy_manifest_write(self: Path, *args: object, **kwargs: object) -> int:
+        if self == manifest:
+            raise OSError("induced manifest replacement failure")
+        return real_write_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(_MODULE.os, "replace", fail_manifest_replace)
+    monkeypatch.setattr(Path, "write_text", fail_legacy_manifest_write)
+
+    with pytest.raises(OSError, match="induced manifest replacement failure"):
+        migrate_benchmark(LEGACY, v1, v2, manifest)
+
+    assert replaced == [v1, v2]
+    assert v1.exists() and v2.exists()
+    assert manifest.read_bytes() == b"existing-manifest"
+    assert not list(tmp_path.glob(".*.tmp"))
+    assert {path: path.read_bytes() for path in (HISTORICAL, LEGACY)} == canonical_before
 
 
 def test_canonical_hash_mismatch_is_checked_in_an_isolated_copy(tmp_path: Path) -> None:

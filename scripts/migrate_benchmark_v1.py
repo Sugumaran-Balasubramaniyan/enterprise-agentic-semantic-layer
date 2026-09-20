@@ -10,6 +10,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import stat
+import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -280,10 +283,49 @@ def _closure_results(graph: Graph) -> dict[str, list[str]]:
     }
 
 
-def _write_yaml(path: Path, value: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _serialize_yaml(value: Mapping[str, Any]) -> bytes:
     rendered = yaml.safe_dump(value, sort_keys=False, allow_unicode=False, default_flow_style=False)
-    path.write_text(rendered, encoding="utf-8")
+    return rendered.encode("utf-8")
+
+
+def _fsync_directory(directory: Path) -> None:
+    """Best-effort directory durability after an atomic replacement."""
+    try:
+        directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    except OSError:
+        return
+    try:
+        os.fsync(directory_fd)
+    except OSError:
+        pass
+    finally:
+        os.close(directory_fd)
+
+
+def _write_yaml(path: Path, payload: bytes) -> None:
+    """Publish a complete UTF-8 YAML payload with an atomic destination swap."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary_path: Path | None = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as temporary:
+            descriptor = -1
+            temporary.write(payload)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+        temporary_path = None
+        _fsync_directory(path.parent)
+    finally:
+        if descriptor != -1:
+            os.close(descriptor)
+        if temporary_path is not None:
+            try:
+                temporary_path.unlink()
+            except OSError:
+                pass
 
 
 def _read_legacy(source: Path) -> list[dict[str, Any]]:
@@ -332,28 +374,66 @@ def _verify_canonical_inputs() -> None:
         raise ValueError("canonical historical/archive inputs must be byte-identical")
 
 
-def _validate_output_paths(v1: Path, v2: Path, manifest: Path) -> None:
+def _output_identity(path: Path, label: str) -> tuple[int, int] | None:
+    try:
+        link_metadata = os.lstat(path)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ValueError(f"cannot inspect {label} output path") from exc
+    if stat.S_ISLNK(link_metadata.st_mode):
+        raise ValueError(f"{label} output path must not be a symbolic link")
+    try:
+        metadata = os.stat(path, follow_symlinks=False)
+    except FileNotFoundError as exc:
+        raise ValueError(f"{label} output path changed during validation") from exc
+    except OSError as exc:
+        raise ValueError(f"cannot inspect {label} output path") from exc
+    if stat.S_ISLNK(metadata.st_mode):
+        raise ValueError(f"{label} output path must not be a symbolic link")
+    return metadata.st_dev, metadata.st_ino
+
+
+def _file_identity(path: Path) -> tuple[int, int] | None:
+    try:
+        metadata = os.stat(path, follow_symlinks=True)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ValueError(f"cannot inspect canonical input path: {path}") from exc
+    return metadata.st_dev, metadata.st_ino
+
+
+def _validate_output_paths(v1: Path, v2: Path, manifest: Path) -> tuple[Path, Path, Path]:
     """Reject input destinations and aliases before any migration work or write."""
     outputs = (("v1", v1), ("v2", v2), ("manifest", manifest))
     canonical_paths = {HISTORICAL_PATH.resolve(), ARCHIVAL_PATH.resolve()}
     resolved_outputs: list[Path] = []
+    output_identities: list[tuple[int, int] | None] = []
     for label, path in outputs:
         resolved = path.resolve(strict=False)
         if resolved in canonical_paths:
             raise ValueError(
                 f"{label} output cannot overwrite canonical historical/archive input"
             )
-        for canonical_path in (HISTORICAL_PATH, ARCHIVAL_PATH):
-            try:
-                if path.exists() and path.samefile(canonical_path):
-                    raise ValueError(
-                        f"{label} output cannot overwrite canonical historical/archive input"
-                    )
-            except OSError:
-                pass
         resolved_outputs.append(resolved)
+        output_identities.append(_output_identity(path, label))
     if len(set(resolved_outputs)) != len(resolved_outputs):
         raise ValueError("migration output paths must be distinct")
+    canonical_identities = {
+        identity
+        for identity in (_file_identity(HISTORICAL_PATH), _file_identity(ARCHIVAL_PATH))
+        if identity is not None
+    }
+    for (label, _path), identity in zip(outputs, output_identities, strict=True):
+        if identity in canonical_identities:
+            raise ValueError(
+                f"{label} output cannot overwrite canonical historical/archive input"
+            )
+    unique_identities = [identity for identity in output_identities if identity is not None]
+    if len(set(unique_identities)) != len(unique_identities):
+        raise ValueError("migration output paths must be distinct")
+    return resolved_outputs[0], resolved_outputs[1], resolved_outputs[2]
 
 
 def _verify_canonical_source(source: Path) -> None:
@@ -476,7 +556,7 @@ def migrate_benchmark(source: Path, v1: Path, v2: Path, manifest: Path) -> None:
     v1 = Path(v1)
     v2 = Path(v2)
     manifest = Path(manifest)
-    _validate_output_paths(v1, v2, manifest)
+    v1, v2, manifest = _validate_output_paths(v1, v2, manifest)
     _verify_canonical_source(source)
     historical = _read_legacy(source)
     graph = _load_graph()
@@ -520,13 +600,6 @@ def migrate_benchmark(source: Path, v1: Path, v2: Path, manifest: Path) -> None:
         record["corpus_id"] = "cifre-synthetic-aqr-v2"
         record["version"] = "2.0.0"
 
-    _write_yaml(
-        v1, {"corpus_id": "cifre-synthetic-aqr-v1", "version": "1.0.0", "records": v1_records}
-    )
-    _write_yaml(
-        v2, {"corpus_id": "cifre-synthetic-aqr-v2", "version": "2.0.0", "records": v2_records}
-    )
-
     ids = [f"Q{i:02d}" for i in range(1, 41)]
     changes = [
         {
@@ -556,7 +629,21 @@ def migrate_benchmark(source: Path, v1: Path, v2: Path, manifest: Path) -> None:
         "review": {"reviewer_id": REVIEWER_ID, "signoff_required": True, "signed_off": True},
     }
     validate_migration_manifest(manifest_document)
-    _write_yaml(manifest, manifest_document)
+    v1_payload = _serialize_yaml(
+        {"corpus_id": "cifre-synthetic-aqr-v1", "version": "1.0.0", "records": v1_records}
+    )
+    v2_payload = _serialize_yaml(
+        {"corpus_id": "cifre-synthetic-aqr-v2", "version": "2.0.0", "records": v2_records}
+    )
+    manifest_payload = _serialize_yaml(manifest_document)
+
+    # Revalidate destinations and canonical inputs after complete serialization,
+    # immediately before the ordered atomic replacements.  The manifest is last.
+    v1, v2, manifest = _validate_output_paths(v1, v2, manifest)
+    _verify_canonical_source(source)
+    _write_yaml(v1, v1_payload)
+    _write_yaml(v2, v2_payload)
+    _write_yaml(manifest, manifest_payload)
 
 
 def _require_keys(value: Mapping[str, Any], expected: Sequence[str], label: str) -> None:
