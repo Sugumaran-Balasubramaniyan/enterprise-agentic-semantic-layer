@@ -1,0 +1,308 @@
+# SAP-KGBench: Benchmark Dataset for Enterprise Support Knowledge Graphs & Autonomous Query Reasoning
+# Benchmark evaluation corpus containing 40 golden natural language queries paired with expected note numbers,
+# ground truth SPARQL templates, and query complexity tiers.
+
+benchmark_metadata:
+  name: "SAP-KGBench"
+  version: "1.0.0"
+  domain: "SAP Service & Support Enterprise Knowledge Graph"
+  target_ontologies:
+    - "PPMS (Product & Product Version Management System)"
+    - "SAP Support (Notes, Alerts, Components, SimCat)"
+  total_queries: 40
+
+queries:
+  # =========================================================================
+  # Tier 1: Single-Hop Factoid & Direct Entity Lookup (8 queries)
+  # =========================================================================
+  - id: "Q01"
+    tier: 1
+    category: "single_hop_alert"
+    question: "Which SAP Notes directly resolve alert DBSQL_NO_MORE_CONNECTION?"
+    expected_notes: ["3345100"]
+    requires_reflection: false
+
+  - id: "Q02"
+    tier: 1
+    category: "single_hop_alert"
+    question: "Find notes resolving runtime dump TSV_TNEW_PAGE_ALLOC_FAILED."
+    expected_notes: ["3109922", "2765001"]
+    requires_reflection: false
+
+  - id: "Q03"
+    tier: 1
+    category: "single_hop_component"
+    question: "List all notes affecting application component MM-PUR-PO."
+    expected_notes: ["3201440"]
+    requires_reflection: false
+
+  - id: "Q04"
+    tier: 1
+    category: "single_hop_component"
+    question: "What SAP notes affect component BC-DB-HDB?"
+    expected_notes: ["3345100", "3088210"]
+    requires_reflection: false
+
+  - id: "Q05"
+    tier: 1
+    category: "single_hop_note"
+    question: "Retrieve the title and details for SAP Note 3012445."
+    expected_notes: ["3012445"]
+    requires_reflection: false
+
+  - id: "Q06"
+    tier: 1
+    category: "single_hop_alert"
+    question: "Which note fixes dump CX_SY_OPEN_SQL_ERROR?"
+    expected_notes: ["2954112", "3221980"]
+    requires_reflection: false
+
+  - id: "Q07"
+    tier: 1
+    category: "single_hop_alert"
+    question: "Find notes addressing CALL_FUNCTION_NOT_FOUND errors."
+    expected_notes: ["2877120"]
+    requires_reflection: false
+
+  - id: "Q08"
+    tier: 1
+    category: "single_hop_component"
+    question: "What notes are logged under component SD-SLS?"
+    expected_notes: ["3144890"]
+    requires_reflection: false
+
+  # =========================================================================
+  # Tier 2: Multi-Hop Diagnostic (Alert -> Component -> Note) (8 queries)
+  # =========================================================================
+  - id: "Q09"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "Which SAP note resolves alert TIME_OUT in component MM-PUR-PO?"
+    expected_notes: ["3201440"]
+    requires_reflection: false
+
+  - id: "Q10"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED in component FI-GL."
+    expected_notes: ["3109922"]
+    requires_reflection: false
+
+  - id: "Q11"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "Which note resolves DBSQL_NO_MORE_CONNECTION on database component BC-DB-HDB?"
+    expected_notes: ["3345100"]
+    requires_reflection: false
+
+  - id: "Q12"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "Find notes for alert TIME_OUT affecting Sales and Distribution component SD-SLS."
+    expected_notes: ["3144890"]
+    requires_reflection: false
+
+  - id: "Q13"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "Which note addresses CX_SY_OPEN_SQL_ERROR in component BC-DB?"
+    expected_notes: ["2954112"]
+    requires_reflection: false
+
+  - id: "Q14"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED in memory management component BC-CST-MM."
+    expected_notes: ["3109922", "2765001"]
+    requires_reflection: false
+
+  - id: "Q15"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "What note resolves dump TIME_OUT in component BC-DB-HDB?"
+    expected_notes: ["3088210"]
+    requires_reflection: false
+
+  - id: "Q16"
+    tier: 2
+    category: "multihop_diagnostic"
+    question: "Find notes for CALL_FUNCTION_NOT_FOUND affecting component FI."
+    expected_notes: ["2877120"]
+    requires_reflection: false
+
+  # =========================================================================
+  # Tier 3: Software Lifecycle & Version Constrained (8 queries)
+  # =========================================================================
+  - id: "Q17"
+    tier: 3
+    category: "version_constrained"
+    question: "Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED valid for S/4HANA 2023."
+    expected_notes: ["3109922"]
+    requires_reflection: false
+
+  - id: "Q18"
+    tier: 3
+    category: "version_constrained"
+    question: "Which notes resolve TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2022?"
+    expected_notes: ["2765001"]
+    requires_reflection: false
+
+  - id: "Q19"
+    tier: 3
+    category: "version_constrained"
+    question: "Find notes for TIME_OUT on S/4HANA 2023 in component MM-PUR."
+    expected_notes: ["3201440"]
+    requires_reflection: false
+
+  - id: "Q20"
+    tier: 3
+    category: "version_constrained"
+    question: "Which notes resolve CX_SY_OPEN_SQL_ERROR on S/4HANA 2022?"
+    expected_notes: ["3221980"]
+    requires_reflection: false
+
+  - id: "Q21"
+    tier: 3
+    category: "version_constrained"
+    question: "Find notes valid for S/4HANA 2023 in component FI-GL-GL."
+    expected_notes: ["3109922", "3299100"]
+    requires_reflection: false
+
+  - id: "Q22"
+    tier: 3
+    category: "version_constrained"
+    question: "What notes are valid for S/4HANA 2023 in component BC-DB-HDB?"
+    expected_notes: ["3345100", "3088210"]
+    requires_reflection: false
+
+  - id: "Q23"
+    tier: 3
+    category: "version_constrained"
+    question: "Find notes resolving TIME_OUT on S/4HANA 2023 in component SD-SLS."
+    expected_notes: ["3144890"]
+    requires_reflection: false
+
+  - id: "Q24"
+    tier: 3
+    category: "version_constrained"
+    question: "Find notes valid for S/4HANA 2023 affecting component MM-PUR."
+    expected_notes: ["3201440", "3155700"]
+    requires_reflection: false
+
+  # =========================================================================
+  # Tier 4: Prerequisite Dependency Chaining (8 queries)
+  # =========================================================================
+  - id: "Q25"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "What are the prerequisite notes required for SAP Note 3109922?"
+    expected_notes: ["3098110"]
+    requires_reflection: false
+
+  - id: "Q26"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "Identify prerequisite notes for SAP Note 3098110."
+    expected_notes: ["3012445"]
+    requires_reflection: false
+
+  - id: "Q27"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "What prerequisite notes must be applied before SAP Note 3201440?"
+    expected_notes: ["3185002"]
+    requires_reflection: false
+
+  - id: "Q28"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "Does SAP Note 3109922 have any dependencies or prerequisites?"
+    expected_notes: ["3098110"]
+    requires_reflection: false
+
+  - id: "Q29"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "What are the dependencies of Note 3201440?"
+    expected_notes: ["3185002"]
+    requires_reflection: false
+
+  - id: "Q30"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "List prerequisites for Note 3098110."
+    expected_notes: ["3012445"]
+    requires_reflection: false
+
+  - id: "Q31"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "Find prerequisite notes for 3109922."
+    expected_notes: ["3098110"]
+    requires_reflection: false
+
+  - id: "Q32"
+    tier: 4
+    category: "prerequisite_chain"
+    question: "Which note is a prerequisite for Note 3201440?"
+    expected_notes: ["3185002"]
+    requires_reflection: false
+
+  # =========================================================================
+  # Tier 5: Over-Constrained & Reflective Recovery (8 queries)
+  # =========================================================================
+  - id: "Q33"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes for alert TIME_OUT in component MM-PUR-PO at SP05"
+    expected_notes: ["3201440"]
+    requires_reflection: true
+
+  - id: "Q34"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED in component FI-GL at SP09"
+    expected_notes: ["3109922"]
+    requires_reflection: true
+
+  - id: "Q35"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes for DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB at Support Package SP08"
+    expected_notes: ["3345100"]
+    requires_reflection: true
+
+  - id: "Q36"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes resolving TIME_OUT in component SD-SLS at SP07"
+    expected_notes: ["3144890"]
+    requires_reflection: true
+
+  - id: "Q37"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes for dump CX_SY_OPEN_SQL_ERROR on S/4HANA 2022 in component FI-GL at SP10"
+    expected_notes: ["3221980"]
+    requires_reflection: true
+
+  - id: "Q38"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes for TIME_OUT on component BC-DB-HDB at SP06"
+    expected_notes: ["3088210"]
+    requires_reflection: true
+
+  - id: "Q39"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2022 at SP08"
+    expected_notes: ["2765001"]
+    requires_reflection: true
+
+  - id: "Q40"
+    tier: 5
+    category: "reflective_relaxation"
+    question: "Find notes for CX_SY_OPEN_SQL_ERROR in component BC-DB at SP05"
+    expected_notes: ["2954112"]
+    requires_reflection: true

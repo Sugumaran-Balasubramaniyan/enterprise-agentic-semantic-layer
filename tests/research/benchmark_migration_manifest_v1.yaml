@@ -1,0 +1,1650 @@
+schema_version: '1.0'
+source_path: tests/research/benchmark_dataset.yaml
+archival_path: tests/research/benchmark_dataset_legacy.yaml
+normalized_path: tests/research/benchmark_dataset_v1.yaml
+record_ids: &id001
+- Q01
+- Q02
+- Q03
+- Q04
+- Q05
+- Q06
+- Q07
+- Q08
+- Q09
+- Q10
+- Q11
+- Q12
+- Q13
+- Q14
+- Q15
+- Q16
+- Q17
+- Q18
+- Q19
+- Q20
+- Q21
+- Q22
+- Q23
+- Q24
+- Q25
+- Q26
+- Q27
+- Q28
+- Q29
+- Q30
+- Q31
+- Q32
+- Q33
+- Q34
+- Q35
+- Q36
+- Q37
+- Q38
+- Q39
+- Q40
+changes:
+- change_id: normalized_schema_v1
+  record_ids: *id001
+  before:
+    field: expected_notes
+    type: legacy_yaml
+  after:
+    field: gold_note_numbers
+    type: sorted_unique_string_array
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Section 26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: []
+      gold_after: []
+    result_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+records:
+- id: Q01
+  category_before: single_hop_alert
+  category_after: single_hop_alert
+  gold_before: &id002
+  - '3345100'
+  gold_after: *id002
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id002
+      gold_after: *id002
+    result_sha256: cc38e56ecd5120549cb38ed24e5130e98fa18b181094b9bf18142b8d5da37dec
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q02
+  category_before: single_hop_alert
+  category_after: single_hop_alert
+  gold_before: &id003
+  - '2765001'
+  - '3109922'
+  gold_after: *id003
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id003
+      gold_after: *id003
+    result_sha256: 95830613e9474c8db9ebb125a5e1ecce80fa275a50a9f4b30d186a34bc082758
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q03
+  category_before: single_hop_component
+  category_after: single_hop_component
+  gold_before: &id004
+  - '3201440'
+  gold_after: *id004
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id004
+      gold_after: *id004
+    result_sha256: eac8513668d2bef3f94eb6230529ea7fb5ae9acde80411a2750e7a77e5782f06
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q04
+  category_before: single_hop_component
+  category_after: single_hop_component
+  gold_before: &id005
+  - '3088210'
+  - '3345100'
+  gold_after: *id005
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id005
+      gold_after: *id005
+    result_sha256: ddd00a9462b513727e2c690452d8ca8946a34685be2dfad6fd41932bae16ffce
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q05
+  category_before: single_hop_note
+  category_after: single_hop_note
+  gold_before: &id006
+  - '3012445'
+  gold_after: *id006
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id006
+      gold_after: *id006
+    result_sha256: 397683d84fcc1e3892e6e51d27f0ab870c0fd51c19c1295786e0eb9091571984
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q06
+  category_before: single_hop_alert
+  category_after: single_hop_alert
+  gold_before: &id007
+  - '2954112'
+  - '3221980'
+  gold_after: *id007
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id007
+      gold_after: *id007
+    result_sha256: 2f77417d989204e5aea9caf7268e2f5576f3205f7f266362ba9f058e57fe544f
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q07
+  category_before: single_hop_alert
+  category_after: single_hop_alert
+  gold_before: &id008
+  - '2877120'
+  gold_after: *id008
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id008
+      gold_after: *id008
+    result_sha256: 578e5f05a8981682810d5803661fbc873ec0f3babdf4f311bd3a5fd130c65c7f
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q08
+  category_before: single_hop_component
+  category_after: single_hop_component
+  gold_before: &id009
+  - '3144890'
+  gold_after: *id009
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id009
+      gold_after: *id009
+    result_sha256: f15465631fe5da01fc7d204198e10f2dfc376ecd6e30e948dc25e636c07e4691
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q09
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id010
+  - '3201440'
+  gold_after: *id010
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id010
+      gold_after: *id010
+    result_sha256: eac8513668d2bef3f94eb6230529ea7fb5ae9acde80411a2750e7a77e5782f06
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q10
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id011
+  - '3109922'
+  gold_after: *id011
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id011
+      gold_after: *id011
+    result_sha256: a93481ee26da73a9fb9d5a9fbe86b56c4e786a5aeb14456727dd65e4b4adefd7
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q11
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id012
+  - '3345100'
+  gold_after: *id012
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id012
+      gold_after: *id012
+    result_sha256: cc38e56ecd5120549cb38ed24e5130e98fa18b181094b9bf18142b8d5da37dec
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q12
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id013
+  - '3144890'
+  gold_after: *id013
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id013
+      gold_after: *id013
+    result_sha256: f15465631fe5da01fc7d204198e10f2dfc376ecd6e30e948dc25e636c07e4691
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q13
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id014
+  - '2954112'
+  gold_after: *id014
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id014
+      gold_after: *id014
+    result_sha256: 671b566a6a7695fc584ba6bfafaa9ae9359c06bc5daa0bf8fe5331aa3f62f67c
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q14
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id015
+  - '2765001'
+  - '3109922'
+  gold_after: *id015
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id015
+      gold_after: *id015
+    result_sha256: 95830613e9474c8db9ebb125a5e1ecce80fa275a50a9f4b30d186a34bc082758
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q15
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id016
+  - '3088210'
+  gold_after: *id016
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id016
+      gold_after: *id016
+    result_sha256: 90adde5200daeefb816e96e61212fa1698ffea9116979515fe2470425796687d
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q16
+  category_before: multihop_diagnostic
+  category_after: multihop_diagnostic
+  gold_before: &id017
+  - '2877120'
+  gold_after: *id017
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id017
+      gold_after: *id017
+    result_sha256: 578e5f05a8981682810d5803661fbc873ec0f3babdf4f311bd3a5fd130c65c7f
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q17
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id018
+  - '3109922'
+  gold_after: *id018
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id018
+      gold_after: *id018
+    result_sha256: a93481ee26da73a9fb9d5a9fbe86b56c4e786a5aeb14456727dd65e4b4adefd7
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q18
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id019
+  - '2765001'
+  gold_after: *id019
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id019
+      gold_after: *id019
+    result_sha256: 6bfc5217f93d75020f41a593194a61e918520d4a775355b1a62d5defae331f01
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q19
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id020
+  - '3201440'
+  gold_after: *id020
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id020
+      gold_after: *id020
+    result_sha256: eac8513668d2bef3f94eb6230529ea7fb5ae9acde80411a2750e7a77e5782f06
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q20
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id021
+  - '3221980'
+  gold_after: *id021
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id021
+      gold_after: *id021
+    result_sha256: f71cda669336de2245a149beb45c9a64b1fb446466be86c789e43c8fe29ff854
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q21
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id022
+  - '3109922'
+  - '3299100'
+  gold_after: *id022
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id022
+      gold_after: *id022
+    result_sha256: 930c7f861139d7dc557780f7d2582ca068e8d0265674f1cb7b608a20bc260f87
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q22
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id023
+  - '3088210'
+  - '3345100'
+  gold_after: *id023
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id023
+      gold_after: *id023
+    result_sha256: ddd00a9462b513727e2c690452d8ca8946a34685be2dfad6fd41932bae16ffce
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q23
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id024
+  - '3144890'
+  gold_after: *id024
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id024
+      gold_after: *id024
+    result_sha256: f15465631fe5da01fc7d204198e10f2dfc376ecd6e30e948dc25e636c07e4691
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q24
+  category_before: version_constrained
+  category_after: version_constrained
+  gold_before: &id025
+  - '3155700'
+  - '3201440'
+  gold_after: *id025
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: SCHEMA_NORMALIZATION
+  policy_citation: Sections 26.1-26.2
+  derivation_query:
+    kind: policy
+    text: Convert legacy expected_notes to sorted gold_note_numbers.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id025
+      gold_after: *id025
+    result_sha256: 7fba0a41be7b1d2c71ec68b9aad14733f00c38f39dcd1b29ef8742f1315818f0
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q25
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id026
+  - '3098110'
+  gold_after: &id027
+  - '3012445'
+  - '3098110'
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_EXPANSION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q25 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id026
+      gold_after: *id027
+    result_sha256: 98491498d44d18318e0574815a97033c977eab8a7f18a0e800ce90e8aa7ca664
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q26
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id028
+  - '3012445'
+  gold_after: *id028
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_NORMALIZATION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q26 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id028
+      gold_after: *id028
+    result_sha256: 397683d84fcc1e3892e6e51d27f0ab870c0fd51c19c1295786e0eb9091571984
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q27
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id029
+  - '3185002'
+  gold_after: *id029
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_NORMALIZATION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q27 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id029
+      gold_after: *id029
+    result_sha256: a1be1cd1e5020c31b051076d84a04642e6dcf5d735b577f6215f3e6c4bc024ca
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q28
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id030
+  - '3098110'
+  gold_after: &id031
+  - '3012445'
+  - '3098110'
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_EXPANSION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q28 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id030
+      gold_after: *id031
+    result_sha256: 98491498d44d18318e0574815a97033c977eab8a7f18a0e800ce90e8aa7ca664
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q29
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id032
+  - '3185002'
+  gold_after: *id032
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_NORMALIZATION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q29 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id032
+      gold_after: *id032
+    result_sha256: a1be1cd1e5020c31b051076d84a04642e6dcf5d735b577f6215f3e6c4bc024ca
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q30
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id033
+  - '3012445'
+  gold_after: *id033
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_NORMALIZATION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q30 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id033
+      gold_after: *id033
+    result_sha256: 397683d84fcc1e3892e6e51d27f0ab870c0fd51c19c1295786e0eb9091571984
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q31
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id034
+  - '3098110'
+  gold_after: &id035
+  - '3012445'
+  - '3098110'
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_EXPANSION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q31 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id034
+      gold_after: *id035
+    result_sha256: 98491498d44d18318e0574815a97033c977eab8a7f18a0e800ce90e8aa7ca664
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q32
+  category_before: prerequisite_chain
+  category_after: prerequisite_chain
+  gold_before: &id036
+  - '3185002'
+  gold_after: *id036
+  status_before: SUCCESS
+  status_after: SUCCESS
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: PREREQUISITE_CLOSURE_NORMALIZATION
+  policy_citation: Sections 6.3 and 26.1
+  derivation_query:
+    kind: canonical_sparql
+    text: SELECT ?prerequisite WHERE { VALUES ?target { Q32 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
+      ?prerequisite . } ORDER BY ?prerequisite
+    graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
+    result:
+      gold_before: *id036
+      gold_after: *id036
+    result_sha256: a1be1cd1e5020c31b051076d84a04642e6dcf5d735b577f6215f3e6c4bc024ca
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q33
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id037
+  - '3201440'
+  gold_after: &id038 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id037
+      gold_after: *id038
+    result_sha256: e991d77fc32a80afa4a3a8b1a92850feb41ec2339453ae1bede56d49a4ae87e2
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q34
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id039
+  - '3109922'
+  gold_after: &id040 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id039
+      gold_after: *id040
+    result_sha256: 227847a5cedabcf9ce2002d7ec065932f00948bb9f436bbe87fc8ddba7068fc9
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q35
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id041
+  - '3345100'
+  gold_after: &id042 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id041
+      gold_after: *id042
+    result_sha256: 74779fe8c45df3fc05a6cfb63876550b86ce14ef31bca67a3cbbb04c2d475f58
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q36
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id043
+  - '3144890'
+  gold_after: &id044 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id043
+      gold_after: *id044
+    result_sha256: 356724f72f0bd9e387182f5adedd7a719dd2dabedb3300ec6680a3b3d783fe67
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q37
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id045
+  - '3221980'
+  gold_after: &id046 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id045
+      gold_after: *id046
+    result_sha256: a8bbb99aaf06b329bc53176d0b8b965f2d576920e557bcbc63549bbb662257e7
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q38
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id047
+  - '3088210'
+  gold_after: &id048 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id047
+      gold_after: *id048
+    result_sha256: 2966a9bc122dc6614361d3c8df4e6b405752b22912473ed3f9c56f2fd03d3c1b
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q39
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id049
+  - '2765001'
+  gold_after: &id050 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id049
+      gold_after: *id050
+    result_sha256: 210e7298b95021354125621601fa8631c30963a1681e9454285d5eaec83c2c67
+  reviewer_id: repository-maintainer
+  signed_off: true
+- id: Q40
+  category_before: reflective_relaxation
+  category_after: reflective_relaxation
+  gold_before: &id051
+  - '2954112'
+  gold_after: &id052 []
+  status_before: SUCCESS
+  status_after: EMPTY_RESULT
+  schema_before:
+    id: string
+    tier: integer
+    category: string
+    question: string
+    expected_notes: array[string]
+    requires_reflection: boolean
+  schema_after:
+    id: string
+    corpus_id: string
+    version: string
+    tier: integer
+    category: string
+    question: string
+    expected_status: string
+    gold_note_numbers: array[string]
+    reflection_reason: string
+    strict_constraints: boolean
+    gold_policy: string
+  migration_reason: STRICT_CONSTRAINT_STATUS_CORRECTION
+  policy_citation: Sections 7.1, 18.1, and 26.1
+  derivation_query:
+    kind: policy
+    text: Apply strict constraints without semantic relaxation.
+    graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+    result:
+      gold_before: *id051
+      gold_after: *id052
+    result_sha256: 3c2cd3e6ab9f4b2a2eb4d72d5c71b7ffeb8426e3e9383519b934a28a23354478
+  reviewer_id: repository-maintainer
+  signed_off: true
+review:
+  reviewer_id: repository-maintainer
+  signoff_required: true
+  signed_off: true
