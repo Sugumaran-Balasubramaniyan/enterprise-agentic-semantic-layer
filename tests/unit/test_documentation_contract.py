@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,6 +27,7 @@ MARKDOWN_LINK_RE = re.compile(r"\[[^]]+\]\(([^)]+)\)")
 MARKDOWN_FENCE_RE = re.compile(
     r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<suffix>[^\r\n]*)$"
 )
+DEFERRED_ARTIFACT_LINK = "results/latest_benchmark.json"
 DISCLAIMER = (
     "This is an independent, unaffiliated candidate prototype using synthetic "
     "support and product-lifecycle fixtures. It is not an SAP product, SAP "
@@ -89,6 +91,61 @@ def _compact_markdown(text: str) -> str:
     return " ".join(without_quote_markers.split())
 
 
+def _tracked_markdown_paths() -> list[Path]:
+    completed = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "*.md",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return [
+        ROOT / line
+        for line in completed.stdout.splitlines()
+        if line and (ROOT / line).is_file()
+    ]
+
+
+def _github_anchor_candidates(text: str) -> set[str]:
+    anchors: set[str] = set()
+    for line in text.splitlines():
+        if not line.startswith("#"):
+            continue
+        heading = line.lstrip("#").strip().lower()
+        if not heading:
+            continue
+        slug = re.sub(r"[^\w\- ]+", "", heading)
+        slug = slug.replace(" ", "-")
+        anchors.add(re.sub(r"-+", "-", slug).strip("-"))
+    return anchors
+
+
+def _is_mermaid_info_string(info_string: str) -> bool:
+    return info_string.split(maxsplit=1)[0].lower() == "mermaid" if info_string else False
+
+
+def _mermaid_blocks(text: str) -> list[str]:
+    blocks, _ = _fenced_markdown_blocks(text)
+    return [block.content for block in blocks if _is_mermaid_info_string(block.info_string)]
+
+
+def _count_mermaid_openers(text: str) -> int:
+    return sum(
+        1
+        for line in text.splitlines()
+        if (parsed := _parse_markdown_fence(line)) is not None
+        and _is_mermaid_info_string(parsed[2])
+    )
+
+
 def test_publication_claim_contract_and_links() -> None:
     """Pin public wording while allowing the final artifact to be absent."""
 
@@ -97,9 +154,11 @@ def test_publication_claim_contract_and_links() -> None:
     assert DISCLAIMER in compact_readme
 
     first_research_heading = readme.index("## Synthetic KG and AQR research prototype")
-    first_benchmark_command = readme.index("research-benchmark")
+    first_reproducibility_command = readme.index(
+        "make PYTHON=.venv/bin/python research-verify"
+    )
     assert DISCLAIMER in _compact_markdown(readme[:first_research_heading])
-    assert DISCLAIMER in _compact_markdown(readme[:first_benchmark_command])
+    assert DISCLAIMER in _compact_markdown(readme[:first_reproducibility_command])
 
     first_screen = readme[:readme.index("## Local setup")]
     for label in (
@@ -112,7 +171,10 @@ def test_publication_claim_contract_and_links() -> None:
     assert "KG/AQR" in first_screen
     secondary_heading = "## Secondary reference: federated ERP semantic layer"
     assert secondary_heading in first_screen
-    assert first_screen.index("research-benchmark") < first_screen.index(secondary_heading)
+    assert first_screen.index("research-verify") < first_screen.index(secondary_heading)
+    assert "research-benchmark" not in readme
+    assert "Task 13" in readme
+    assert "will wire" in readme
     assert "[preliminary benchmark artifact](results/latest_benchmark.json)" in readme
 
     package_metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
@@ -131,9 +193,27 @@ def test_publication_claim_contract_and_links() -> None:
 
 
 def test_owned_markdown_fences_are_balanced() -> None:
-    for path in PUBLICATION_DOCS:
+    for path in _tracked_markdown_paths():
         _, balanced = _fenced_markdown_blocks(path.read_text(encoding="utf-8"))
         assert balanced, path
+
+
+def test_documentation_contains_six_mermaid_diagrams() -> None:
+    diagrams = sum(
+        len(_mermaid_blocks(path.read_text(encoding="utf-8")))
+        for path in (ROOT / "docs").rglob("*.md")
+    )
+    assert diagrams >= 6
+
+
+def test_mermaid_fences_close_and_use_github_safe_labels() -> None:
+    for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
+        text = path.read_text(encoding="utf-8")
+        blocks = _mermaid_blocks(text)
+        assert _count_mermaid_openers(text) == len(blocks), path
+        for block in blocks:
+            assert "\\n" not in block, path
+            assert "<br>" not in block, path
 
 
 def test_owned_markdown_links_have_syntax_without_resolving_artifacts() -> None:
@@ -143,6 +223,40 @@ def test_owned_markdown_links_have_syntax_without_resolving_artifacts() -> None:
             assert target.strip() == target
             assert "\n" not in target
             assert target
+
+
+def test_markdown_relative_links_and_anchors_resolve_except_deferred_artifact() -> None:
+    broken: list[str] = []
+    for path in _tracked_markdown_paths():
+        text = path.read_text(encoding="utf-8")
+        anchors = _github_anchor_candidates(text)
+        for target in MARKDOWN_LINK_RE.findall(text):
+            if target.startswith(("http://", "https://", "mailto:")):
+                continue
+            if target.startswith("#"):
+                if target[1:] not in anchors:
+                    broken.append(f"{path.relative_to(ROOT)} -> {target}")
+                continue
+            relative_target, _, anchor = target.partition("#")
+            if relative_target == DEFERRED_ARTIFACT_LINK:
+                continue
+            resolved = (path.parent / relative_target).resolve()
+            if not resolved.exists():
+                broken.append(f"{path.relative_to(ROOT)} -> {target}")
+                continue
+            if anchor and resolved.suffix == ".md":
+                target_anchors = _github_anchor_candidates(resolved.read_text(encoding="utf-8"))
+                if anchor not in target_anchors:
+                    broken.append(f"{path.relative_to(ROOT)} -> {target}")
+    assert not broken, "\n".join(broken)
+
+
+def test_mermaid_blocks_use_github_safe_line_breaks() -> None:
+    offenders: list[str] = []
+    for path in [ROOT / "README.md", *(ROOT / "docs").rglob("*.md")]:
+        if any("\\n" in block for block in _mermaid_blocks(path.read_text(encoding="utf-8"))):
+            offenders.append(str(path.relative_to(ROOT)))
+    assert not offenders, "\n".join(offenders)
 
 
 def test_readme_contains_primary_system_sections() -> None:
@@ -166,7 +280,7 @@ def test_readme_documents_executable_local_commands() -> None:
         ".venv/bin/python -m pip install -e '.[dev]'",
         "make PYTHON=.venv/bin/python validate-semantic",
         "make PYTHON=.venv/bin/python kg-validate",
-        "make PYTHON=.venv/bin/python research-benchmark",
+        "make PYTHON=.venv/bin/python research-verify",
         "make PYTHON=.venv/bin/python research-demo",
         "make PYTHON=.venv/bin/python test",
         ".venv/bin/python data/generate_demo_data.py",

@@ -75,13 +75,15 @@ From a checkout with the development environment installed:
 
 ```bash
 make PYTHON=.venv/bin/python kg-validate
-make PYTHON=.venv/bin/python research-benchmark
+make PYTHON=.venv/bin/python research-verify
 make PYTHON=.venv/bin/python research-demo
 ```
 
 `kg-validate` exercises the RDF/OWL/SHACL assets and their fixtures.
-`research-benchmark` runs the repository's preliminary deterministic research
-command; it does not by itself establish a production or external benchmark.
+`research-verify` is the final reproducibility command specified for the
+repository. Task 13 will wire the Make target and generate the canonical
+`results/latest_benchmark.json` artifact after all implementation and handoff
+files are final; Task 11 has not run or wired that target.
 `research-demo` prints a local reasoning trace. W3C RDF, OWL, SPARQL 1.1, and
 SHACL are referenced as standards; this README does not invent a citation or
 claim conformance beyond the checks that are run.
@@ -187,7 +189,7 @@ make PYTHON=.venv/bin/python demo
 The supported Make targets are `setup`, `test`, `lint`, `validate-semantic`,
 `check-yaml`, `check-mappings-quality`, `check-golden`, `check-compiler`,
 `demo`, `evaluate`, `run-api`, `kg-build`, `kg-validate`,
-`research-benchmark`, and `research-demo`. The commands use the checked-in
+`research-demo`, and the planned `research-verify` gate. The commands use the checked-in
 `.venv` interpreter explicitly so Ubuntu's externally managed system Python is
 not modified.
 
@@ -335,6 +337,20 @@ Read the detailed boundaries in [architecture](docs/architecture.md),
 [agent architecture](docs/agent-architecture.md),
 [semantic layer](docs/semantic-layer.md), and
 [ontology](docs/ontology.md).
+
+## Repository handbook and evidence map
+
+Use these links to move from a public claim to the local implementation or its
+verification evidence:
+
+| Concern | Source or asset | Focused evidence |
+| --- | --- | --- |
+| AQR grounding, planning, repair, and graph execution | [schema linker](src/semantic_layer/reasoning/schema_linker.py), [query planner](src/semantic_layer/reasoning/query_planner.py), [SPARQL boundary](src/semantic_layer/reasoning/text_to_sparql.py), [KG loader](src/semantic_layer/kg/loader.py) | [KG tests](tests/semantic/test_sap_kg.py), [reasoning tests](tests/unit/test_sap_reasoning.py), and [AQR planner tests](tests/unit/test_aqr_query_planner.py) |
+| Semantic contracts and validation | [support ontology](semantic/ontology/sap_support.ttl), [PPMS ontology](semantic/ontology/sap_ppms.ttl), [SHACL shapes](semantic/shapes/sap_support_shapes.ttl), [synthetic provenance](semantic/provenance/synthetic_source.yaml) | [SHACL tests](tests/semantic/test_shacl.py), [namespace tests](tests/semantic/test_namespace_contract.py), and [semantic validation](src/semantic_layer/semantic_validation.py) |
+| Local relational path | [FastAPI transport](src/semantic_layer/api/app.py), [DuckDB compiler](src/semantic_layer/compiler/duckdb.py), [governance policy](src/semantic_layer/governance/policy.py), [quality checks](src/semantic_layer/quality/checks.py) | [API tests](tests/integration/test_api.py), [compiler tests](tests/unit/test_compiler.py), and [quality tests](tests/unit/test_quality.py) |
+| Synthetic research protocol | [benchmark runner](src/semantic_layer/research/benchmark_runner.py), [research contracts](src/semantic_layer/research/contracts.py), and [result schema](tests/research/result_schema.json) | [research contract tests](tests/research/test_contracts.py), [dataset migration tests](tests/research/test_dataset_migration.py), and [evaluation guide](docs/evaluation.md) |
+| Runnable examples and extension seams | [example index](examples/README.md), [example questions](examples/example_questions.md), [generated SQL simulations](examples/generated_sql/README.md), and [implementation plan](docs/implementation-plan.md) | [golden evaluation](tests/golden/test_evaluation.py), [Makefile](Makefile), and [local governance guidance](docs/governance.md) |
+| Final verification wiring | [CI workflow](.github/workflows/ci.yml), [architecture decisions](docs/decisions/), and [documentation contract](tests/unit/test_documentation_contract.py) | Task 13 owns the final `research-verify` target, canonical artifact generation, and complete publication-link resolution. |
 
 ## Governance and local review
 
