@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from rdflib import Graph, Namespace, URIRef
 
 
 RECORD_FIELDS = (
@@ -66,8 +67,14 @@ CHANGE_FIELDS = (
     "policy_citation",
     "derivation_query",
 )
-GRAPH_SHA256 = "e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+GRAPH_PATH = REPOSITORY_ROOT / "semantic/data/sap_support_graph.ttl"
+LEGACY_PATH = REPOSITORY_ROOT / "tests/research/benchmark_dataset_legacy.yaml"
+GRAPH_SHA256 = hashlib.sha256(GRAPH_PATH.read_bytes()).hexdigest()
 ZERO_SHA256 = "0" * 64
+MAX_PREREQUISITE_DEPTH = 16
+CIFSUP = Namespace("https://example.org/cifre-kg/support#")
+CIFRE_DATA = "https://example.org/cifre-kg/data/support/note/"
 REVIEWER_ID = "repository-maintainer"
 MIGRATION_REASONS = {
     "SCHEMA_NORMALIZATION",
@@ -189,11 +196,84 @@ V2_FIXTURES = (
         "Find notes alert CALL_FUNCTION_NOT_FOUND in component SD-SLS.",
     ),
 )
+CLOSURE_TARGETS = {
+    "Q25": "3109922",
+    "Q28": "3109922",
+    "Q31": "3109922",
+    "Q26": "3098110",
+    "Q30": "3098110",
+    "Q27": "3201440",
+    "Q29": "3201440",
+    "Q32": "3201440",
+}
 
 
 def _sha256_json(value: Any) -> str:
     encoded = json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _canonical_closure_query(target_note: str) -> str:
+    target_iri = f"{CIFRE_DATA}{target_note}"
+    return (
+        "PREFIX cifsup: <https://example.org/cifre-kg/support#> "
+        "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> "
+        "SELECT ?prerequisite ?noteNumber WHERE { "
+        f"VALUES ?targetNote {{ <{target_iri}> }} "
+        "?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . "
+        "?prerequisite cifsup:noteNumber ?noteNumber . "
+        "FILTER (datatype(?noteNumber) = xsd:string) "
+        "} ORDER BY ?noteNumber"
+    )
+
+
+def _load_graph() -> Graph:
+    graph = Graph()
+    graph.parse(GRAPH_PATH, format="turtle")
+    return graph
+
+
+def _bounded_closure(graph: Graph, target_note: str) -> set[URIRef]:
+    """Return prerequisite nodes with an explicit finite depth bound."""
+    target = URIRef(f"{CIFRE_DATA}{target_note}")
+    visited: set[URIRef] = set()
+    frontier: set[URIRef] = {target}
+    for _depth in range(MAX_PREREQUISITE_DEPTH):
+        next_frontier = {
+            prerequisite
+            for node in frontier
+            for prerequisite in graph.objects(node, CIFSUP.hasPrerequisiteNote)
+            if isinstance(prerequisite, URIRef) and prerequisite not in visited
+        }
+        if not next_frontier:
+            break
+        visited.update(next_frontier)
+        frontier = next_frontier
+    else:
+        raise ValueError(f"prerequisite closure exceeded depth {MAX_PREREQUISITE_DEPTH}")
+    return visited
+
+
+def _derive_closure(graph: Graph, target_note: str) -> list[str]:
+    bounded_nodes = _bounded_closure(graph, target_note)
+    rows = list(graph.query(_canonical_closure_query(target_note)))
+    query_nodes = {row[0] for row in rows}
+    if query_nodes != bounded_nodes:
+        raise ValueError(f"canonical prerequisite query exceeded bounded closure for {target_note}")
+    numbers = sorted(str(row[1]) for row in rows)
+    if len(numbers) != len(set(numbers)) or any(
+        len(number) != 7 or not number.isdigit() for number in numbers
+    ):
+        raise ValueError(
+            f"canonical prerequisite query returned invalid note numbers for {target_note}"
+        )
+    return numbers
+
+
+def _closure_results(graph: Graph) -> dict[str, list[str]]:
+    return {
+        record_id: _derive_closure(graph, target) for record_id, target in CLOSURE_TARGETS.items()
+    }
 
 
 def _write_yaml(path: Path, value: Mapping[str, Any]) -> None:
@@ -254,20 +334,18 @@ def _normalized_record(
     }
 
 
-def _migration_values(item: Mapping[str, Any]) -> tuple[list[str], list[str], str, str]:
+def _migration_values(
+    item: Mapping[str, Any], closure_results: Mapping[str, Sequence[str]]
+) -> tuple[list[str], list[str], str, str]:
     record_id = item["id"]
     gold_before = sorted(set(item["expected_notes"]))
-    if record_id in {"Q25", "Q28", "Q31"}:
-        return (
-            gold_before,
-            sorted(set(gold_before + ["3012445"])),
-            "SUCCESS",
-            "PREREQUISITE_CLOSURE_EXPANSION",
+    if record_id in CLOSURE_TARGETS:
+        reason = (
+            "PREREQUISITE_CLOSURE_EXPANSION"
+            if record_id in {"Q25", "Q28", "Q31"}
+            else "PREREQUISITE_CLOSURE_NORMALIZATION"
         )
-    if record_id in {"Q26", "Q30"}:
-        return gold_before, gold_before, "SUCCESS", "PREREQUISITE_CLOSURE_NORMALIZATION"
-    if record_id in {"Q27", "Q29", "Q32"}:
-        return gold_before, gold_before, "SUCCESS", "PREREQUISITE_CLOSURE_NORMALIZATION"
+        return gold_before, sorted(closure_results[record_id]), "SUCCESS", reason
     if int(item["tier"]) == 5:
         return gold_before, [], "EMPTY_RESULT", "STRICT_CONSTRAINT_STATUS_CORRECTION"
     return gold_before, gold_before, "SUCCESS", "SCHEMA_NORMALIZATION"
@@ -278,15 +356,17 @@ def _derivation(
     reason: str,
     gold_before: list[str],
     gold_after: list[str],
+    closure_results: Mapping[str, Sequence[str]],
 ) -> dict[str, Any]:
-    result = {"gold_before": gold_before, "gold_after": gold_after}
+    result: dict[str, Any] = {"gold_before": gold_before, "gold_after": gold_after}
     if reason in {"PREREQUISITE_CLOSURE_EXPANSION", "PREREQUISITE_CLOSURE_NORMALIZATION"}:
         kind = "canonical_sparql"
-        text = (
-            "SELECT ?prerequisite WHERE { VALUES ?target { ?target_note } "
-            "?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+ ?prerequisite . } "
-            "ORDER BY ?prerequisite"
-        ).replace("?target_note", record_id)
+        target_note = CLOSURE_TARGETS[record_id]
+        text = _canonical_closure_query(target_note)
+        result["target_note"] = target_note
+        result["max_depth"] = MAX_PREREQUISITE_DEPTH
+        if sorted(closure_results[record_id]) != gold_after:
+            raise ValueError(f"closure result mismatch for {record_id}")
         graph_sha256 = GRAPH_SHA256
     else:
         kind = "policy"
@@ -304,8 +384,10 @@ def _derivation(
     }
 
 
-def _manifest_record(item: Mapping[str, Any]) -> dict[str, Any]:
-    gold_before, gold_after, status_after, reason = _migration_values(item)
+def _manifest_record(
+    item: Mapping[str, Any], closure_results: Mapping[str, Sequence[str]]
+) -> dict[str, Any]:
+    gold_before, gold_after, status_after, reason = _migration_values(item, closure_results)
     return {
         "id": item["id"],
         "category_before": item["category"],
@@ -318,7 +400,9 @@ def _manifest_record(item: Mapping[str, Any]) -> dict[str, Any]:
         "schema_after": dict(SCHEMA_AFTER),
         "migration_reason": reason,
         "policy_citation": POLICY_CITATIONS[reason],
-        "derivation_query": _derivation(item["id"], reason, gold_before, gold_after),
+        "derivation_query": _derivation(
+            item["id"], reason, gold_before, gold_after, closure_results
+        ),
         "reviewer_id": REVIEWER_ID,
         "signed_off": True,
     }
@@ -331,10 +415,12 @@ def migrate_benchmark(source: Path, v1: Path, v2: Path, manifest: Path) -> None:
     v2 = Path(v2)
     manifest = Path(manifest)
     historical = _read_legacy(source)
+    graph = _load_graph()
+    closure_results = _closure_results(graph)
 
     v1_records = []
     for item in historical:
-        _before, after, status, reason = _migration_values(item)
+        _before, after, status, reason = _migration_values(item, closure_results)
         v1_records.append(
             _normalized_record(
                 item,
@@ -402,7 +488,7 @@ def migrate_benchmark(source: Path, v1: Path, v2: Path, manifest: Path) -> None:
         "normalized_path": "tests/research/benchmark_dataset_v1.yaml",
         "record_ids": ids,
         "changes": changes,
-        "records": [_manifest_record(item) for item in historical],
+        "records": [_manifest_record(item, closure_results) for item in historical],
         "review": {"reviewer_id": REVIEWER_ID, "signoff_required": True, "signed_off": True},
     }
     validate_migration_manifest(manifest_document)
@@ -458,9 +544,30 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
         for key in ("graph_sha256", "result_sha256")
     ):
         raise ValueError("normalized_schema_v1 derivation hashes are invalid")
+    expected_change = {
+        "change_id": "normalized_schema_v1",
+        "record_ids": expected_ids,
+        "before": {"field": "expected_notes", "type": "legacy_yaml"},
+        "after": {"field": "gold_note_numbers", "type": "sorted_unique_string_array"},
+        "migration_reason": "SCHEMA_NORMALIZATION",
+        "policy_citation": "Section 26.2",
+        "derivation_query": {
+            "kind": "policy",
+            "text": "Convert legacy expected_notes sorted gold_note_numbers.",
+            "graph_sha256": ZERO_SHA256,
+            "result": {"gold_before": [], "gold_after": []},
+            "result_sha256": ZERO_SHA256,
+        },
+    }
+    if dict(change) != expected_change:
+        raise ValueError("normalized_schema_v1 change evidence does not match the canonical policy")
+    historical = _read_legacy(LEGACY_PATH)
+    closure_results = _closure_results(_load_graph())
     if not isinstance(manifest["records"], list) or len(manifest["records"]) != 40:
         raise ValueError("manifest must contain exactly 40 records")
-    for expected_id, record in zip(expected_ids, manifest["records"], strict=True):
+    for expected_id, item, record in zip(
+        expected_ids, historical, manifest["records"], strict=True
+    ):
         if not isinstance(record, Mapping):
             raise ValueError("manifest record must be a mapping")
         _require_keys(record, MANIFEST_RECORD_FIELDS, f"manifest record {expected_id}")
@@ -492,6 +599,9 @@ def validate_migration_manifest(manifest: Mapping[str, Any]) -> None:
                 raise ValueError(f"invalid {key} for {expected_id}")
         if derivation["result_sha256"] != _sha256_json(derivation["result"]):
             raise ValueError(f"result_sha256 mismatch for {expected_id}")
+        expected_record = _manifest_record(item, closure_results)
+        if dict(record) != expected_record:
+            raise ValueError(f"canonical migration evidence mismatch for {expected_id}")
     review = manifest["review"]
     if list(review) != ["reviewer_id", "signoff_required", "signed_off"]:
         raise ValueError("review fields/order must be exact")

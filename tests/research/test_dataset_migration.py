@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from rdflib import Graph
 
 ROOT = Path(__file__).parents[2]
 HISTORICAL = ROOT / "tests/research/benchmark_dataset.yaml"
@@ -18,6 +19,8 @@ _MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_MODULE)
 migrate_benchmark = _MODULE.migrate_benchmark
 validate_migration_manifest = _MODULE.validate_migration_manifest
+sha256_json = _MODULE._sha256_json
+GRAPH_PATH = _MODULE.GRAPH_PATH
 
 
 def load_yaml(path: Path):
@@ -197,4 +200,54 @@ def test_manifest_validator_rejects_unsigned_or_incomplete_derivation(tmp_path: 
     manifest = load_yaml(paths[2])
     del manifest["records"][0]["derivation_query"]["graph_sha256"]
     with pytest.raises(ValueError, match="graph_sha256"):
+        validate_migration_manifest(manifest)
+
+
+def test_stored_prerequisite_queries_execute_against_checked_in_graph() -> None:
+    manifest = load_yaml(ROOT / "tests/research/benchmark_migration_manifest_v1.yaml")
+    graph = Graph()
+    graph.parse(GRAPH_PATH, format="turtle")
+    closure_ids = {"Q25", "Q26", "Q27", "Q28", "Q29", "Q30", "Q31", "Q32"}
+    for record in manifest["records"]:
+        if record["id"] not in closure_ids:
+            continue
+        derivation = record["derivation_query"]
+        rows = list(graph.query(derivation["text"]))
+        note_numbers = sorted({str(row[-1]) for row in rows})
+        assert note_numbers == record["gold_after"]
+        assert "cifsup:hasPrerequisiteNote+" in derivation["text"]
+        assert "3109922" in derivation["text"] or record["id"] not in {"Q25", "Q28", "Q31"}
+        assert derivation["result"]["gold_after"] == note_numbers
+        assert derivation["result_sha256"] == sha256_json(derivation["result"])
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("records", 0, "gold_before"), ["9999999"]),
+        (("records", 32, "status_after"), "SUCCESS"),
+        (("records", 24, "derivation_query", "graph_sha256"), "0" * 64),
+        (("records", 24, "derivation_query", "kind"), "policy"),
+        (("records", 24, "derivation_query", "text"), "SELECT 1"),
+    ],
+)
+def test_manifest_validator_rejects_semantic_mutations(
+    path: tuple[object, ...], value: object
+) -> None:
+    manifest = load_yaml(ROOT / "tests/research/benchmark_migration_manifest_v1.yaml")
+    target: object = manifest
+    for key in path[:-1]:
+        target = target[key]  # type: ignore[index]
+    target[path[-1]] = value  # type: ignore[index]
+    with pytest.raises(ValueError):
+        validate_migration_manifest(manifest)
+
+
+def test_manifest_validator_rejects_result_mutation_even_with_recomputed_hash() -> None:
+    manifest = load_yaml(ROOT / "tests/research/benchmark_migration_manifest_v1.yaml")
+    manifest["records"][24]["derivation_query"]["result"]["gold_after"] = ["9999999"]
+    manifest["records"][24]["derivation_query"]["result_sha256"] = sha256_json(
+        manifest["records"][24]["derivation_query"]["result"]
+    )
+    with pytest.raises(ValueError):
         validate_migration_manifest(manifest)

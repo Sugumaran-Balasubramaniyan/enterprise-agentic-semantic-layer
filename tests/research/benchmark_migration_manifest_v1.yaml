@@ -1039,13 +1039,17 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q25 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3109922>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
       gold_before: *id026
       gold_after: *id027
-    result_sha256: 98491498d44d18318e0574815a97033c977eab8a7f18a0e800ce90e8aa7ca664
+      target_note: '3109922'
+      max_depth: 16
+    result_sha256: e97c27a98d2e79186e73bba87cb9ee65e89fe990692857ba754f0894ef7e4ed6
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q26
@@ -1053,7 +1057,8 @@ records:
   category_after: prerequisite_chain
   gold_before: &id028
   - '3012445'
-  gold_after: *id028
+  gold_after: &id029
+  - '3012445'
   status_before: SUCCESS
   status_after: SUCCESS
   schema_before:
@@ -1079,21 +1084,26 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q26 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3098110>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
       gold_before: *id028
-      gold_after: *id028
-    result_sha256: 397683d84fcc1e3892e6e51d27f0ab870c0fd51c19c1295786e0eb9091571984
+      gold_after: *id029
+      target_note: '3098110'
+      max_depth: 16
+    result_sha256: c99eca22b2624588a005c60b151d7f7a1b71a9e4e8fef41cef214b7f2a072d88
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q27
   category_before: prerequisite_chain
   category_after: prerequisite_chain
-  gold_before: &id029
+  gold_before: &id030
   - '3185002'
-  gold_after: *id029
+  gold_after: &id031
+  - '3185002'
   status_before: SUCCESS
   status_after: SUCCESS
   schema_before:
@@ -1119,21 +1129,25 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q27 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3201440>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
-      gold_before: *id029
-      gold_after: *id029
-    result_sha256: a1be1cd1e5020c31b051076d84a04642e6dcf5d735b577f6215f3e6c4bc024ca
+      gold_before: *id030
+      gold_after: *id031
+      target_note: '3201440'
+      max_depth: 16
+    result_sha256: f5d5d062cf9a9e27bc0c76f102133ab98361e3c44ae001da781ba921460778fa
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q28
   category_before: prerequisite_chain
   category_after: prerequisite_chain
-  gold_before: &id030
+  gold_before: &id032
   - '3098110'
-  gold_after: &id031
+  gold_after: &id033
   - '3012445'
   - '3098110'
   status_before: SUCCESS
@@ -1161,21 +1175,26 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q28 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3109922>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
-      gold_before: *id030
-      gold_after: *id031
-    result_sha256: 98491498d44d18318e0574815a97033c977eab8a7f18a0e800ce90e8aa7ca664
+      gold_before: *id032
+      gold_after: *id033
+      target_note: '3109922'
+      max_depth: 16
+    result_sha256: e97c27a98d2e79186e73bba87cb9ee65e89fe990692857ba754f0894ef7e4ed6
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q29
   category_before: prerequisite_chain
   category_after: prerequisite_chain
-  gold_before: &id032
+  gold_before: &id034
   - '3185002'
-  gold_after: *id032
+  gold_after: &id035
+  - '3185002'
   status_before: SUCCESS
   status_after: SUCCESS
   schema_before:
@@ -1201,21 +1220,26 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q29 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3201440>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
-      gold_before: *id032
-      gold_after: *id032
-    result_sha256: a1be1cd1e5020c31b051076d84a04642e6dcf5d735b577f6215f3e6c4bc024ca
+      gold_before: *id034
+      gold_after: *id035
+      target_note: '3201440'
+      max_depth: 16
+    result_sha256: f5d5d062cf9a9e27bc0c76f102133ab98361e3c44ae001da781ba921460778fa
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q30
   category_before: prerequisite_chain
   category_after: prerequisite_chain
-  gold_before: &id033
+  gold_before: &id036
   - '3012445'
-  gold_after: *id033
+  gold_after: &id037
+  - '3012445'
   status_before: SUCCESS
   status_after: SUCCESS
   schema_before:
@@ -1241,21 +1265,25 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q30 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3098110>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
-      gold_before: *id033
-      gold_after: *id033
-    result_sha256: 397683d84fcc1e3892e6e51d27f0ab870c0fd51c19c1295786e0eb9091571984
+      gold_before: *id036
+      gold_after: *id037
+      target_note: '3098110'
+      max_depth: 16
+    result_sha256: c99eca22b2624588a005c60b151d7f7a1b71a9e4e8fef41cef214b7f2a072d88
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q31
   category_before: prerequisite_chain
   category_after: prerequisite_chain
-  gold_before: &id034
+  gold_before: &id038
   - '3098110'
-  gold_after: &id035
+  gold_after: &id039
   - '3012445'
   - '3098110'
   status_before: SUCCESS
@@ -1283,21 +1311,26 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q31 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3109922>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
-      gold_before: *id034
-      gold_after: *id035
-    result_sha256: 98491498d44d18318e0574815a97033c977eab8a7f18a0e800ce90e8aa7ca664
+      gold_before: *id038
+      gold_after: *id039
+      target_note: '3109922'
+      max_depth: 16
+    result_sha256: e97c27a98d2e79186e73bba87cb9ee65e89fe990692857ba754f0894ef7e4ed6
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q32
   category_before: prerequisite_chain
   category_after: prerequisite_chain
-  gold_before: &id036
+  gold_before: &id040
   - '3185002'
-  gold_after: *id036
+  gold_after: &id041
+  - '3185002'
   status_before: SUCCESS
   status_after: SUCCESS
   schema_before:
@@ -1323,21 +1356,25 @@ records:
   policy_citation: Sections 6.3 and 26.1
   derivation_query:
     kind: canonical_sparql
-    text: SELECT ?prerequisite WHERE { VALUES ?target { Q32 } ?target <https://example.org/cifre-kg/vocab/requiresPrerequisite>+
-      ?prerequisite . } ORDER BY ?prerequisite
+    text: 'PREFIX cifsup: <https://example.org/cifre-kg/support#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?prerequisite ?noteNumber WHERE { VALUES ?targetNote { <https://example.org/cifre-kg/data/support/note/3201440>
+      } ?targetNote cifsup:hasPrerequisiteNote+ ?prerequisite . ?prerequisite cifsup:noteNumber
+      ?noteNumber . FILTER (datatype(?noteNumber) = xsd:string) } ORDER BY ?noteNumber'
     graph_sha256: e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017
     result:
-      gold_before: *id036
-      gold_after: *id036
-    result_sha256: a1be1cd1e5020c31b051076d84a04642e6dcf5d735b577f6215f3e6c4bc024ca
+      gold_before: *id040
+      gold_after: *id041
+      target_note: '3201440'
+      max_depth: 16
+    result_sha256: f5d5d062cf9a9e27bc0c76f102133ab98361e3c44ae001da781ba921460778fa
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q33
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id037
+  gold_before: &id042
   - '3201440'
-  gold_after: &id038 []
+  gold_after: &id043 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1366,17 +1403,17 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id037
-      gold_after: *id038
+      gold_before: *id042
+      gold_after: *id043
     result_sha256: e991d77fc32a80afa4a3a8b1a92850feb41ec2339453ae1bede56d49a4ae87e2
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q34
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id039
+  gold_before: &id044
   - '3109922'
-  gold_after: &id040 []
+  gold_after: &id045 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1405,17 +1442,17 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id039
-      gold_after: *id040
+      gold_before: *id044
+      gold_after: *id045
     result_sha256: 227847a5cedabcf9ce2002d7ec065932f00948bb9f436bbe87fc8ddba7068fc9
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q35
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id041
+  gold_before: &id046
   - '3345100'
-  gold_after: &id042 []
+  gold_after: &id047 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1444,17 +1481,17 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id041
-      gold_after: *id042
+      gold_before: *id046
+      gold_after: *id047
     result_sha256: 74779fe8c45df3fc05a6cfb63876550b86ce14ef31bca67a3cbbb04c2d475f58
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q36
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id043
+  gold_before: &id048
   - '3144890'
-  gold_after: &id044 []
+  gold_after: &id049 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1483,17 +1520,17 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id043
-      gold_after: *id044
+      gold_before: *id048
+      gold_after: *id049
     result_sha256: 356724f72f0bd9e387182f5adedd7a719dd2dabedb3300ec6680a3b3d783fe67
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q37
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id045
+  gold_before: &id050
   - '3221980'
-  gold_after: &id046 []
+  gold_after: &id051 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1522,17 +1559,17 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id045
-      gold_after: *id046
+      gold_before: *id050
+      gold_after: *id051
     result_sha256: a8bbb99aaf06b329bc53176d0b8b965f2d576920e557bcbc63549bbb662257e7
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q38
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id047
+  gold_before: &id052
   - '3088210'
-  gold_after: &id048 []
+  gold_after: &id053 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1561,17 +1598,17 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id047
-      gold_after: *id048
+      gold_before: *id052
+      gold_after: *id053
     result_sha256: 2966a9bc122dc6614361d3c8df4e6b405752b22912473ed3f9c56f2fd03d3c1b
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q39
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id049
+  gold_before: &id054
   - '2765001'
-  gold_after: &id050 []
+  gold_after: &id055 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1600,17 +1637,17 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id049
-      gold_after: *id050
+      gold_before: *id054
+      gold_after: *id055
     result_sha256: 210e7298b95021354125621601fa8631c30963a1681e9454285d5eaec83c2c67
   reviewer_id: repository-maintainer
   signed_off: true
 - id: Q40
   category_before: reflective_relaxation
   category_after: reflective_relaxation
-  gold_before: &id051
+  gold_before: &id056
   - '2954112'
-  gold_after: &id052 []
+  gold_after: &id057 []
   status_before: SUCCESS
   status_after: EMPTY_RESULT
   schema_before:
@@ -1639,8 +1676,8 @@ records:
     text: Apply strict constraints without semantic relaxation.
     graph_sha256: '0000000000000000000000000000000000000000000000000000000000000000'
     result:
-      gold_before: *id051
-      gold_after: *id052
+      gold_before: *id056
+      gold_after: *id057
     result_sha256: 3c2cd3e6ab9f4b2a2eb4d72d5c71b7ffeb8426e3e9383519b934a28a23354478
   reviewer_id: repository-maintainer
   signed_off: true
