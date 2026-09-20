@@ -285,7 +285,7 @@
       "additionalProperties": false,
       "required": ["checks", "combined_graph"],
       "properties": {
-        "checks": {"type": "array", "items": {"type": "object"}},
+"checks": {"type": "array", "items": {"type": "object", "required": ["check_id", "scope"], "properties": {"check_id": {"type": "string"}, "scope": {"enum": ["support", "erp", "combined"]}}}},
         "combined_graph": {"type": "object"}
       }
     }

@@ -32,6 +32,7 @@ OperationKind = Literal[
     "execution_repair",
     "semantic_relaxation",
     "abstention",
+    "compile_failure",
 ]
 
 
@@ -487,9 +488,9 @@ class AQRReflectiveAgent:
             operation = self._make_operation(
                 query_text=query_text,
                 plan=failed_plan,
-                sparql="",
+                sparql=None,
                 attempt_index=0,
-                operation_kind="initial",
+                operation_kind="compile_failure",
                 reason_code=reason,
                 status_before=Status.SYNTAX_ERROR,
                 status_after=Status.SYNTAX_ERROR,
@@ -505,11 +506,11 @@ class AQRReflectiveAgent:
                 normalized_request=normalized,
                 grounding=entities,
                 plan=failed_plan,
-                sparql_initial="",
-                sparql_final="",
+                sparql_initial=None,
+                sparql_final=None,
                 status=Status.SYNTAX_ERROR,
                 reason_code=reason,
-                attempts=1,
+                attempts=0,
                 repair=repair,
                 relaxation=RelaxationDisclosure(
                     attempted=False,

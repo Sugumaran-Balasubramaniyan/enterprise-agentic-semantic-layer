@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import jsonschema
 import pytest
+import yaml
 
 import semantic_layer.research.benchmark_runner as benchmark_runner_module
 from semantic_layer.kg.loader import SAPKnowledgeGraph
@@ -14,6 +16,7 @@ from semantic_layer.research.benchmark_runner import (
     _VALIDATION_SHAPE_PATHS,
     BenchmarkRunner,
     _reject_metadata_nulls,
+    _validate_corpus,
     build_validation_metadata,
     validate_result_id_references,
 )
@@ -125,9 +128,11 @@ def test_validation_metadata_records_truthful_complete_matrix() -> None:
     assert rows["COMBINED_VALID"]["observed_conforms"] is True
     assert rows["SUPPORT_INVALID"]["result"] == "EXPECTED_NONCONFORMANT"
     assert rows["ERP_INVALID"]["result"] == "EXPECTED_NONCONFORMANT"
+    assert {row["scope"] for row in rows.values()} == {"support", "erp", "combined"}
     algorithm_cases = rows["PREREQUISITE_CYCLE_DEPTH"]["algorithm_cases"]
     assert algorithm_cases[0] == {
         "fixture": "support-prerequisite-cycle.ttl",
+        "provenance_dataset_id": "cifre-synthetic-support-prerequisite-cycle-v1",
         "cycle_detected": True,
         "cycle_edges": [["A", "B"], ["B", "C"], ["C", "A"]],
         "reachable_unique": ["B", "C"],
@@ -139,6 +144,7 @@ def test_validation_metadata_records_truthful_complete_matrix() -> None:
     }
     assert algorithm_cases[1] == {
         "fixture": "support-prerequisite-depth17.ttl",
+        "provenance_dataset_id": "cifre-synthetic-support-prerequisite-depth17-v1",
         "cycle_detected": False,
         "cycle_edges": [],
         "reachable_unique": [f"N{index}" for index in range(1, 17)],
@@ -169,6 +175,28 @@ def test_validation_metadata_records_truthful_complete_matrix() -> None:
     ]
     assert combined["shape_paths"] == list(_VALIDATION_SHAPE_PATHS)
     assert combined["conforms"] is True
+
+
+def test_validation_scope_is_required_and_closed_in_result_schema() -> None:
+    schema = json.loads((ROOT / "tests/research/result_schema.json").read_bytes())
+    row_schema = schema["$defs"]["validation"]["properties"]["checks"]["items"]
+
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.Draft202012Validator(row_schema).validate({"check_id": "SUPPORT_VALID"})
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.Draft202012Validator(row_schema).validate(
+            {"check_id": "SUPPORT_VALID", "scope": "algorithm"}
+        )
+
+
+def test_corpus_preflight_fails_closed_when_declared_success_loses_grounding() -> None:
+    corpus = yaml.safe_load(
+        (ROOT / "tests/research/benchmark_dataset_v1.yaml").read_text(encoding="utf-8")
+    )
+    corpus["records"][0]["question"] = "Find notes for alert UNKNOWN_ALERT."
+
+    with pytest.raises(ValueError, match="does not reach a supported grounded intent"):
+        _validate_corpus(corpus)
 
 
 @pytest.mark.parametrize("forbidden", ["None", "NaN", "Infinity", "-Infinity"])

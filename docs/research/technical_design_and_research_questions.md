@@ -34,8 +34,9 @@ The path is implemented in the [`schema linker`](../../src/semantic_layer/reason
 [`SPARQL compiler`](../../src/semantic_layer/reasoning/text_to_sparql.py),
 [`bounded reasoner`](../../src/semantic_layer/reasoning/reflective_agent.py),
 and [`KG loader`](../../src/semantic_layer/kg/loader.py). The canonical result
-file is a Task 13 output, so this document does not substitute prose for its
-future hashes or metrics.
+file is committed at [`results/latest_benchmark.json`](../../results/latest_benchmark.json);
+its preliminary synthetic metrics and hashes are regenerated from the same
+source contract as this document.
 
 ## Implemented and proposed boundaries
 
@@ -55,6 +56,11 @@ proprietary or external data, an external graph service, production
 integration, and human-evaluation results. Those omissions are not hidden
 inside the proposed column.
 
+PPMS resources intentionally do not have separate node shapes in this
+prototype. The support shapes validate the PPMS classes used by support-note
+relationships through their declared class constraints; dedicated PPMS
+targets would be appropriate when lifecycle-specific invariants are added.
+
 ## Typed interfaces
 
 The current pipeline passes typed values between stages rather than passing an
@@ -67,7 +73,7 @@ unrestricted prompt or executable string through every stage.
 | `TextToSPARQLEngine` | `validate_projections(plan)` followed by deterministic `compile(plan)` | Implemented; no arbitrary model text is executed. |
 | `ReasoningResult` | Status, reason code, attempts, initial/final query, bindings, predicted notes, repair ledger, relaxation disclosure, answer scope, and provenance | Implemented; strict bindings and relaxed candidates are separate. |
 | `ValidationReport` | Conformance, report text, shapes path, scope (`support`, `erp`, or `combined`), and inference | Implemented; scope must be reported accurately. |
-| Benchmark record/artifact | Expected/observed status, gold/predicted note sets, exact-set and set metrics, hashes, environment, and per-query evidence | Schema and runner are implemented; canonical final artifact is Task 13-owned. |
+| Benchmark record/artifact | Expected/observed status, gold/predicted note sets, exact-set and set metrics, hashes, environment, and per-query evidence | Schema, runner, and the committed canonical artifact are implemented; values remain preliminary and synthetic. |
 
 ## RDF vs property graph
 
@@ -268,7 +274,8 @@ answer-set fields (`exact_set`, `precision`, `recall`, `f1`), and operational
 fields (`syntax_success_rate`, `execution_success_rate`,
 `recovery_attempt_rate`, `recovery_success_rate`, `strict_empty_rate`,
 `unsupported_rejection_rate`, and `optional_binding_rate`). This is the
-complete current metric surface; the final values remain Task 13 evidence.
+complete current metric surface; regenerated preliminary values are recorded in
+the committed artifact and verification report.
 
 Future-only metric fields, not emitted by the current artifact, are
 `relation_path_correctness`, `groundedness`, `provenance_completeness`,
@@ -282,11 +289,11 @@ require a separately implemented future experiment.
 `cifre-synthetic-aqr-v1` contains 40 controlled synthetic records. The v2
 fixture contains 52 records including negative unknown, ambiguous, and strict
 empty cases. Each record has a stable ID, question, category, expected status,
-gold note set, strict flag, and exact-set policy. The future artifact records
+gold note set, strict flag, and exact-set policy. The committed artifact records
 per-query grounding, plan, query, status, reason, attempts, bindings,
 relaxations, provenance, input hashes, environment, and separate aggregate
-metrics for each corpus and condition. Task 13 owns creation and final
-verification of `results/latest_benchmark.json`.
+metrics for each corpus and condition. Its evidence is preliminary, synthetic,
+and controlled rather than a production or external benchmark.
 
 ## Retrieval alongside the KG
 

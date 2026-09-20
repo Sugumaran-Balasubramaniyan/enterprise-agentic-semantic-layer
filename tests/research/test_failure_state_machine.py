@@ -157,6 +157,28 @@ def test_no_op_repair_is_explicit_and_diagnostic_is_bounded() -> None:
     assert len(sanitize_diagnostic("x" * 600)) == 512
 
 
+def test_compile_failure_records_zero_executed_attempts_and_nonexecuted_operation() -> None:
+    kg = FakeKnowledgeGraph([[]])
+    agent = AQRReflectiveAgent(kg)
+
+    def fail_compile(_plan: object) -> str:
+        raise ValueError("synthetic compile failure")
+
+    agent.compiler.compile = fail_compile  # type: ignore[method-assign]
+    result = agent.run("Which SAP Note resolves alert TIME_OUT?")
+
+    assert result.status is Status.SYNTAX_ERROR
+    assert result.reason_code is ReasonCode.SPARQL_SYNTAX
+    assert result.attempts == 0
+    assert kg.calls == []
+    assert len(result.repair.operations) == 1
+    operation = result.repair.operations[0]
+    assert operation.operation_kind == "compile_failure"
+    assert operation.sparql_text is None
+    assert operation.sparql_sha256 is None
+    assert operation.error_class == "ValueError"
+
+
 @pytest.mark.parametrize(
     ("diagnostic", "expected", "preserved"),
     [

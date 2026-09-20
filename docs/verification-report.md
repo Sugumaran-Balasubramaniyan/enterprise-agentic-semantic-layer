@@ -2,7 +2,7 @@
 
 **Evidence date:** 2026-09-20 UTC
 **Scope:** final CIFRE synthetic research artifact and reproducibility gate
-**Status:** final preliminary evidence recorded; canonical artifact committed
+**Status:** final preliminary evidence recorded; canonical artifact finalized
 
 > This is an independent, unaffiliated candidate prototype using synthetic
 > support and product-lifecycle fixtures. It is not an SAP product, SAP
@@ -43,16 +43,16 @@ experiment and evidence protocol.
 
 ## Evidence fields
 
-This Task 13 finalization run used source revision
-`9b3da7c836be605d084138cb5ba99fdf438c918e`, Python `3.12.3`, Linux
-`aarch64`, and pip `25.2`. The exact locked package map is embedded in the
-artifact environment section.
+This Task 13 finalization run used base source revision
+`0744f635f68f12ff71af7618dd0f50f470424975` plus the final hardening changes in
+the working tree, Python `3.12.3`, Linux `aarch64`, and pip `25.2`. The exact
+locked package map is embedded in the artifact environment section.
 
 | Field | Observed evidence |
 | --- | --- |
-| Source revision for measured run | `9b3da7c836be605d084138cb5ba99fdf438c918e` |
+| Base source revision for measured run | `0744f635f68f12ff71af7618dd0f50f470424975` plus final working-tree hardening changes |
 | Artifact schema | `1.0.0`, canonical UTF-8 JSON, 184 per-query records, two corpora, two conditions |
-| Pre-documentation temporary-run manifest | `156` entries; digest `33fe84eac0ddccd67b85c44358b70bb4a3fbfaa373fac5b06d4c113c5a31ffaa` (historical temporary evidence, not the canonical post-documentation digest) |
+| Pre-documentation temporary-run manifest | `157` entries; digest `142db4126ab35bd559c640258f284b64b0c691692a96aedb718793d6469d2fd8` (historical temporary evidence, not the canonical post-documentation digest) |
 | Dependency lock | `constraints/py312.txt`; SHA-256 `a8b8a5054ae3d55cfc51950b0276d9d7d00c725c7676cad1cdc741ef274f1534` |
 | Platform/environment | Python `3.12.3`; Linux `aarch64`; pip `25.2`; third-party versions are sorted in artifact `environment.packages` |
 | Canonical artifact | [`results/latest_benchmark.json`](../results/latest_benchmark.json), schema-validated and manifest-validated |
@@ -64,26 +64,26 @@ artifact environment section.
 
 | Corpus | Dataset SHA-256 | N | Condition(s) | Status accuracy | Exact / precision / recall / F1 | Syntax | Execution | Strict empty | Unsupported rejection |
 | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| `cifre-synthetic-aqr-v1` | `6fe8532232c66b04c7cbe92f8479e809dd57c38890d59db4672d0c20a9c04f67` | 40 | no-reflection; bounded-repair | `0.200000` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.200000` | `0.025000` | `null` |
-| `cifre-synthetic-aqr-v2` | `40c3cf58b29de5d99a34f5640b982e79c42a217d8e6f73d8b7534a3eddd60168` | 52 | no-reflection; bounded-repair | `0.384615` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.230769` | `0.096154` | `1.000000` |
+| `cifre-synthetic-aqr-v1` | `6fe8532232c66b04c7cbe92f8479e809dd57c38890d59db4672d0c20a9c04f67` | 40 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `1.000000` | `0.200000` | `null` |
+| `cifre-synthetic-aqr-v2` | `40c3cf58b29de5d99a34f5640b982e79c42a217d8e6f73d8b7534a3eddd60168` | 52 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.846154` | `0.230769` | `1.000000` |
 
 The two conditions are retained separately in the artifact and produce the
 same aggregate values on these deterministic fixtures. Status counts are v1
-`SUCCESS=7, EMPTY_RESULT=1, UNSUPPORTED=32` and v2
-`SUCCESS=7, EMPTY_RESULT=5, UNSUPPORTED=40`; all other statuses are zero.
+`SUCCESS=32, EMPTY_RESULT=8, UNSUPPORTED=0` and v2
+`SUCCESS=32, EMPTY_RESULT=12, UNSUPPORTED=8`; all other statuses are zero.
 
 The canonical validation inputs were measured with these byte hashes:
 
 | Input | SHA-256 |
 | --- | --- |
-| `semantic/ontology/sap_support.ttl` | `40a24c18b2037fdc8e90843272801b21eb8eb062a65e1b98dcb776bc8bde3b30` |
+| `semantic/ontology/sap_support.ttl` | `5d8ee297caf5ee2842fdf76c568428138523a93a9239cef5db82a3a5234164a8` |
 | `semantic/ontology/sap_ppms.ttl` | `90aa9beea27ec0a04851255b003432a679b673bc7c39c422cf966bcdee7c49d8` |
 | `semantic/data/sap_support_graph.ttl` | `e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017` |
 | `semantic/ontology/sap_erp.ttl` | `9e3031e50268f6288b671f835a5059e042cd62ad0904a925754f55dfb9e1c971` |
 | `semantic/ontology/sample-graph-valid.ttl` | `a71f3009c6b5961985ffac339f0725b994a385db899545a66a60168b409c09fe` |
 | `semantic/shapes/sap_support_shapes.ttl` | `483850daf948b45f3984a0374fff59d8445d6f40e0c9ce8828a87b79c047ed76` |
 | `semantic/shapes/sap_erp_shapes.ttl` | `e3d7dbb687800fd3a4d60b09a8551f4318553f148de43c61b009a9705090b647` |
-| combined graph / shapes | `95db160d7c1efc576cdd4c76c488f0f8869929ab6f7b554b37be9e3baf445fa7` / `5568aca9287fbeb9f0731bb25837ed481e2f650d72fda921ebfe3f70e9eb7127` |
+| combined graph / shapes | `f419406cdc4367d3b9cfce17bb8aa5a405eb2b4987f37298b7820cb081fae6cb` / `5568aca9287fbeb9f0731bb25837ed481e2f650d72fda921ebfe3f70e9eb7127` |
 
 ## Commands
 

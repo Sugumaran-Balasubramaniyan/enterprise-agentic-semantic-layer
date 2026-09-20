@@ -75,12 +75,12 @@ finalized explicitly and then pass the same gate again.
 
 ### Measured preliminary run
 
-This Task 13 finalization run was executed from source revision
-`9b3da7c836be605d084138cb5ba99fdf438c918e` on Python `3.12.3`, Linux
-`aarch64`, with pip `25.2` and lock SHA-256
+This Task 13 finalization run was executed from base source revision
+`0744f635f68f12ff71af7618dd0f50f470424975` plus the final hardening changes in
+the working tree, on Python `3.12.3`, Linux `aarch64`, with pip `25.2` and lock SHA-256
 `a8b8a5054ae3d55cfc51950b0276d9d7d00c725c7676cad1cdc741ef274f1534`.
-The pre-documentation temporary run contained 156 manifest entries and had digest
-`33fe84eac0ddccd67b85c44358b70bb4a3fbfaa373fac5b06d4c113c5a31ffaa`.
+The pre-documentation temporary run contained 157 manifest entries and had digest
+`142db4126ab35bd559c640258f284b64b0c691692a96aedb718793d6469d2fd8`.
 That digest is historical evidence for the temporary run, not the canonical
 post-documentation digest. Read the current canonical internal digest from
 `results/latest_benchmark.json` (`hash_manifest.digest_sha256`) after checkout;
@@ -91,16 +91,18 @@ document because it is also manifest-covered; compute it with
 
 | Corpus | Dataset SHA-256 | N | Condition | Status accuracy | Exact / P / R / F1 | Syntax | Execution | Strict empty | Unsupported rejection |
 | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| v1 `cifre-synthetic-aqr-v1` | `6fe8532232c66b04c7cbe92f8479e809dd57c38890d59db4672d0c20a9c04f67` | 40 | no-reflection; bounded-repair | `0.200000` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.200000` | `0.025000` | `null` |
-| v2 `cifre-synthetic-aqr-v2` | `40c3cf58b29de5d99a34f5640b982e79c42a217d8e6f73d8b7534a3eddd60168` | 52 | no-reflection; bounded-repair | `0.384615` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.230769` | `0.096154` | `1.000000` |
+| v1 `cifre-synthetic-aqr-v1` | `6fe8532232c66b04c7cbe92f8479e809dd57c38890d59db4672d0c20a9c04f67` | 40 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `1.000000` | `0.200000` | `null` |
+| v2 `cifre-synthetic-aqr-v2` | `40c3cf58b29de5d99a34f5640b982e79c42a217d8e6f73d8b7534a3eddd60168` | 52 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.846154` | `0.230769` | `1.000000` |
 
 The two conditions produce the same aggregate values on these deterministic
 fixtures; the artifact retains separate per-query records and condition IDs.
-Status counts are v1 `SUCCESS=7, EMPTY_RESULT=1, UNSUPPORTED=32` and v2
-`SUCCESS=7, EMPTY_RESULT=5, UNSUPPORTED=40` (all other statuses zero). The
+Status counts are v1 `SUCCESS=32, EMPTY_RESULT=8, UNSUPPORTED=0` and v2
+`SUCCESS=32, EMPTY_RESULT=12, UNSUPPORTED=8` (all other statuses zero). The
 combined graph and shape hashes are
-`95db160d7c1efc576cdd4c76c488f0f8869929ab6f7b554b37be9e3baf445fa7` and
+`f419406cdc4367d3b9cfce17bb8aa5a405eb2b4987f37298b7820cb081fae6cb` and
 `5568aca9287fbeb9f0731bb25837ed481e2f650d72fda921ebfe3f70e9eb7127`.
+The support ontology input hash is
+`5d8ee297caf5ee2842fdf76c568428138523a93a9239cef5db82a3a5234164a8`.
 
 ### Current artifact metric fields
 

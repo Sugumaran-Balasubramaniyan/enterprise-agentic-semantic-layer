@@ -32,6 +32,7 @@ reviewer can run in this checkout from research that is only proposed.
 - [Testing and evaluation](#testing-and-evaluation)
 - [Governance and local review](#governance-and-local-review)
 - [Repository map](#repository-map)
+- [Repository handbook and evidence map](#repository-handbook-and-evidence-map)
 
 ## Synthetic KG and AQR research prototype
 
@@ -89,7 +90,7 @@ finalization boundary in `semantic_layer.validation` and rerun every gate.
 `research-demo` prints a local reasoning trace. W3C RDF, OWL, SPARQL 1.1, and
 SHACL are referenced as standards; this README does not invent a citation or
 claim conformance beyond the checks that are run.
-Task 13 finalization records the measured preliminary artifact and its locked
+Finalization records the measured preliminary artifact and its locked
 verification evidence.
 
 ### Preliminary controlled synthetic benchmark

@@ -33,6 +33,7 @@ from semantic_layer.reasoning.query_planner import (
     evaluate_prerequisite_traversal,
 )
 from semantic_layer.reasoning.reflective_agent import AQRReflectiveAgent, ReasoningResult
+from semantic_layer.reasoning.schema_linker import SchemaLinker
 from semantic_layer.research.contracts import (
     CONDITIONS,
     NAMESPACE_REGISTRY,
@@ -89,6 +90,7 @@ _VALIDATION_SHAPE_PATHS = (
     "semantic/shapes/sap_support_shapes.ttl",
     "semantic/shapes/sap_erp_shapes.ttl",
 )
+_PREREQUISITE_FIXTURE_MANIFEST = "semantic/data/support-prerequisite-fixtures.yaml"
 _CIFMETA = Namespace("https://example.org/cifre-kg/meta#")
 _CIFDATA = Namespace("https://example.org/cifre-kg/data/")
 _SH = Namespace("http://www.w3.org/ns/shacl#")
@@ -134,6 +136,25 @@ def _validate_corpus(corpus: Mapping[str, Any]) -> None:
             f"benchmark corpus {corpus_id} must use exact query IDs "
             f"{expected_query_ids[0]}–{expected_query_ids[-1]}"
         )
+    linker = SchemaLinker()
+    for record in records:
+        expected_status = str(record.get("expected_status"))
+        grounded = linker.ground_or_abstain(str(record.get("question", "")))
+        if expected_status in {Status.SUCCESS.value, Status.EMPTY_RESULT.value}:
+            if grounded.failure_class is not ReasonCode.NONE or grounded.intent == "UNSUPPORTED":
+                raise ValueError(
+                    f"corpus {corpus_id} record {record['id']} does not reach a supported "
+                    f"grounded intent: {grounded.failure_class.value}"
+                )
+            continue
+        if expected_status == Status.UNSUPPORTED.value:
+            expected_reason = str(record.get("reflection_reason", ""))
+            if grounded.intent != "UNSUPPORTED" or grounded.failure_class.value != expected_reason:
+                raise ValueError(
+                    f"corpus {corpus_id} record {record['id']} changed its declared "
+                    f"unsupported contract: expected {expected_reason!r}, observed "
+                    f"{grounded.failure_class.value!r}"
+                )
 
 
 def _decimal(value: Decimal | int | str) -> Decimal:
@@ -775,6 +796,33 @@ def _validation_result(expected: bool, observed: bool) -> str:
     return "FAIL"
 
 
+def _load_prerequisite_fixture_manifest(root: Path) -> dict[str, dict[str, str]]:
+    path = root / _PREREQUISITE_FIXTURE_MANIFEST
+    document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(document, Mapping) or document.get("schema_version") != "1.0":
+        raise ValueError("invalid prerequisite fixture manifest")
+    if document.get("source_kind") != "synthetic_fixture":
+        raise ValueError("prerequisite fixture manifest must be synthetic")
+    fixtures = document.get("fixtures")
+    if not isinstance(fixtures, list):
+        raise TypeError("prerequisite fixture manifest has no fixture list")
+    indexed: dict[str, dict[str, str]] = {}
+    for fixture in fixtures:
+        if not isinstance(fixture, Mapping):
+            raise TypeError("invalid prerequisite fixture manifest entry")
+        required = {"path", "dataset_id", "target"}
+        if set(fixture) != required:
+            raise ValueError("prerequisite fixture manifest entry fields are incomplete")
+        relative = str(fixture["path"])
+        if not (root / relative).is_file():
+            raise ValueError(f"prerequisite fixture is missing: {relative}")
+        indexed[relative] = {
+            "dataset_id": str(fixture["dataset_id"]),
+            "target": str(fixture["target"]),
+        }
+    return indexed
+
+
 def _shacl_check(
     root: Path,
     check_id: str,
@@ -782,6 +830,7 @@ def _shacl_check(
     shape_paths: Sequence[str],
     expected: bool,
     *,
+    scope: str,
     data_graph: Graph | None = None,
     shapes_graph: Graph | None = None,
 ) -> dict[str, Any]:
@@ -802,11 +851,14 @@ def _shacl_check(
         "data_sha256": [_sha256_file(root, path) for path in data_paths],
         "shape_sha256": [_sha256_file(root, path) for path in shape_paths],
         "provenance_dataset_id": _validation_dataset_id(data_graph),
+        "scope": scope,
         "result": _validation_result(expected, observed),
     }
 
 
-def _prerequisite_algorithm_case(root: Path, fixture: str, target: str) -> dict[str, Any]:
+def _prerequisite_algorithm_case(
+    root: Path, fixture: str, target: str, provenance_dataset_id: str
+) -> dict[str, Any]:
     graph = _load_rdf_graph(root, (fixture,))
     evidence = evaluate_prerequisite_traversal(
         graph,
@@ -815,6 +867,7 @@ def _prerequisite_algorithm_case(root: Path, fixture: str, target: str) -> dict[
     )
     return {
         "fixture": Path(fixture).name,
+        "provenance_dataset_id": provenance_dataset_id,
         "cycle_detected": evidence.cycle_detected,
         "cycle_edges": [list(edge) for edge in evidence.cycle_edges],
         "reachable_unique": list(evidence.reachable_unique),
@@ -844,6 +897,7 @@ def build_validation_metadata(root: Path) -> dict[str, Any]:
         combined_data_paths,
         combined_shape_paths,
         True,
+        scope="combined",
         data_graph=combined_graph,
         shapes_graph=combined_shapes,
     )
@@ -854,6 +908,7 @@ def build_validation_metadata(root: Path) -> dict[str, Any]:
             ("semantic/data/sap_support_graph.ttl",),
             ("semantic/shapes/sap_support_shapes.ttl",),
             True,
+            scope="support",
         ),
         _shacl_check(
             root,
@@ -861,6 +916,7 @@ def build_validation_metadata(root: Path) -> dict[str, Any]:
             ("semantic/data/support-graph-invalid.ttl",),
             ("semantic/shapes/sap_support_shapes.ttl",),
             False,
+            scope="support",
         ),
         _shacl_check(
             root,
@@ -868,6 +924,7 @@ def build_validation_metadata(root: Path) -> dict[str, Any]:
             (_VALIDATION_SAMPLE_DATA_PATH,),
             ("semantic/shapes/sap_erp_shapes.ttl",),
             True,
+            scope="erp",
         ),
         _shacl_check(
             root,
@@ -875,9 +932,11 @@ def build_validation_metadata(root: Path) -> dict[str, Any]:
             ("semantic/ontology/sample-graph-invalid.ttl",),
             ("semantic/shapes/sap_erp_shapes.ttl",),
             False,
+            scope="erp",
         ),
         combined_check,
     ]
+    fixture_manifest = _load_prerequisite_fixture_manifest(root)
     algorithm_fixtures = (
         "semantic/data/support-prerequisite-cycle.ttl",
         "semantic/data/support-prerequisite-depth17.ttl",
@@ -887,6 +946,8 @@ def build_validation_metadata(root: Path) -> dict[str, Any]:
             "check_id": "PREREQUISITE_CYCLE_DEPTH",
             "data_paths": list(algorithm_fixtures),
             "shape_paths": [],
+            "fixture_manifest": _PREREQUISITE_FIXTURE_MANIFEST,
+            "fixture_manifest_sha256": _sha256_file(root, _PREREQUISITE_FIXTURE_MANIFEST),
             "inference": "algorithm",
             "expected_conforms": None,
             "observed_conforms": None,
@@ -895,9 +956,20 @@ def build_validation_metadata(root: Path) -> dict[str, Any]:
             "data_sha256": [_sha256_file(root, path) for path in algorithm_fixtures],
             "shape_sha256": [],
             "provenance_dataset_id": "cifre-synthetic-support-prerequisite-fixtures",
+            "scope": "support",
             "algorithm_cases": [
-                _prerequisite_algorithm_case(root, algorithm_fixtures[0], "support/note/A"),
-                _prerequisite_algorithm_case(root, algorithm_fixtures[1], "support/note/N0"),
+                _prerequisite_algorithm_case(
+                    root,
+                    algorithm_fixtures[0],
+                    fixture_manifest[algorithm_fixtures[0]]["target"],
+                    fixture_manifest[algorithm_fixtures[0]]["dataset_id"],
+                ),
+                _prerequisite_algorithm_case(
+                    root,
+                    algorithm_fixtures[1],
+                    fixture_manifest[algorithm_fixtures[1]]["target"],
+                    fixture_manifest[algorithm_fixtures[1]]["dataset_id"],
+                ),
             ],
             "result": "PASS",
         }

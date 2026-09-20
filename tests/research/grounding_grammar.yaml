@@ -6,16 +6,23 @@ filler_tokens:
   - alert
   - any
   - an
+  - a
+  - affect
+  - all
+  - applied
   - and
   - application
   - are
   - at
+  - be
   - before
   - component
+  - directly
   - database
   - dependencies
   - dependency
   - details
+  - distribution
   - does
   - dump
   - errors
@@ -23,18 +30,23 @@ filler_tokens:
   - affecting
   - for
   - find
+  - fixes
   - fixing
   - has
   - have
   - in
+  - is
   - identify
   - information
   - list
+  - logged
   - management
   - memory
   - note
   - notes
+  - must
   - of
+  - or
   - "on"
   - package
   - prerequisite
@@ -45,10 +57,13 @@ filler_tokens:
   - resolving
   - retrieve
   - runtime
+  - sales
   - sap
   - support
   - the
   - title
+  - under
+  - valid
   - what
   - which
 
@@ -71,6 +86,8 @@ templates:
       - [question_word, "filler*", alert_code, "filler*", "product_version|support_package", "filler*", "component_code?", "filler*", "priority?"]
       - [question_word, "filler*", "product_version|support_package", "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "priority?"]
       - [question_word, "filler*", component_code, "filler*", alert_code, "filler*", "product_version|support_package", "filler*", "priority?"]
+      - [question_word, "filler*", alert_code, "filler*", product_version, "filler*", support_package, "filler*", "priority?"]
+      - [question_word, "filler*", alert_code, "filler*", product_version, "filler*", component_code, "filler*", support_package, "filler*", "priority?"]
   - id: prerequisite_closure
     intent: PREREQUISITE_CLOSURE
     sequence: [question_word, "filler*", prerequisite_marker, "filler*", note_number]
@@ -79,7 +96,8 @@ templates:
     sequence: [note_number]
 
 lookup_verb: [find, get, identify, retrieve, what, which]
-question_word: [find, get, identify, what, which, list]
+question_word: [find, get, identify, what, which, list, does]
+alert_context_tokens: [alert, addressing, addresses, dump, error, errors, for, fixes, resolve, resolves, resolving]
 prerequisite_marker: [dependency, dependencies, prerequisite, prerequisites]
 unsupported_intent_marker: [explain, recommend, summarize]
 

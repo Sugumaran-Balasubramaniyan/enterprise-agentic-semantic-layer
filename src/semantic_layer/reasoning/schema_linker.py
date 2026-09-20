@@ -65,6 +65,7 @@ class SchemaLinker:
         self._fillers = frozenset(grammar["filler_tokens"])
         self._lookup_verbs = frozenset(grammar["lookup_verb"])
         self._question_words = frozenset(grammar["question_word"])
+        self._alert_context_tokens = frozenset(grammar["alert_context_tokens"])
         self._prerequisite_markers = frozenset(grammar["prerequisite_marker"])
         self._unsupported_markers = frozenset(grammar["unsupported_intent_marker"])
         self._templates = tuple(grammar["templates"])
@@ -212,7 +213,15 @@ class SchemaLinker:
         for index, token in enumerate(tokens):
             previous = tokens[index - 1] if index else ""
             if token in self._alert_lookup:
-                records.append(("alert_code", index, previous == "alert"))
+                following = tokens[index + 1] if index + 1 < len(tokens) else ""
+                records.append(
+                    (
+                        "alert_code",
+                        index,
+                        previous in self._alert_context_tokens
+                        or following in self._alert_context_tokens,
+                    )
+                )
             if token in self._component_lookup:
                 records.append(("component_code", index, previous == "component"))
             if token in self._software_lookup:
@@ -275,6 +284,9 @@ class SchemaLinker:
         if candidate not in self._template_intents:
             return None, ReasonCode.UNSUPPORTED_INTENT
 
+        if candidate == "VERSION_FILTERED_SEARCH" and not (has_alert or has_component):
+            return None, ReasonCode.UNKNOWN_TOKEN
+
         allowed = {
             "PREREQUISITE_CLOSURE": {"note_number"},
             "NOTE_LOOKUP": {"note_number"},
@@ -320,6 +332,8 @@ class SchemaLinker:
                 ("support_package", "alert_code", "component_code"),
                 ("component_code", "alert_code", "product_version"),
                 ("component_code", "alert_code", "support_package"),
+                ("alert_code", "product_version", "support_package"),
+                ("alert_code", "product_version", "component_code", "support_package"),
             }
         else:
             valid_orders = {("note_number",)}
@@ -350,7 +364,11 @@ class SchemaLinker:
         if candidate == "VERSION_FILTERED_SEARCH" and not (
             (has_alert or has_component) and (has_version or has_package)
         ):
-            return None, ReasonCode.MISSING_REQUIRED_ENTITY
+            return None, (
+                ReasonCode.UNKNOWN_TOKEN
+                if not (has_alert or has_component)
+                else ReasonCode.MISSING_REQUIRED_ENTITY
+            )
         return candidate, None
 
     def ground(self, query_text: str) -> GroundedEntities:

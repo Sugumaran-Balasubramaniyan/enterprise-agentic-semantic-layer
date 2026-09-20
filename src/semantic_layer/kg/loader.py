@@ -77,7 +77,7 @@ class SAPKnowledgeGraph:
     def validate_shacl(
         self, shapes_path: str | Path, *, scope: str = "support"
     ) -> ValidationReport:
-        """Validate current graph against W3C SHACL shapes.
+        """Validate the selected graph scope against W3C SHACL shapes.
 
         Returns a structured report and preserves tuple unpacking for callers
         written against the original loader API.
@@ -91,8 +91,10 @@ class SAPKnowledgeGraph:
         shapes_graph = Graph()
         shapes_graph.parse(location=str(shapes_p), format="turtle")
 
+        data_graph = self._graph_for_scope(scope)
+
         conforms, _, results_text = pyshacl.validate(
-            data_graph=self.graph,
+            data_graph=data_graph,
             shacl_graph=shapes_graph,
             inference="rdfs",
             abort_on_first=False,
@@ -107,6 +109,49 @@ class SAPKnowledgeGraph:
             shapes_path=shapes_p,
             scope=scope,
         )
+
+    def _graph_for_scope(self, scope: str) -> Graph:
+        """Return only triples belonging to the declared validation scope."""
+
+        if scope == "combined":
+            return self.graph
+
+        if scope == "support":
+            prefixes = (
+                str(CIFSUP),
+                str(CIFPPMS),
+                f"{CIFDATA}support/",
+                f"{CIFDATA}ppms/",
+                str(CIFMETA),
+                str(CIFMETAID),
+            )
+        elif scope == "erp":
+            prefixes = (
+                str(CIFERP),
+                f"{CIFDATA}erp/",
+                str(CIFMETA),
+                str(CIFMETAID),
+            )
+        else:  # pragma: no cover - guarded by validate_shacl
+            raise ValueError(f"unsupported validation scope: {scope}")
+
+        standard_prefixes = (
+            str(rdflib.RDF),
+            str(rdflib.RDFS),
+            str(rdflib.OWL),
+            str(rdflib.XSD),
+            "http://www.w3.org/ns/shacl#",
+        )
+        scoped = Graph()
+        for subject, predicate, obj in self.graph:
+            terms = (subject, predicate, obj)
+            if all(
+                not isinstance(term, URIRef)
+                or str(term).startswith(prefixes + standard_prefixes)
+                for term in terms
+            ):
+                scoped.add((subject, predicate, obj))
+        return scoped
 
     def query_sparql(self, sparql_query: str) -> list[dict[str, Any]]:
         """Execute a SPARQL 1.1 SELECT query and return list of variable bindings."""

@@ -242,7 +242,7 @@ def test_publication_claim_contract_and_links() -> None:
     assert secondary_heading in first_screen
     assert first_screen.index("research-verify") < first_screen.index(secondary_heading)
     assert "research-benchmark" not in readme
-    assert "Task 13" in readme
+    assert "finalization" in readme.lower()
     assert "will wire" in readme
     assert "[preliminary benchmark artifact](results/latest_benchmark.json)" in readme
 

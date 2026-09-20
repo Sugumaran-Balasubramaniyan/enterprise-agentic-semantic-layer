@@ -114,7 +114,7 @@ def test_asset_verification_reports_complete_validation_evidence() -> None:
                 "semantic/data/support-prerequisite-depth17.ttl",
             ],
             [],
-            "algorithm",
+                "support",
             None,
             "PASS",
         ),
@@ -125,7 +125,9 @@ def test_asset_verification_reports_complete_validation_evidence() -> None:
         assert row["data_paths"] == data_paths
         assert row["shape_paths"] == shape_paths
         assert row["scope"] == scope
-        assert row["inference"] == ("algorithm" if scope == "algorithm" else "rdfs")
+        assert row["inference"] == (
+            "algorithm" if check_id == "PREREQUISITE_CYCLE_DEPTH" else "rdfs"
+        )
         assert row["expected_conforms"] is expected_conforms
         assert row["observed_conforms"] is expected_conforms
         assert row["result"] == result

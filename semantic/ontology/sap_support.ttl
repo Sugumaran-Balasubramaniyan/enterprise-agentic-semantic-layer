@@ -29,7 +29,7 @@ cifsup:HelpDocumentation a owl:Class ;
 
 cifsup:affectsComponent a owl:ObjectProperty ;
     rdfs:label "affects application component"@en ;
-    rdfs:comment "Associates a support resource or alert with an application component."@en ;
+    rdfs:comment "Intentionally mixed-subject relation: associates a synthetic support note or system alert with an application component; no single rdfs:domain is asserted."@en ;
     rdfs:range cifsup:ApplicationComponent .
 cifsup:parentComponent a owl:ObjectProperty ;
     rdfs:label "parent application component"@en ;
@@ -57,7 +57,7 @@ cifsup:hasSideEffectNote a owl:ObjectProperty ;
     rdfs:domain cifsup:SAPNote ; rdfs:range cifsup:SAPNote .
 cifsup:classifiedUnderSimCat a owl:ObjectProperty ;
     rdfs:label "classified under similarity category"@en ;
-    rdfs:comment "Associates a support resource with a synthetic similarity category."@en ;
+    rdfs:comment "Intentionally mixed-subject relation: associates a synthetic support note or system alert with a similarity category; no single rdfs:domain is asserted."@en ;
     rdfs:range cifsup:SimCatCategory .
 cifsup:referencedDocumentation a owl:ObjectProperty ;
     rdfs:label "references help documentation"@en ;

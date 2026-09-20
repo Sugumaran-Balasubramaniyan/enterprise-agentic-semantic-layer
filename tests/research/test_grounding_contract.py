@@ -13,6 +13,7 @@ from semantic_layer.research.contracts import ReasonCode
 GRAMMAR = yaml.safe_load(
     (Path(__file__).with_name("grounding_grammar.yaml")).read_text(encoding="utf-8")
 )
+ROOT = Path(__file__).parents[2]
 
 
 def _assert_entities(result, fixture: dict) -> None:
@@ -140,3 +141,45 @@ def test_v2_strict_empty_cases_are_valid_grounding(fixture: dict) -> None:
     assert result.failure_class == "NONE"
     assert result.intent in {"ALERT_RESOLUTION", "VERSION_FILTERED_SEARCH"}
     _assert_entities(result, fixture)
+
+
+@pytest.mark.parametrize(
+    "dataset_name",
+    ["benchmark_dataset_v1.yaml", "benchmark_dataset_v2.yaml"],
+)
+def test_declared_corpus_preflight_accepts_valid_rows_and_preserves_ood_reasons(
+    dataset_name: str,
+) -> None:
+    """Every declared positive/strict-empty row must reach a grounded intent."""
+
+    corpus = yaml.safe_load(
+        (ROOT / "tests/research" / dataset_name).read_text(encoding="utf-8")
+    )
+    linker = SchemaLinker()
+
+    for record in corpus["records"]:
+        grounded = linker.ground_or_abstain(record["question"])
+        expected_status = record["expected_status"]
+        if expected_status in {"SUCCESS", "EMPTY_RESULT"}:
+            assert grounded.failure_class == ReasonCode.NONE, record["id"]
+            assert grounded.intent != "UNSUPPORTED", record["id"]
+        else:
+            assert grounded.intent == "UNSUPPORTED", record["id"]
+            assert grounded.failure_class.value == record["reflection_reason"], record["id"]
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "Find notes in component MM-PUR-PO at SP05 for alert TIME_OUT.",
+        "Find notes for alert TIME_OUT in component MM-PUR-PO and component FI.",
+    ],
+)
+def test_closed_parser_rejects_malformed_ordering_and_extra_entity_slots(query: str) -> None:
+    result = SchemaLinker().ground_or_abstain(query)
+
+    assert result.intent == "UNSUPPORTED"
+    assert result.failure_class in {
+        ReasonCode.UNSUPPORTED_INTENT,
+        ReasonCode.AMBIGUOUS_INPUT,
+    }

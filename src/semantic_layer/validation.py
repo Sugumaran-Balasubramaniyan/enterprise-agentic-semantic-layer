@@ -158,6 +158,47 @@ def _relative_scan_path(root: Path, path: Path) -> str:
         return path.as_posix()
 
 
+def _scan_json_legacy_uris(path: Path, relative: str) -> list[str]:
+    """Scan every artifact field except the exact rejected-URI registry values."""
+
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return [
+            f"{relative}:{line_number}:legacy-uri:{family}"
+            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+            for family in _LEGACY_URI_FAMILIES
+            if family in line
+        ]
+
+    findings: list[str] = []
+    allowed_values = frozenset(_LEGACY_URI_FAMILIES)
+
+    def visit(value: Any, location: str, allow_registry_values: bool = False) -> None:
+        if isinstance(value, Mapping):
+            for key, child in value.items():
+                key_text = str(key)
+                key_location = f"{location}.{key_text}" if location else key_text
+                for family in _LEGACY_URI_FAMILIES:
+                    if family in key_text:
+                        findings.append(f"{relative}:{key_location}:legacy-uri:{family}")
+                visit(
+                    child,
+                    key_location,
+                    location == "namespace_registry" and key_text == "legacy_uris_rejected",
+                )
+        elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            for index, child in enumerate(value):
+                visit(child, f"{location}[{index}]", allow_registry_values)
+        elif isinstance(value, str):
+            for family in _LEGACY_URI_FAMILIES:
+                if family in value and not (allow_registry_values and value in allowed_values):
+                    findings.append(f"{relative}:{location}:legacy-uri:{family}")
+
+    visit(document, "")
+    return findings
+
+
 def scan_repository_legacy_uris(
     root: Path, *, paths: Sequence[Path] | None = None
 ) -> list[str]:
@@ -167,7 +208,10 @@ def scan_repository_legacy_uris(
     repository_root = Path(root).resolve()
     for path in _scan_paths(repository_root, paths):
         relative = _relative_scan_path(repository_root, path)
-        if relative in _SCAN_CONTROL_DOCUMENTS or relative in _GENERATED_CONTRACT_DOCUMENTS:
+        if relative in _SCAN_CONTROL_DOCUMENTS:
+            continue
+        if relative in _GENERATED_CONTRACT_DOCUMENTS:
+            findings.extend(_scan_json_legacy_uris(path, relative))
             continue
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             for family in _LEGACY_URI_FAMILIES:
@@ -345,7 +389,7 @@ _VALIDATION_SCOPES = {
     "ERP_VALID": "erp",
     "ERP_INVALID": "erp",
     "COMBINED_VALID": "combined",
-    "PREREQUISITE_CYCLE_DEPTH": "algorithm",
+    "PREREQUISITE_CYCLE_DEPTH": "support",
 }
 
 # Byte identities are part of the reproducibility boundary.  The validation
@@ -357,7 +401,7 @@ _EXPECTED_ASSET_SHA256 = {
     "semantic/data/support-graph-invalid.ttl": "0cf9c669679b9e80189dc20c96bb4e0fd1f2f35f59618380135d73db1e7b803c",
     "semantic/ontology/sample-graph-valid.ttl": "a71f3009c6b5961985ffac339f0725b994a385db899545a66a60168b409c09fe",
     "semantic/ontology/sample-graph-invalid.ttl": "599f008a5468f10de3d2a2c07364d249779b259908df6b682b5fb2007c3221c1",
-    "semantic/ontology/sap_support.ttl": "40a24c18b2037fdc8e90843272801b21eb8eb062a65e1b98dcb776bc8bde3b30",
+    "semantic/ontology/sap_support.ttl": "5d8ee297caf5ee2842fdf76c568428138523a93a9239cef5db82a3a5234164a8",
     "semantic/ontology/sap_ppms.ttl": "90aa9beea27ec0a04851255b003432a679b673bc7c39c422cf966bcdee7c49d8",
     "semantic/ontology/sap_erp.ttl": "9e3031e50268f6288b671f835a5059e042cd62ad0904a925754f55dfb9e1c971",
     "semantic/shapes/sap_support_shapes.ttl": "483850daf948b45f3984a0374fff59d8445d6f40e0c9ce8828a87b79c047ed76",
@@ -398,7 +442,7 @@ _SHACL_ROW_KEYS = {
     "result",
     "scope",
 }
-_ALGORITHM_ROW_KEYS = _SHACL_ROW_KEYS | {"algorithm_cases"}
+_ALGORITHM_ROW_KEYS = _SHACL_ROW_KEYS | {"algorithm_cases", "fixture_manifest", "fixture_manifest_sha256"}
 _COMBINED_GRAPH_KEYS = {
     "data_paths",
     "shape_paths",
@@ -412,7 +456,7 @@ _COMBINED_GRAPH_KEYS = {
 
 
 def _validated_metadata(root: Path, metadata: dict[str, Any]) -> dict[str, Any]:
-    """Attach scope evidence and fail closed on stale or unexpected evidence."""
+    """Validate scope evidence and fail closed on stale or unexpected evidence."""
 
     enriched = copy.deepcopy(metadata)
     checks = enriched.get("checks")
@@ -423,7 +467,11 @@ def _validated_metadata(root: Path, metadata: dict[str, Any]) -> dict[str, Any]:
     for row in checks:
         check_id = row["check_id"]
         scope = _VALIDATION_SCOPES[check_id]
-        row["scope"] = scope
+        if row.get("scope") != scope:
+            raise ValueError(
+                f"validation scope mismatch for {check_id}: "
+                f"expected {scope!r}, observed {row.get('scope')!r}"
+            )
         result = row.get("result")
         if result not in {"PASS", "EXPECTED_NONCONFORMANT"}:
             raise ValueError(f"unexpected validation result for {check_id}: {result!r}")
@@ -450,6 +498,14 @@ def _validated_metadata(root: Path, metadata: dict[str, Any]) -> dict[str, Any]:
                 actual.append(digest)
             if actual != hashes:
                 raise ValueError(f"hash mismatch for {check_id}: {hash_key}")
+        if check_id == "PREREQUISITE_CYCLE_DEPTH":
+            manifest = row.get("fixture_manifest")
+            manifest_hash = row.get("fixture_manifest_sha256")
+            if not isinstance(manifest, str) or not isinstance(manifest_hash, str):
+                raise ValueError("prerequisite fixture provenance is incomplete")
+            manifest_path = root / manifest
+            if not manifest_path.is_file() or hashlib.sha256(manifest_path.read_bytes()).hexdigest() != manifest_hash:
+                raise ValueError("prerequisite fixture manifest hash mismatch")
         if check_id != "PREREQUISITE_CYCLE_DEPTH":
             expected = row.get("expected_conforms")
             observed = row.get("observed_conforms")

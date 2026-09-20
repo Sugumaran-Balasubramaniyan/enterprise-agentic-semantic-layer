@@ -18,6 +18,7 @@ from semantic_layer.research.contracts import (
     canonical_json,
     load_and_validate_result,
 )
+from semantic_layer.validation import scan_repository_legacy_uris
 
 ROOT = Path(__file__).parents[2]
 
@@ -274,3 +275,22 @@ def test_legacy_uri_contract_decodes_exact_values_and_scans_tracked_surfaces() -
             continue
         text = (ROOT / relative).read_bytes().decode("utf-8", errors="ignore")
         assert not any(uri in text for uri in LEGACY_URI_SURFACE_FAMILIES), relative
+
+
+def test_legacy_uri_scan_allows_only_exact_registry_values_and_rejects_other_fields(
+    tmp_path: Path,
+) -> None:
+    artifact = tmp_path / "results/latest_benchmark.json"
+    artifact.parent.mkdir()
+    allowed = {
+        "namespace_registry": {"legacy_uris_rejected": list(LEGACY_URI_FAMILIES)},
+        "question": "synthetic fixture",
+    }
+    artifact.write_text(json.dumps(allowed), encoding="utf-8")
+    assert scan_repository_legacy_uris(tmp_path, paths=[artifact]) == []
+
+    allowed["question"] = LEGACY_URI_FAMILIES[0]
+    artifact.write_text(json.dumps(allowed), encoding="utf-8")
+    findings = scan_repository_legacy_uris(tmp_path, paths=[artifact])
+    assert findings
+    assert "legacy-uri" in findings[0]

@@ -248,7 +248,8 @@ answer-set fields (`exact_set`, `precision`, `recall`, `f1`), and operational
 fields (`syntax_success_rate`, `execution_success_rate`,
 `recovery_attempt_rate`, `recovery_success_rate`, `strict_empty_rate`,
 `unsupported_rejection_rate`, and `optional_binding_rate`). This is the
-complete current metric surface; the final values remain Task 13 evidence.
+complete current metric surface; preliminary values are recorded in the
+committed artifact and verification report.
 
 ### Future-only metric fields
 
@@ -258,10 +259,11 @@ The following future-only metric fields are not emitted by current artifact:
 `human_unsupported_answer_rate`. They require a separately implemented and
 reviewed experiment rather than prose or a zero placeholder.
 
-The final canonical JSON at `results/latest_benchmark.json` is owned by Task
-13. Until that task runs the final verification command, this proposal does not
-report aggregate metric values, final input hashes, or a completed benchmark
-result.
+The final canonical JSON at `results/latest_benchmark.json` is committed and
+is the source for the preliminary aggregate values, input hashes, and per-query
+evidence reported by this proposal. These values describe only the regenerated
+synthetic, controlled run and must not be generalized to production or external
+data.
 
 ## Methodology
 
@@ -458,5 +460,6 @@ The implementation boundary can be inspected in the
 [`bounded reasoner`](../../src/semantic_layer/reasoning/reflective_agent.py),
 and [`knowledge-graph loader`](../../src/semantic_layer/kg/loader.py). The
 technical interview note and the short interview brief provide a more compact
-map of those contracts. Task 13 owns the final canonical benchmark artifact
-and the final claim/format/reproducibility gate.
+map of those contracts. The committed canonical benchmark artifact and the
+final claim/format/reproducibility gate are maintained together with the
+implementation.
