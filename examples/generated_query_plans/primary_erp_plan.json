@@ -6,50 +6,50 @@
   },
   "filters": [
     {
-      "concept_id": "sap:CompanyCode",
+      "concept_id": "ciferp:CompanyCode",
       "operator": "=",
       "value": "FR"
     },
     {
-      "concept_id": "sap:Product",
+      "concept_id": "ciferp:Product",
       "operator": "=",
-      "value": "sap:ProductAutomotive"
+      "value": "ciferp:ProductAutomotive"
     }
   ],
   "metric_predicates": [
     {
-      "metric_id": "sap:PostingCount",
+      "metric_id": "ciferp:PostingCount",
       "operator": ">=",
       "value": 3
     },
     {
-      "metric_id": "sap:TotalDebitLossEur",
+      "metric_id": "ciferp:TotalDebitLossEur",
       "operator": ">",
       "value": 20000
     }
   ],
   "projected_dimensions": [
-    "sap:BusinessPartner",
-    "sap:CompanyCode"
+    "ciferp:BusinessPartner",
+    "ciferp:CompanyCode"
   ],
   "relationships": [
     {
-      "predicate": "sap:hasSalesOrder",
-      "source": "sap:BusinessPartner",
-      "target": "sap:SalesOrder"
+      "predicate": "ciferp:hasSalesOrder",
+      "source": "ciferp:BusinessPartner",
+      "target": "ciferp:SalesOrder"
     },
     {
-      "predicate": "sap:hasFinancialPosting",
-      "source": "sap:BusinessPartner",
-      "target": "sap:FinancialPosting"
+      "predicate": "ciferp:hasFinancialPosting",
+      "source": "ciferp:BusinessPartner",
+      "target": "ciferp:FinancialPosting"
     },
     {
-      "predicate": "sap:referencesSalesOrder",
-      "source": "sap:FinancialPosting",
-      "target": "sap:SalesOrder"
+      "predicate": "ciferp:referencesSalesOrder",
+      "source": "ciferp:FinancialPosting",
+      "target": "ciferp:SalesOrder"
     }
   ],
-  "root_entity": "sap:BusinessPartner",
+  "root_entity": "ciferp:BusinessPartner",
   "selected_products": [
     "BusinessPartners",
     "SalesOrders",

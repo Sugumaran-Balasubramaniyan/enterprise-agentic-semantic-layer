@@ -79,16 +79,27 @@ def _relative(path: Path) -> str:
         return path.as_posix()
 
 
-def _line_is_non_claim(text: str) -> bool:
-    """Allow denials, future requirements, and functional gate vocabulary."""
+def _claim_is_non_claim(text: str, start: int, end: int) -> bool:
+    """Allow only the specific denied/future claim span, not its whole line."""
 
-    lowered = text.casefold()
+    prefix = text[:start]
+    clause_start = max(prefix.rfind(";"), prefix.rfind(".")) + 1
+    clause_prefix = prefix[clause_start:]
+    if re.search(
+        r"\b(?:not|no|never|without|isn't|aren't|doesn't|does not|cannot|can't|future|"
+        r"proposed|planned|hypothetical|would|could|may)\b",
+        clause_prefix,
+        re.IGNORECASE,
+    ):
+        return True
+
+    suffix = text[end:]
     return bool(
         re.search(
-            r"\b(?:not|no|never|without|disabled|unexecuted|unconfigured|future|proposed|"
-            r"simulated?|synthetic|illustrative|local|repository-maintained|fail-closed|"
-            r"extension seam|incomplete|not equivalent)\b",
-            lowered,
+            r"\b(?:not|never)\b[^.;]{0,80}\b(?:claimed?|implemented|current|available|"
+            r"a claim|a guarantee|real)\b",
+            suffix,
+            re.IGNORECASE,
         )
     )
 
@@ -98,12 +109,63 @@ def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
 
     findings: list[str] = []
     patterns = (
-        ("external-ownership", re.compile(r"\bSAP\s+SE\b|\bSAP\s+Labs\b|\bSAP\s+(?:France|Germany|United Kingdom)\s+Data Office\b", re.IGNORECASE)),
-        ("external-certification", re.compile(r"certified_by:\s*SAP\b|certified by SAP\b|certification from SAP\b", re.IGNORECASE)),
-        ("unsupported-fidelity", re.compile(r"high[- ]fidelity|production[- ](?:grade|ready|tested)|solved\s+(?:the\s+)?PhD", re.IGNORECASE)),
-        ("unsupported-evaluation", re.compile(r"(?:100\s*%|0\s*%)[^\n]{0,80}(?:hallucination|grounded)|(?:hallucination|grounded)[^\n]{0,80}(?:100\s*%|0\s*%)|Vector\s+RAG", re.IGNORECASE)),
-        ("external-partnership", re.compile(r"\b(?:official|affiliat(?:e|ed|ion)|strategic partnership|in partnership with)\b[^\n]{0,80}\bSAP\b|\bSAP\b[^\n]{0,80}\b(?:official|affiliat(?:e|ed|ion)|strategic partnership)\b", re.IGNORECASE)),
-        ("unsupported-production", re.compile(r"\b(?:live|real|connected|connection)\s+(?:cloud|SAP|Databricks|Snowflake|Fabric)|\bcloud\s+(?:connection|integration|execution)\s+(?:is\s+)?(?:enabled|available|active)|\bproduction\s+data\b|\bcloud[- ]connected\b", re.IGNORECASE)),
+        (
+            "external-ownership",
+            re.compile(
+                r"\bSAP\s+SE\b|\bSAP\s+Labs\b|\bSAP\s+(?:France|Germany|United Kingdom)\s+Data Office\b",
+                re.IGNORECASE,
+            ),
+        ),
+        (
+            "external-publication",
+            re.compile(
+                r"\b(?:published|publication|endorsed|sponsored|officially supported)\s+(?:by|from)?\s*SAP\b|"
+                r"\bSAP[- ]?(?:endorsed|sponsored|official|partnership)\b|"
+                r"\b(?:sponsorship|partnership)\s+(?:with|from|by)\s+SAP\b|"
+                r"\bin partnership with SAP\b|\bofficial(?:ly)?\s+(?:sponsored|endorsed|supported)\s+by SAP\b|"
+                r"\bofficial SAP\b",
+                re.IGNORECASE,
+            ),
+        ),
+        (
+            "external-certification",
+            re.compile(
+                r"certified_by:\s*SAP\b|certified by SAP\b|certification from SAP\b",
+                re.IGNORECASE,
+            ),
+        ),
+        (
+            "unsupported-fidelity",
+            re.compile(r"high[- ]fidelity|production[- ](?:grade|ready|tested)", re.IGNORECASE),
+        ),
+        (
+            "unsupported-production",
+            re.compile(
+                r"\b(?:deployed|hosted|production[- ](?:deployment|service|system)|live\s+(?:service|cloud|connection)|"
+                r"real\s+(?:cloud|service)|connected\s+(?:cloud|service)|cloud[- ]connected)\b|"
+                r"\bcloud\s+(?:connection|integration|execution)\s+(?:is\s+)?(?:enabled|available|active)\b|"
+                r"\bproduction\s+data\b",
+                re.IGNORECASE,
+            ),
+        ),
+        (
+            "unsupported-evaluation",
+            re.compile(
+                r"(?:100\s*%|0\s*%)[^\n]{0,80}(?:hallucination|grounded)|"
+                r"(?:hallucination|grounded)[^\n]{0,80}(?:100\s*%|0\s*%)|"
+                r"\bzero[- ]hallucination(?:\s+guarantee)?\b|\bhallucination\s+guarantee\b",
+                re.IGNORECASE,
+            ),
+        ),
+        ("fake-vector-rag", re.compile(r"\bVector\s+RAG\b", re.IGNORECASE)),
+        (
+            "unsupported-superiority",
+            re.compile(
+                r"\b(?:superior(?:ity)?|outperform(?:s|ed|ing)?|outperformance|better than|state[- ]of[- ]the[- ]art)\b",
+                re.IGNORECASE,
+            ),
+        ),
+        ("solved-phd", re.compile(r"\bsolved\s+(?:the\s+)?PhD\b", re.IGNORECASE)),
     )
     for path in paths:
         relative = _relative(path)
@@ -113,11 +175,10 @@ def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
                 for uri in LEGACY_URI_FAMILIES:
                     if uri in line:
                         findings.append(f"{relative}:{number}:legacy-uri:{uri}")
-            if _line_is_non_claim(line):
-                continue
             for category, pattern in patterns:
-                match = pattern.search(line)
-                if match:
+                for match in pattern.finditer(line):
+                    if _claim_is_non_claim(line, match.start(), match.end()):
+                        continue
                     excerpt = " ".join(line.strip().split())[:140]
                     findings.append(f"{relative}:{number}:{category}:{excerpt}")
     return findings
@@ -132,18 +193,68 @@ def test_code_examples_mappings_and_data_products_have_supported_claims() -> Non
 def test_claim_scan_preserves_neutral_identifiers_and_runtime_certified_gates(tmp_path: Path) -> None:
     fixture = tmp_path / "neutral.py"
     fixture.write_text(
-        """\n"
-        "# SAP-inspired synthetic domain identifiers are not an affiliation.\n"
-        "CIFERP = 'ciferp:FinancialPosting'\n"
-        "STATUS = 'CERTIFIED'\n"
-        "# This is not a production-ready integration; the future deployment needs KMS.\n"
-        "# A future Vector RAG baseline is proposed, not a current result.\n"
-        "# A 0% hallucination guarantee is not claimed.\n"
-        """,
+        """\
+# SAP-inspired synthetic domain identifiers are not an affiliation.
+CIFERP = 'ciferp:FinancialPosting'
+STATUS = 'CERTIFIED'
+# This is not a production-ready integration; the future deployment needs KMS.
+# A future Vector RAG baseline is proposed, not a current result.
+# A 0% hallucination guarantee is not claimed.
+""",
         encoding="utf-8",
     )
 
     assert scan_claim_surfaces([fixture]) == []
+
+
+def test_claim_scan_reports_each_forbidden_claim_category(tmp_path: Path) -> None:
+    fixture = tmp_path / "claims.txt"
+    fixture.write_text(
+        """\
+SAP SE affiliation and SAP Labs ownership.
+Published by SAP; SAP-endorsed, officially sponsored by SAP, and in partnership with SAP.
+An official SAP sponsorship is asserted.
+This production-ready service is deployed and hosted as a live cloud connection.
+certified_by: SAP Enterprise Governance Board.
+100% grounded retrieval and 0% hallucination; zero-hallucination guarantee.
+Vector RAG superiority over the baseline solved the PhD problem.
+source: http://data.sap.com/legacy
+""",
+        encoding="utf-8",
+    )
+
+    findings = scan_claim_surfaces([fixture])
+    categories = {finding.split(":", 3)[2] for finding in findings}
+
+    assert categories >= {
+        "external-ownership",
+        "external-publication",
+        "unsupported-production",
+        "external-certification",
+        "unsupported-evaluation",
+        "fake-vector-rag",
+        "unsupported-superiority",
+        "solved-phd",
+        "legacy-uri",
+    }
+
+
+def test_claim_scan_checks_claim_context_without_skipping_mixed_lines(tmp_path: Path) -> None:
+    fixture = tmp_path / "mixed.txt"
+    fixture.write_text(
+        """\
+owner: SAP SE; future synthetic contract wording does not change ownership.
+A future production deployment is proposed, not implemented.
+This is not a high-fidelity production-ready service.
+""",
+        encoding="utf-8",
+    )
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert any("external-ownership" in finding for finding in findings)
+    assert not any("unsupported-production" in finding for finding in findings)
+    assert not any("unsupported-fidelity" in finding for finding in findings)
 
 
 def test_claim_scan_reports_forbidden_legacy_uri_outside_control_documents(tmp_path: Path) -> None:
