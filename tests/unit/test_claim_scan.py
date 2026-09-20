@@ -83,7 +83,7 @@ def _claim_is_non_claim(text: str, start: int, end: int) -> bool:
     """Allow only the specific denied/future claim span, not its whole line."""
 
     prefix = text[:start]
-    clause_start = max(prefix.rfind(";"), prefix.rfind(".")) + 1
+    clause_start = max(prefix.rfind(";"), prefix.rfind("."), prefix.rfind("\n")) + 1
     clause_prefix = prefix[clause_start:]
     if re.search(
         r"\b(?:not|no|never|without|isn't|aren't|doesn't|does not|cannot|can't|future|"
@@ -93,11 +93,13 @@ def _claim_is_non_claim(text: str, start: int, end: int) -> bool:
     ):
         return True
 
-    suffix = text[end:]
+    clause_ends = [position for delimiter in ";.\n" if (position := text.find(delimiter, end)) >= 0]
+    clause_end = min(clause_ends, default=len(text))
+    suffix = text[end:clause_end]
     return bool(
         re.search(
-            r"\b(?:not|never)\b[^.;]{0,80}\b(?:claimed?|implemented|current|available|"
-            r"a claim|a guarantee|real)\b",
+            r"\b(?:not|never)\b[^.;\n]{0,80}\b(?:made|claimed?|implemented|current|available|"
+            r"a claim|a guarantee|real)\b|\b(?:future|proposed|planned)\s+(?:work|proposal|claim|baseline)\b",
             suffix,
             re.IGNORECASE,
         )
@@ -119,8 +121,10 @@ def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
         (
             "external-publication",
             re.compile(
+                r"\b(?:publisher|publication)\s*:\s*SAP\b|\bSAP\s+publication\b|"
                 r"\b(?:published|publication|endorsed|sponsored|officially supported)\s+(?:by|from)?\s*SAP\b|"
                 r"\bSAP[- ]?(?:endorsed|sponsored|official|partnership)\b|"
+                r"\bSAP\s+(?:sponsorship|partnership)\b|"
                 r"\b(?:sponsorship|partnership)\s+(?:with|from|by)\s+SAP\b|"
                 r"\bin partnership with SAP\b|\bofficial(?:ly)?\s+(?:sponsored|endorsed|supported)\s+by SAP\b|"
                 r"\bofficial SAP\b",
@@ -255,6 +259,60 @@ This is not a high-fidelity production-ready service.
     assert any("external-ownership" in finding for finding in findings)
     assert not any("unsupported-production" in finding for finding in findings)
     assert not any("unsupported-fidelity" in finding for finding in findings)
+
+
+def test_claim_scan_suppresses_only_same_clause_future_or_negative_wording(tmp_path: Path) -> None:
+    fixture = tmp_path / "clause_context.txt"
+    fixture.write_text(
+        """\
+This production-ready service is future work.
+This Vector RAG baseline is proposed future work.
+SAP-endorsed claim is not made.
+owner: SAP SE; future synthetic contract.
+""",
+        encoding="utf-8",
+    )
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert len(findings) == 1
+    assert "external-ownership" in findings[0]
+
+
+def test_claim_scan_detects_publication_field_and_phrase_forms_but_not_nonclaims(tmp_path: Path) -> None:
+    positive = tmp_path / "publication_positive.txt"
+    positive.write_text(
+        """\
+publisher: SAP
+SAP publication
+published by SAP
+SAP-endorsed
+sponsored by SAP
+SAP sponsorship
+partnership with SAP
+SAP partnership
+""",
+        encoding="utf-8",
+    )
+    negative = tmp_path / "publication_negative.txt"
+    negative.write_text(
+        """\
+publisher: repository-maintained synthetic contract
+No SAP publication is made.
+A future SAP publication is proposed.
+SAP-endorsed claim is not made.
+A future partnership with SAP is proposed.
+Sponsorship by SAP is not claimed.
+""",
+        encoding="utf-8",
+    )
+
+    positive_findings = scan_claim_surfaces([positive])
+    negative_findings = scan_claim_surfaces([negative])
+
+    assert len(positive_findings) == 8
+    assert all("external-publication" in finding for finding in positive_findings)
+    assert negative_findings == []
 
 
 def test_claim_scan_reports_forbidden_legacy_uri_outside_control_documents(tmp_path: Path) -> None:
