@@ -6,6 +6,8 @@ import re
 from collections.abc import Sequence
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[2]
 
 NON_PUBLICATION_SURFACE = (
@@ -70,6 +72,30 @@ LEGACY_URI_CONTROL_DOCUMENTS = frozenset(
         "docs/research/cifre-hardening-baseline.md",
     }
 )
+_NEGATION_PREFIX = re.compile(
+    r"\b(?:not|no|never|without|isn't|aren't|wasn't|weren't|doesn't|don't|didn't|"
+    r"cannot|can't|won't|wouldn't|couldn't)\b",
+    re.IGNORECASE,
+)
+_FUTURE_PREFIX = re.compile(
+    r"\b(?:future|proposed|planned|hypothetical)\b(?:\s+\w+){0,4}\s*$|"
+    r"\b(?:would|could|may|might|should)\s+(?:be\s+)?$",
+    re.IGNORECASE,
+)
+_NEGATION_SUFFIX = re.compile(
+    r"\b(?:is|are|was|were|be|been|being|does|do|did|will|would|could|may|might|"
+    r"should|can|has|have|had)\s+(?:not|never)\b|"
+    r"\b(?:isn't|aren't|wasn't|weren't|doesn't|don't|didn't|won't|wouldn't|"
+    r"couldn't|can't|cannot)\b|\b(?:not|never)\s+(?:be\s+)?\w+\b",
+    re.IGNORECASE,
+)
+_FUTURE_SUFFIX = re.compile(
+    r"\b(?:future|proposed|planned|hypothetical)\b(?:\s+\w+){0,4}\b|"
+    r"\b(?:will|would|could|may|might|should)\s+(?:be\s+)?"
+    r"(?:future|proposed|planned|hypothetical)\b|"
+    r"\b(?:is|are|was|were)\s+(?:a\s+)?(?:future|proposed|planned|hypothetical)\b",
+    re.IGNORECASE,
+)
 
 
 def _relative(path: Path) -> str:
@@ -85,25 +111,13 @@ def _claim_is_non_claim(text: str, start: int, end: int) -> bool:
     prefix = text[:start]
     clause_start = max(prefix.rfind(";"), prefix.rfind("."), prefix.rfind("\n")) + 1
     clause_prefix = prefix[clause_start:]
-    if re.search(
-        r"\b(?:not|no|never|without|isn't|aren't|doesn't|does not|cannot|can't|future|"
-        r"proposed|planned|hypothetical|would|could|may)\b",
-        clause_prefix,
-        re.IGNORECASE,
-    ):
+    if _NEGATION_PREFIX.search(clause_prefix) or _FUTURE_PREFIX.search(clause_prefix):
         return True
 
     clause_ends = [position for delimiter in ";.\n" if (position := text.find(delimiter, end)) >= 0]
     clause_end = min(clause_ends, default=len(text))
     suffix = text[end:clause_end]
-    return bool(
-        re.search(
-            r"\b(?:not|never)\b[^.;\n]{0,80}\b(?:made|claimed?|implemented|current|available|"
-            r"a claim|a guarantee|real)\b|\b(?:future|proposed|planned)\s+(?:work|proposal|claim|baseline)\b",
-            suffix,
-            re.IGNORECASE,
-        )
-    )
+    return bool(_NEGATION_SUFFIX.search(suffix) or _FUTURE_SUFFIX.search(suffix))
 
 
 def scan_claim_surfaces(paths: Sequence[Path]) -> list[str]:
@@ -277,6 +291,64 @@ owner: SAP SE; future synthetic contract.
 
     assert len(findings) == 1
     assert "external-ownership" in findings[0]
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "SAP publication is not asserted.",
+        "SAP publication isn't real.",
+        "SAP publication will be proposed.",
+        "SAP SE is not affiliated.",
+        "no sponsorship by SAP is claimed.",
+        "SAP-endorsed is never endorsed.",
+        "SAP publication is a proposed future comparison.",
+        "SAP publication would be future work.",
+    ),
+)
+def test_claim_scan_accepts_general_same_clause_nonclaims(tmp_path: Path, text: str) -> None:
+    fixture = tmp_path / "general_nonclaim.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    assert scan_claim_surfaces([fixture]) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "publisher: SAP",
+        "SAP publication",
+        "SAP-endorsed",
+        "sponsored by SAP",
+        "in partnership with SAP",
+    ),
+)
+def test_claim_scan_reports_present_publication_forms(tmp_path: Path, text: str) -> None:
+    fixture = tmp_path / "present_publication.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert len(findings) == 1
+    assert "external-publication" in findings[0]
+
+
+@pytest.mark.parametrize(
+    "text",
+    (
+        "SAP publication; future comparison.",
+        "future comparison; SAP publication.",
+        "SAP SE. future synthetic contract.",
+        "future work\nSAP-endorsed.",
+    ),
+)
+def test_claim_scan_keeps_positive_claims_in_other_clauses(tmp_path: Path, text: str) -> None:
+    fixture = tmp_path / "mixed_clauses.txt"
+    fixture.write_text(text + "\n", encoding="utf-8")
+
+    findings = scan_claim_surfaces([fixture])
+
+    assert findings
 
 
 def test_claim_scan_detects_publication_field_and_phrase_forms_but_not_nonclaims(tmp_path: Path) -> None:
