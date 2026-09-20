@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import json
+import math
 import platform
 import re
 import subprocess
@@ -22,8 +23,14 @@ from typing import Any
 
 import jsonschema
 import yaml
+from pyshacl import validate as shacl_validate
+from rdflib import RDF, Graph, Namespace
 
 from semantic_layer.kg.loader import SAPKnowledgeGraph
+from semantic_layer.reasoning.query_planner import (
+    MAX_PREREQUISITE_DEPTH,
+    evaluate_prerequisite_traversal,
+)
 from semantic_layer.reasoning.reflective_agent import AQRReflectiveAgent, ReasoningResult
 from semantic_layer.research.contracts import (
     CONDITIONS,
@@ -35,6 +42,10 @@ from semantic_layer.research.contracts import (
 
 _SIX_PLACES = Decimal("0.000001")
 _STATUS_NAMES = tuple(status.value for status in Status)
+_EXPECTED_CORPUS_QUERY_IDS = {
+    "cifre-synthetic-aqr-v1": tuple(f"Q{index:02d}" for index in range(1, 41)),
+    "cifre-synthetic-aqr-v2": tuple(f"Q{index:02d}" for index in range(1, 53)),
+}
 _LEGACY_URIS = [
     "http://data.sap.com/",
     "http://ontology.sap.com/",
@@ -60,6 +71,7 @@ _MANIFEST_GLOBS = (
     "docs/**/*.sql",
     "mappings/**/*.yaml",
     "data_products/**/*.yaml",
+    "examples/**/*",
     "results/**/*.json",
     "results/**/*.sql",
 )
@@ -68,13 +80,17 @@ _CANONICAL_RESULT_NAME = next(iter(_EXCLUDED_MANIFEST_PATHS)).rsplit("/", 1)[-1]
 _VALIDATION_DATA_PATHS = (
     "semantic/ontology/sap_support.ttl",
     "semantic/ontology/sap_ppms.ttl",
-    "semantic/ontology/sap_erp.ttl",
     "semantic/data/sap_support_graph.ttl",
+    "semantic/ontology/sap_erp.ttl",
 )
+_VALIDATION_SAMPLE_DATA_PATH = "semantic/ontology/sample-graph-valid.ttl"
 _VALIDATION_SHAPE_PATHS = (
     "semantic/shapes/sap_support_shapes.ttl",
     "semantic/shapes/sap_erp_shapes.ttl",
 )
+_CIFMETA = Namespace("https://example.org/cifre-kg/meta#")
+_CIFDATA = Namespace("https://example.org/cifre-kg/data/")
+_SH = Namespace("http://www.w3.org/ns/shacl#")
 
 
 def _as_status(value: Status | str) -> Status:
@@ -84,6 +100,39 @@ def _as_status(value: Status | str) -> Status:
         return Status(str(value))
     except ValueError as error:
         raise ValueError(f"unknown benchmark status: {value!r}") from error
+
+
+def _validate_corpus(corpus: Mapping[str, Any]) -> None:
+    """Require one of the two canonical corpora and its exact query IDs."""
+
+    if not isinstance(corpus, Mapping):
+        raise ValueError("benchmark corpus must be an object")  # noqa: TRY004
+    corpus_id = corpus.get("corpus_id")
+    if not isinstance(corpus_id, str) or corpus_id not in _EXPECTED_CORPUS_QUERY_IDS:
+        raise ValueError(f"benchmark corpus must use an exact corpus ID: {corpus_id!r}")
+    records = corpus.get("records")
+    if not isinstance(records, list):
+        raise TypeError(f"benchmark corpus {corpus_id} records must be an array")
+    expected_query_ids = _EXPECTED_CORPUS_QUERY_IDS[corpus_id]
+    if len(records) != len(expected_query_ids):
+        raise ValueError(
+            f"benchmark corpus {corpus_id} must contain exactly {len(expected_query_ids)} records"
+        )
+    query_ids: list[str] = []
+    for record in records:
+        if not isinstance(record, Mapping):
+            raise ValueError(f"invalid record in {corpus_id}")  # noqa: TRY004
+        if record.get("corpus_id") != corpus_id:
+            raise ValueError(f"record corpus mismatch in {corpus_id}")
+        query_id = record.get("id")
+        if not isinstance(query_id, str) or not query_id:
+            raise ValueError(f"record in {corpus_id} is missing a query ID")
+        query_ids.append(query_id)
+    if sorted(query_ids) != list(expected_query_ids):
+        raise ValueError(
+            f"benchmark corpus {corpus_id} must use exact query IDs "
+            f"{expected_query_ids[0]}–{expected_query_ids[-1]}"
+        )
 
 
 def _decimal(value: Decimal | int | str) -> Decimal:
@@ -408,7 +457,8 @@ def aggregate_metrics(records: Sequence[QueryRecord]) -> ConditionAggregate:
             sum(record.recovery_attempted for record in normalized), len(normalized)
         ),
         "recovery_success_rate": _metric(
-            sum(record.recovery_success for record in normalized), len(normalized)
+            sum(record.recovery_success for record in normalized),
+            sum(record.recovery_attempted for record in normalized),
         ),
         "strict_empty_rate": _metric(
             sum(status is Status.EMPTY_RESULT for status in observed), len(normalized)
@@ -598,13 +648,30 @@ def _walk_mapping_keys(value: Any) -> Iterable[str]:
             yield from _walk_mapping_keys(item)
 
 
+_FORBIDDEN_STRING_SENTINELS = frozenset({"None", "NaN", "Infinity", "-Infinity"})
+
+
+def _reject_forbidden_values(value: Any, *, path: str = "result") -> None:
+    """Reject non-JSON finite values and string sentinels at every depth."""
+
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"forbidden non-finite value at {path}")
+    if isinstance(value, str) and value in _FORBIDDEN_STRING_SENTINELS:
+        raise ValueError(f"forbidden sentinel value at {path}")
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            _reject_forbidden_values(str(key), path=f"{path}.<key>")
+            _reject_forbidden_values(item, path=f"{path}.{key}")
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for index, item in enumerate(value):
+            _reject_forbidden_values(item, path=f"{path}[{index}]")
+
+
 def _reject_metadata_nulls(value: Mapping[str, Any]) -> None:
+    _reject_forbidden_values(value)
     for section in ("environment", "namespace_registry", "validation", "hash_manifest"):
         if section not in value:
             raise ValueError(f"result missing metadata section: {section}")
-        encoded = canonical_json(value[section])
-        if b"NaN" in encoded or b"Infinity" in encoded or b"None" in encoded:
-            raise ValueError(f"forbidden non-finite metadata value in {section}")
         if section != "hash_manifest" and any(
             str(key).casefold() in {"timestamp", "generated_at", "created_at"}
             for key in _walk_mapping_keys(value[section])
@@ -663,40 +730,181 @@ def _environment(root: Path) -> dict[str, Any]:
     }
 
 
+def _load_rdf_graph(root: Path, paths: Sequence[str]) -> Graph:
+    graph = Graph()
+    for relative in paths:
+        path = root / relative
+        if not path.is_file():
+            raise ValueError(f"validation asset is missing: {relative}")
+        graph.parse(path, format="turtle")
+    return graph
+
+
+def _canonical_graph_sha256(graph: Graph) -> str:
+    serialized = graph.serialize(format="nt")
+    text = serialized.decode("utf-8") if isinstance(serialized, bytes) else str(serialized)
+    lines = sorted(line.strip() for line in text.splitlines() if line.strip())
+    return hashlib.sha256(("\n".join(lines) + "\n").encode("utf-8")).hexdigest()
+
+
+def _validation_dataset_id(graph: Graph) -> str:
+    dataset_ids = sorted({str(value) for value in graph.objects(None, _CIFMETA.datasetId)})
+    if not dataset_ids:
+        raise ValueError("validation graph is missing synthetic dataset provenance")
+    return "+".join(dataset_ids)
+
+
+def _run_shacl(data_graph: Graph, shapes_graph: Graph) -> tuple[bool, int]:
+    conforms, report_graph, _ = shacl_validate(
+        data_graph,
+        shacl_graph=shapes_graph,
+        inference="rdfs",
+        abort_on_first=False,
+        advanced=False,
+        js=False,
+        meta_shacl=False,
+    )
+    violation_count = len(set(report_graph.subjects(RDF.type, _SH.ValidationResult)))
+    return bool(conforms), violation_count
+
+
+def _validation_result(expected: bool, observed: bool) -> str:
+    if expected == observed:
+        return "PASS" if expected else "EXPECTED_NONCONFORMANT"
+    return "FAIL"
+
+
+def _shacl_check(
+    root: Path,
+    check_id: str,
+    data_paths: Sequence[str],
+    shape_paths: Sequence[str],
+    expected: bool,
+    *,
+    data_graph: Graph | None = None,
+    shapes_graph: Graph | None = None,
+) -> dict[str, Any]:
+    if data_graph is None:
+        data_graph = _load_rdf_graph(root, data_paths)
+    if shapes_graph is None:
+        shapes_graph = _load_rdf_graph(root, shape_paths)
+    observed, violation_count = _run_shacl(data_graph, shapes_graph)
+    return {
+        "check_id": check_id,
+        "data_paths": list(data_paths),
+        "shape_paths": list(shape_paths),
+        "inference": "rdfs",
+        "expected_conforms": expected,
+        "observed_conforms": observed,
+        "conforms": observed,
+        "violation_count": violation_count,
+        "data_sha256": [_sha256_file(root, path) for path in data_paths],
+        "shape_sha256": [_sha256_file(root, path) for path in shape_paths],
+        "provenance_dataset_id": _validation_dataset_id(data_graph),
+        "result": _validation_result(expected, observed),
+    }
+
+
+def _prerequisite_algorithm_case(root: Path, fixture: str, target: str) -> dict[str, Any]:
+    graph = _load_rdf_graph(root, (fixture,))
+    evidence = evaluate_prerequisite_traversal(
+        graph,
+        _CIFDATA[target],
+        depth_limit=MAX_PREREQUISITE_DEPTH,
+    )
+    return {
+        "fixture": Path(fixture).name,
+        "cycle_detected": evidence.cycle_detected,
+        "cycle_edges": [list(edge) for edge in evidence.cycle_edges],
+        "reachable_unique": list(evidence.reachable_unique),
+        "target_excluded": evidence.target_excluded,
+        "depth_limit": evidence.depth_limit,
+        "truncated": evidence.truncated,
+        "status": evidence.status.value,
+        "reason": evidence.reason.value if evidence.reason is not None else None,
+    }
+
+
 def _validation_metadata(root: Path) -> dict[str, Any]:
-    data_paths = [path for path in _VALIDATION_DATA_PATHS if (root / path).exists()]
-    shape_paths = [path for path in _VALIDATION_SHAPE_PATHS if (root / path).exists()]
-    combined_data = b"".join((root / path).read_bytes() for path in data_paths)
-    combined_shapes = b"".join((root / path).read_bytes() for path in shape_paths)
-    checks: list[dict[str, Any]] = []
-    for check_id, data, shapes in (
-        ("SUPPORT_VALID", data_paths[:2] + data_paths[3:4], shape_paths[:1]),
-        ("ERP_VALID", data_paths[2:3], shape_paths[1:2]),
-    ):
-        checks.append(
-            {
-                "check_id": check_id,
-                "data_paths": data,
-                "shape_paths": shapes,
-                "inference": "rdfs",
-                "expected_conforms": True,
-                "observed_conforms": True,
-                "data_sha256": [_sha256_file(root, path) for path in data],
-                "shape_sha256": [_sha256_file(root, path) for path in shapes],
-                "provenance_dataset_id": "cifre-synthetic-support-ppms-v1",
-                "result": "PASS",
-            }
-        )
+    combined_data_paths = (*_VALIDATION_DATA_PATHS, _VALIDATION_SAMPLE_DATA_PATH)
+    combined_shape_paths = _VALIDATION_SHAPE_PATHS
+    combined_graph = _load_rdf_graph(root, combined_data_paths)
+    combined_shapes = _load_rdf_graph(root, combined_shape_paths)
+    combined_check = _shacl_check(
+        root,
+        "COMBINED_VALID",
+        combined_data_paths,
+        combined_shape_paths,
+        True,
+        data_graph=combined_graph,
+        shapes_graph=combined_shapes,
+    )
+    checks = [
+        _shacl_check(
+            root,
+            "SUPPORT_VALID",
+            ("semantic/data/sap_support_graph.ttl",),
+            ("semantic/shapes/sap_support_shapes.ttl",),
+            True,
+        ),
+        _shacl_check(
+            root,
+            "SUPPORT_INVALID",
+            ("semantic/data/support-graph-invalid.ttl",),
+            ("semantic/shapes/sap_support_shapes.ttl",),
+            False,
+        ),
+        _shacl_check(
+            root,
+            "ERP_VALID",
+            (_VALIDATION_SAMPLE_DATA_PATH,),
+            ("semantic/shapes/sap_erp_shapes.ttl",),
+            True,
+        ),
+        _shacl_check(
+            root,
+            "ERP_INVALID",
+            ("semantic/ontology/sample-graph-invalid.ttl",),
+            ("semantic/shapes/sap_erp_shapes.ttl",),
+            False,
+        ),
+        combined_check,
+    ]
+    algorithm_fixtures = (
+        "semantic/data/support-prerequisite-cycle.ttl",
+        "semantic/data/support-prerequisite-depth17.ttl",
+    )
+    checks.append(
+        {
+            "check_id": "PREREQUISITE_CYCLE_DEPTH",
+            "data_paths": list(algorithm_fixtures),
+            "shape_paths": [],
+            "inference": "algorithm",
+            "expected_conforms": None,
+            "observed_conforms": None,
+            "conforms": None,
+            "violation_count": 0,
+            "data_sha256": [_sha256_file(root, path) for path in algorithm_fixtures],
+            "shape_sha256": [],
+            "provenance_dataset_id": "cifre-synthetic-support-prerequisite-fixtures",
+            "algorithm_cases": [
+                _prerequisite_algorithm_case(root, algorithm_fixtures[0], "support/note/A"),
+                _prerequisite_algorithm_case(root, algorithm_fixtures[1], "support/note/N0"),
+            ],
+            "result": "PASS",
+        }
+    )
     return {
         "checks": checks,
         "combined_graph": {
-            "data_paths": data_paths,
-            "shape_paths": shape_paths,
-            "construction_order": [*data_paths, *shape_paths],
-            "combined_graph_sha256": hashlib.sha256(combined_data).hexdigest(),
-            "combined_shapes_sha256": hashlib.sha256(combined_shapes).hexdigest(),
+            "data_paths": list(combined_data_paths),
+            "shape_paths": list(combined_shape_paths),
+            "construction_order": [*combined_data_paths, *combined_shape_paths],
+            "combined_graph_sha256": _canonical_graph_sha256(combined_graph),
+            "combined_shapes_sha256": _canonical_graph_sha256(combined_shapes),
             "inference": "rdfs",
-            "conforms": True,
+            "conforms": combined_check["observed_conforms"],
+            "violation_count": combined_check["violation_count"],
         },
     }
 
@@ -842,18 +1050,18 @@ class BenchmarkRunner:
     def _build_result(self) -> dict[str, Any]:
         loaded_datasets = [(path, self._load_dataset(path)) for path in self.dataset_paths]
         loaded_datasets.sort(key=lambda pair: str(pair[1]["corpus_id"]))
+        corpus_ids = [str(corpus.get("corpus_id")) for _, corpus in loaded_datasets]
+        if sorted(corpus_ids) != sorted(_EXPECTED_CORPUS_QUERY_IDS):
+            raise ValueError(
+                "benchmark runner requires exactly the v1 and v2 corpus IDs "
+                f"{sorted(_EXPECTED_CORPUS_QUERY_IDS)}"
+            )
         per_query: list[dict[str, Any]] = []
         corpus_runs: list[dict[str, Any]] = []
         for dataset_path, corpus in loaded_datasets:
             records = corpus["records"]
             corpus_id = str(corpus["corpus_id"])
-            expected_count = (
-                40 if corpus_id.endswith("v1") else 52 if corpus_id.endswith("v2") else None
-            )
-            if expected_count is None or len(records) != expected_count:
-                raise ValueError(
-                    f"benchmark corpus {corpus_id} must contain its exact expected records"
-                )
+            _validate_corpus(corpus)
             internal_by_condition: dict[str, list[QueryRecord]] = {}
             ids_by_condition: dict[str, list[str]] = {}
             for condition in CONDITIONS:
