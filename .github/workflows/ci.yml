@@ -10,11 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install -e ".[dev]"
-      - run: make lint
-      - run: make check-yaml
-      - run: make validate-semantic
-      - run: make check-mappings-quality
-      - run: make check-golden
-      - run: make check-compiler
-      - run: make test
+      - run: python -m venv .venv
+      - run: .venv/bin/python -m pip install --upgrade pip==25.2
+      - run: .venv/bin/python -m pip install --require-hashes -r constraints/py312.txt
+      - run: make PYTHON=.venv/bin/python research-verify

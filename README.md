@@ -80,13 +80,17 @@ make PYTHON=.venv/bin/python research-demo
 ```
 
 `kg-validate` exercises the RDF/OWL/SHACL assets and their fixtures.
-`research-verify` is the final reproducibility command specified for the
-repository. Task 13 will wire the Make target and generate the canonical
-`results/latest_benchmark.json` artifact after all implementation and handoff
-files are final; Task 11 has not run or wired that target.
+`research-verify` is the final reproducibility command for the repository. It
+checks the committed `results/latest_benchmark.json` against a fresh temporary
+benchmark, the complete input-byte manifest, asset parity, claims, tests, and
+locked Ruff output; it never rewrites the committed artifact. To publish a new
+artifact after a reviewed source or documentation change, use the explicit
+finalization boundary in `semantic_layer.validation` and rerun every gate.
 `research-demo` prints a local reasoning trace. W3C RDF, OWL, SPARQL 1.1, and
 SHACL are referenced as standards; this README does not invent a citation or
 claim conformance beyond the checks that are run.
+Task 13 finalization records the measured preliminary artifact and its locked
+verification evidence.
 
 ### Preliminary controlled synthetic benchmark
 
@@ -97,9 +101,12 @@ provenance, and keeps unsupported or strict-empty cases explicit. The corpus
 is not proprietary data, an SAP benchmark, a production-support evaluation, or
 evidence that the method generalizes to real data.
 
-Final metrics and hashes are intentionally not written here. Task 13 owns the
-canonical artifact and final readiness gate. The planned artifact link is kept
-for that handoff: [preliminary benchmark artifact](results/latest_benchmark.json).
+The measured preliminary result is committed as the
+[preliminary benchmark artifact](results/latest_benchmark.json). It is a
+repository-authored synthetic result, not an external benchmark or production
+evaluation; its exact environment, input hashes, and metric values are recorded
+in the [interview brief](docs/research/cifre-interview-brief.md) and
+[verification report](docs/verification-report.md).
 
 ## Limitations and future research
 
@@ -121,6 +128,8 @@ Text-to-SPARQL, learned repair policies, and hybrid graph/vector retrieval.
 Each experiment would need a versioned dataset, method and dependency lock,
 seed/configuration, cost and failure accounting, explicit abstention policy,
 and a run artifact before comparison with this deterministic baseline.
+Future work will wire those separately versioned experiments to their own
+evidence artifacts; the current verification target remains deterministic.
 
 ## Secondary reference: federated ERP semantic layer
 
@@ -163,15 +172,19 @@ tests:
 ```bash
 git clone https://github.com/Sugumaran-Balasubramaniyan/enterprise-agentic-semantic-layer.git
 cd enterprise-agentic-semantic-layer
-python3 -m venv .venv
-.venv/bin/python -m pip install -e '.[dev]'
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip==25.2
+.venv/bin/python -m pip install --require-hashes -r constraints/py312.txt
 make PYTHON=.venv/bin/python validate-semantic
 make PYTHON=.venv/bin/python test
 ```
 
-No cloud credentials, model API key, or network service is required. A
-platform-specific dependency lockfile is future release-engineering work; the
-current package declares its dependency floors in `pyproject.toml`.
+No cloud credentials, model API key, or network service is required. The
+checked-in lock covers the third-party runtime and development dependencies;
+repository source is run through `PYTHONPATH=src` rather than an editable
+install. The obsolete `.venv/bin/python -m pip install -e '.[dev]'` command is
+not part of the reproducible setup. On hosts where `python3` is known to be
+Python 3.12, `python3 -m venv .venv` is equivalent to the explicit command.
 
 ## Local setup
 
@@ -179,8 +192,9 @@ The runnable path requires Python 3.12 or newer. No cloud credentials and no
 LLM API key are needed.
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -e '.[dev]'
+python3.12 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip==25.2
+.venv/bin/python -m pip install --require-hashes -r constraints/py312.txt
 make PYTHON=.venv/bin/python validate-semantic
 make PYTHON=.venv/bin/python test
 make PYTHON=.venv/bin/python demo
@@ -189,7 +203,7 @@ make PYTHON=.venv/bin/python demo
 The supported Make targets are `setup`, `test`, `lint`, `validate-semantic`,
 `check-yaml`, `check-mappings-quality`, `check-golden`, `check-compiler`,
 `demo`, `evaluate`, `run-api`, `kg-build`, `kg-validate`,
-`research-demo`, and the planned `research-verify` gate. The commands use the checked-in
+`research-demo`, and the final `research-verify` gate. The commands use the checked-in
 `.venv` interpreter explicitly so Ubuntu's externally managed system Python is
 not modified.
 
@@ -350,7 +364,7 @@ verification evidence:
 | Local relational path | [FastAPI transport](src/semantic_layer/api/app.py), [DuckDB compiler](src/semantic_layer/compiler/duckdb.py), [governance policy](src/semantic_layer/governance/policy.py), [quality checks](src/semantic_layer/quality/checks.py) | [API tests](tests/integration/test_api.py), [compiler tests](tests/unit/test_compiler.py), and [quality tests](tests/unit/test_quality.py) |
 | Synthetic research protocol | [benchmark runner](src/semantic_layer/research/benchmark_runner.py), [research contracts](src/semantic_layer/research/contracts.py), and [result schema](tests/research/result_schema.json) | [research contract tests](tests/research/test_contracts.py), [dataset migration tests](tests/research/test_dataset_migration.py), and [evaluation guide](docs/evaluation.md) |
 | Runnable examples and extension seams | [example index](examples/README.md), [example questions](examples/example_questions.md), [generated SQL simulations](examples/generated_sql/README.md), and [implementation plan](docs/implementation-plan.md) | [golden evaluation](tests/golden/test_evaluation.py), [Makefile](Makefile), and [local governance guidance](docs/governance.md) |
-| Final verification wiring | [CI workflow](.github/workflows/ci.yml), [architecture decisions](docs/decisions/), and [documentation contract](tests/unit/test_documentation_contract.py) | Task 13 owns the final `research-verify` target, canonical artifact generation, and complete publication-link resolution. |
+| Final verification wiring | [CI workflow](.github/workflows/ci.yml), [architecture decisions](docs/decisions/), and [documentation contract](tests/unit/test_documentation_contract.py) | The committed artifact, final `research-verify` target, and publication links are checked together from the locked source environment. |
 
 ## Governance and local review
 
@@ -376,7 +390,7 @@ mappings/                 illustrative platform mappings
 src/semantic_layer/       registry, resolver, planner, compiler, API, KG, tests
 tests/                    unit, semantic, integration, golden, and research tests
 docs/                     architecture, governance, ADRs, evaluation, and plans
-results/                  canonical benchmark artifact owned by the final task
+results/                  committed canonical preliminary benchmark artifact
 ```
 
 The ADRs preserve the technical decisions behind the local design:

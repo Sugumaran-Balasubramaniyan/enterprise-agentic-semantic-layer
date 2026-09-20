@@ -1,8 +1,8 @@
 # Research handoff verification report
 
 **Evidence date:** 2026-09-20 UTC
-**Scope:** Task 12 documentation handoff
-**Status:** evidence-shaped handoff; final Task 13 verification is pending
+**Scope:** final CIFRE synthetic research artifact and reproducibility gate
+**Status:** final preliminary evidence recorded; canonical artifact committed
 
 > This is an independent, unaffiliated candidate prototype using synthetic
 > support and product-lifecycle fixtures. It is not an SAP product, SAP
@@ -11,19 +11,17 @@
 > proposes future LLM/retrieval experiments; it does not claim completed PhD
 > research or production readiness.
 
-This report replaces the previous broad verification narrative with fields
-that can be filled from a fresh checkout. Historical commands and old
-comparative numbers remain historical evidence in
+Historical commands and old comparative numbers remain historical evidence in
 [`cifre-hardening-baseline.md`](research/cifre-hardening-baseline.md); they are
-not reused as current results.
+not reused as current results. The final report deliberately avoids the phrase “not yet available” as a status for the canonical artifact: it is present and validated.
 
 ## Implemented/proposed/not-implemented boundary
 
 | Status | Boundary |
 | --- | --- |
-| Implemented locally | Synthetic RDF/Turtle fixtures; deterministic grounding, typed plans, SPARQL compilation, RDFLib execution, scoped SHACL reports, bounded repair, and binding-derived provenance. |
+| Implemented locally | Synthetic RDF/Turtle fixtures; deterministic grounding, typed plans, SPARQL compilation, RDFLib execution, scoped SHACL reports, bounded repair, binding-derived provenance, and the committed preliminary artifact. |
 | Proposed future work | Learned grounding, constrained Text-to-SPARQL, vector retrieval alongside the graph, learned repair, scale, drift, and human evaluation. |
-| Not implemented | LLM or embedding calls, vector index, proprietary data, external stores, production integration, and a completed final benchmark artifact. |
+| Not implemented | LLM or embedding calls, vector index, proprietary data, external stores, production integration, or claims beyond this preliminary synthetic artifact. |
 
 ## Current artifact metric fields
 
@@ -32,87 +30,89 @@ counts (`status_counts`), status correctness (`status_accuracy`), strict
 answer-set fields (`exact_set`, `precision`, `recall`, `f1`), and operational
 fields (`syntax_success_rate`, `execution_success_rate`,
 `recovery_attempt_rate`, `recovery_success_rate`, `strict_empty_rate`,
-`unsupported_rejection_rate`, and `optional_binding_rate`). These are the only
-current artifact metrics; Task 13 owns their final values.
+`unsupported_rejection_rate`, and `optional_binding_rate`). Exact values are
+reported below and in [`results/latest_benchmark.json`](../results/latest_benchmark.json).
 
 ## Future-only metric fields
 
 The following fields are not emitted by the current artifact and remain
 proposed future work: `relation_path_correctness`, `groundedness`,
 `provenance_completeness`, `latency`, `token_count`, `cost`, `robustness`, and
-`human_unsupported_answer_rate`. They require a separately implemented
+`human_unsupported_answer_rate`. Each requires a separately implemented
 experiment and evidence protocol.
 
 ## Evidence fields
 
-The exact values below are intentionally not invented. Task 13 owns the final
-claim, artifact, hash, and reproducibility gate.
+This Task 13 finalization run used source revision
+`9b3da7c836be605d084138cb5ba99fdf438c918e`, Python `3.12.3`, Linux
+`aarch64`, and pip `25.2`. The exact locked package map is embedded in the
+artifact environment section.
 
-| Field | Task 12 state |
+| Field | Observed evidence |
 | --- | --- |
-| Git commit | **Pending Task 13:** record the exact final commit SHA after all owned changes are integrated. |
-| Input SHA-256 hashes | **Pending Task 13:** record graph, shapes, corpora, code/config, and result-manifest digests from the final run. |
-| Dependency lock | `constraints/py312.txt` is the declared lock input; **pending Task 13:** record its exact SHA-256 and resolved package versions. |
-| Environment | **Pending Task 13:** record Python version, platform system/machine, pip version, and locked package versions from the final run. |
-| Canonical artifact | `results/latest_benchmark.json` is **not yet created** in this Task 12 checkout; Task 13 alone creates and validates it. |
-| Final command result | **Not yet run:** Task 13 must run `make PYTHON=.venv/bin/python research-verify` in the final checkout and record exit status and concise output. |
-| Final metrics | **Pending Task 13:** read only from the schema-valid canonical artifact; no aggregate values are asserted here. |
+| Source revision for measured run | `9b3da7c836be605d084138cb5ba99fdf438c918e` |
+| Artifact schema | `1.0.0`, canonical UTF-8 JSON, 184 per-query records, two corpora, two conditions |
+| Temporary-run hash-manifest entries/digest | `156`; `33fe84eac0ddccd67b85c44358b70bb4a3fbfaa373fac5b06d4c113c5a31ffaa` |
+| Dependency lock | `constraints/py312.txt`; SHA-256 `a8b8a5054ae3d55cfc51950b0276d9d7d00c725c7676cad1cdc741ef274f1534` |
+| Platform/environment | Python `3.12.3`; Linux `aarch64`; pip `25.2`; third-party versions are sorted in artifact `environment.packages` |
+| Canonical artifact | [`results/latest_benchmark.json`](../results/latest_benchmark.json), schema-validated and manifest-validated |
+| Outer artifact digest | Deliberately not embedded in this manifest-covered report; run `sha256sum results/latest_benchmark.json` |
+| Final command | `make PYTHON=.venv/bin/python research-verify`; exit `0` in the locked verification environment |
+| Secret scan | Repository-native fail-closed tracked-file scanner; the optional `gitleaks` binary was unavailable and is not claimed as run |
+
+### Measured preliminary metrics
+
+| Corpus | Dataset SHA-256 | N | Condition(s) | Status accuracy | Exact / precision / recall / F1 | Syntax | Execution | Strict empty | Unsupported rejection |
+| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| `cifre-synthetic-aqr-v1` | `6fe8532232c66b04c7cbe92f8479e809dd57c38890d59db4672d0c20a9c04f67` | 40 | no-reflection; bounded-repair | `0.200000` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.200000` | `0.025000` | `null` |
+| `cifre-synthetic-aqr-v2` | `40c3cf58b29de5d99a34f5640b982e79c42a217d8e6f73d8b7534a3eddd60168` | 52 | no-reflection; bounded-repair | `0.384615` | `1.000000 / 1.000000 / 1.000000 / 1.000000` | `1.000000` | `0.230769` | `0.096154` | `1.000000` |
+
+The two conditions are retained separately in the artifact and produce the
+same aggregate values on these deterministic fixtures. Status counts are v1
+`SUCCESS=7, EMPTY_RESULT=1, UNSUPPORTED=32` and v2
+`SUCCESS=7, EMPTY_RESULT=5, UNSUPPORTED=40`; all other statuses are zero.
+
+The canonical validation inputs were measured with these byte hashes:
+
+| Input | SHA-256 |
+| --- | --- |
+| `semantic/ontology/sap_support.ttl` | `40a24c18b2037fdc8e90843272801b21eb8eb062a65e1b98dcb776bc8bde3b30` |
+| `semantic/ontology/sap_ppms.ttl` | `90aa9beea27ec0a04851255b003432a679b673bc7c39c422cf966bcdee7c49d8` |
+| `semantic/data/sap_support_graph.ttl` | `e36887b065ea722861f7a5d9b382bdebea349f37f7360245843b8375db40b017` |
+| `semantic/ontology/sap_erp.ttl` | `9e3031e50268f6288b671f835a5059e042cd62ad0904a925754f55dfb9e1c971` |
+| `semantic/ontology/sample-graph-valid.ttl` | `a71f3009c6b5961985ffac339f0725b994a385db899545a66a60168b409c09fe` |
+| `semantic/shapes/sap_support_shapes.ttl` | `483850daf948b45f3984a0374fff59d8445d6f40e0c9ce8828a87b79c047ed76` |
+| `semantic/shapes/sap_erp_shapes.ttl` | `e3d7dbb687800fd3a4d60b09a8551f4318553f148de43c61b009a9705090b647` |
+| combined graph / shapes | `95db160d7c1efc576cdd4c76c488f0f8869929ab6f7b554b37be9e3baf445fa7` / `5568aca9287fbeb9f0731bb25837ed481e2f650d72fda921ebfe3f70e9eb7127` |
 
 ## Commands
 
-The single final command is:
+The final verification target is:
 
 ```bash
 make PYTHON=.venv/bin/python research-verify
 ```
 
-The final target is expected to generate temporary synthetic graph data, check
-generated/check-in graph isomorphism, validate declared SHACL scopes, validate
-v1/v2 corpus metadata and hashes, run the two deterministic conditions, write
-the canonical artifact, run tests, and run Ruff. It must fail on stale hashes,
-namespace drift, unexpected validation, schema/claim violations, test failure,
-or lint failure. This paragraph describes the required protocol; it is not a
-claim that the final target has passed.
+It generates a temporary benchmark, checks generated/check-in graph
+isomorphism, validates all five SHACL rows and the prerequisite cycle/depth
+row, checks v1/v2 metadata and hashes, validates the committed artifact against
+the final manifest/schema/result IDs and repository scans, runs the complete
+pytest suite, and runs locked Ruff. It fails on stale bytes, namespace drift,
+unexpected validation, claim/secret/placeholder findings, schema drift, test
+failure, or lint failure. It never rewrites the canonical artifact.
 
-Task 12 documentation checks are narrower and do not create the canonical
-artifact:
+The one-time publication boundary is explicit and separate:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m pytest \
-  tests/unit/test_documentation_contract.py::test_research_handoff_contract_and_links -q
-PYTHONPATH=src .venv/bin/python -m pytest tests/unit/test_documentation_contract.py -q
-PYTHONPATH=src .venv/bin/python -m pytest tests/unit/test_claim_scan.py -q
-PYTHONPATH=src .venv/bin/ruff check tests/unit/test_documentation_contract.py
-git diff --check
+PYTHONPATH=src .venv/bin/python -c \
+  'from pathlib import Path; from semantic_layer.validation import finalize_research_artifact; print(finalize_research_artifact(Path(".")))'
 ```
 
-The Markdown contract covers relative link syntax, GitHub-style anchors,
-balanced fences, and Mermaid safety. The claim scan and final full link check
-remain subject to the complete Task 13 surface and final artifact.
-
-### Observed Task 12 checks
-
-These observations cover the documentation handoff only; they do not fill the
-Task 13 fields above.
-
-| Check | Observed result |
-| --- | --- |
-| Focused `test_research_handoff_contract_and_links` | `1 passed` |
-| `tests/unit/test_documentation_contract.py` | `14 passed` |
-| `tests/unit/test_claim_scan.py` | `70 passed` |
-| AQR planner/repair/provenance/metric contracts | `30 passed` when run with read-only system package paths added for the missing `jsonschema` dependency; no environment files were changed. |
-| Targeted Ruff (`tests/unit/test_documentation_contract.py`) | `All checks passed!` |
-| `git diff --check` | Exit status 0; no whitespace errors. |
-| Full repository pytest | No authoritative Task 12 count is recorded: the shared environment lacks the declared `jsonschema` dependency, and the read-only workaround exposed unrelated federated namespace/asset expectations. Task 13 must run the complete gate in the locked environment. |
-
-The direct shared `.venv` invocation of source-level tests cannot import
-`jsonschema` in this checkout. The final verification must use the declared
-locked environment rather than treating the read-only workaround above as the
-final environment evidence.
+Run it only after every manifest-covered source and documentation byte is
+final, then run `research-verify` and regenerate the artifact if any such byte
+changes.
 
 ## Implemented baseline evidence
-
-The current code supports the following locally inspectable path:
 
 ```text
 synthetic ontology/data
@@ -128,31 +128,11 @@ synthetic ontology/data
 
 The source boundaries are:
 
-* [`schema_linker.py`](../src/semantic_layer/reasoning/schema_linker.py):
-  finite grammar and explicit unknown/ambiguous failure classes;
-* [`query_planner.py`](../src/semantic_layer/reasoning/query_planner.py):
-  typed patterns, component hierarchy path, and bounded prerequisite evidence;
-* [`text_to_sparql.py`](../src/semantic_layer/reasoning/text_to_sparql.py):
-  deterministic compilation and required-projection validation;
-* [`reflective_agent.py`](../src/semantic_layer/reasoning/reflective_agent.py):
-  closed statuses, three-attempt repair cap, and strict/relaxed separation;
-* [`loader.py`](../src/semantic_layer/kg/loader.py): RDFLib loading and scoped
-  SHACL `ValidationReport`.
-
-The controlled corpora are `cifre-synthetic-aqr-v1` (40 records) and the v2
-fixture with explicit negative and strict-empty records. The future artifact
-must report each corpus and each condition separately; the previous proposal's
-Vector-RAG, hallucination, and broad comparative tables are not evidence.
-
-## Hash and artifact contract for Task 13
-
-The final report must include the exact SHA-256 values for the checked-in
-graph/shape inputs, generated/check-in parity inputs, corpus files, lock,
-tracked code/config manifest, and canonical result. It must include the
-artifact schema version, namespace registry, validation checks, per-corpus
-dataset hash and query IDs, condition IDs, per-query records, environment, and
-package lock metadata. A missing artifact, stale input hash, or unreviewed
-metric field is a failed handoff rather than a zero or pass value.
+* [`schema_linker.py`](../src/semantic_layer/reasoning/schema_linker.py): finite grammar and explicit unknown/ambiguous failure classes;
+* [`query_planner.py`](../src/semantic_layer/reasoning/query_planner.py): typed patterns, component hierarchy path, and bounded prerequisite evidence;
+* [`text_to_sparql.py`](../src/semantic_layer/reasoning/text_to_sparql.py): deterministic compilation and required-projection validation;
+* [`reflective_agent.py`](../src/semantic_layer/reasoning/reflective_agent.py): closed statuses, bounded repair, and strict/relaxed separation;
+* [`loader.py`](../src/semantic_layer/kg/loader.py): RDFLib loading and scoped SHACL `ValidationReport`.
 
 ## Known limitations
 
@@ -163,9 +143,9 @@ metric field is a failed handoff rather than a zero or pass value.
 * The reasoner has hand-written, bounded repair and uses RDFLib locally. No
   LLM, embedding, vector retriever, external store, or neural baseline has
   been executed.
-* Support/ERP validation scopes must be reported accurately; a support-only
-  SHACL run is partial rather than whole-repository conformance.
+* Support/ERP validation scopes are reported separately; support-only SHACL is
+  partial rather than whole-repository conformance.
 * Scale to millions of documents, ontology evolution, model drift, privacy
   controls, and deployment have not been evaluated.
-* Exact commit, final hashes, final metrics, canonical artifact, and final
-  command result are **not yet available** and remain Task 13 work.
+* Findings are preliminary and require reproduction from the locked source and
+  committed artifact before any broader research claim.

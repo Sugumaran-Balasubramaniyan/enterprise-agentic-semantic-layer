@@ -33,8 +33,8 @@ The stable response is:
 ```json
 {
   "text": "automotive",
-  "concept_ids": ["sap:ProductAutomotive"],
-  "matched_terms": {"sap:ProductAutomotive": "automotive"}
+  "concept_ids": ["ciferp:ProductAutomotive"],
+  "matched_terms": {"ciferp:ProductAutomotive": "automotive"}
 }
 ```
 

@@ -6,9 +6,11 @@ import copy
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -23,10 +25,14 @@ __all__ = [
     "ValidationResult",
     "VerificationReport",
     "assert_graph_isomorphic",
+    "finalize_research_artifact",
     "load_vocabulary",
     "main",
     "run_asset_verification",
     "run_research_verify",
+    "scan_repository_legacy_uris",
+    "scan_repository_placeholders",
+    "scan_repository_secrets",
     "validate_graph",
 ]
 
@@ -87,6 +93,127 @@ def _safe_environment(root: Path) -> dict[str, str]:
         "LC_ALL": "C",
         "LANG": "C",
     }
+
+
+_LEGACY_URI_FAMILIES = (
+    "http://data." + "sap" + ".com/",
+    "http://ontology." + "sap" + ".com/",
+    "https://" + "sap.example/erp/",
+)
+_SCAN_CONTROL_DOCUMENTS = frozenset(
+    {
+        "docs/superpowers/specs/2026-09-19-cifre-research-prototype-hardening-design.md",
+        "docs/superpowers/plans/2026-09-19-cifre-research-prototype-hardening.md",
+        "docs/research/cifre-hardening-baseline.md",
+    }
+)
+_PLACEHOLDER_MARKERS = tuple(
+    marker
+    for marker in (
+        "TO" + "DO",
+        "FIX" + "ME",
+        "T" + "BD",
+        "REPLACE" + "_ME",
+        "CHANGE" + "ME",
+    )
+)
+_PLACEHOLDER_PATTERN = re.compile(
+    r"(?i)\b(?:" + "|".join(_PLACEHOLDER_MARKERS) + r")\b"
+)
+_SECRET_PATTERNS = (
+    re.compile(
+        r"(?i)(?:api[_-]?key|access[_-]?key|client[_-]?secret|private[_ -]?key|"
+        r"password|passwd|secret|token|credential)\s*[:=]\s*['\"]?"
+        r"([A-Za-z0-9_./+=:-]{20,})"
+    ),
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{24,}"),
+    re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----"),
+)
+
+
+def _scan_paths(root: Path, paths: Sequence[Path] | None) -> tuple[Path, ...]:
+    if paths is not None:
+        return tuple(Path(path) for path in paths if Path(path).is_file())
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z"],
+            check=True,
+            capture_output=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError(f"cannot enumerate tracked scan inputs under {root}") from error
+    return tuple(
+        root / relative
+        for relative in completed.stdout.decode("utf-8").split("\0")
+        if relative and (root / relative).is_file()
+    )
+
+
+def _relative_scan_path(root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def scan_repository_legacy_uris(
+    root: Path, *, paths: Sequence[Path] | None = None
+) -> list[str]:
+    """Return forbidden legacy-URI findings outside the three control documents."""
+
+    findings: list[str] = []
+    repository_root = Path(root).resolve()
+    for path in _scan_paths(repository_root, paths):
+        relative = _relative_scan_path(repository_root, path)
+        if relative in _SCAN_CONTROL_DOCUMENTS:
+            continue
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for family in _LEGACY_URI_FAMILIES:
+                if family in line:
+                    findings.append(f"{relative}:{line_number}:legacy-uri:{family}")
+    return findings
+
+
+def scan_repository_secrets(
+    root: Path, *, paths: Sequence[Path] | None = None
+) -> list[str]:
+    """Fail closed on high-confidence tracked credential and private-key patterns."""
+
+    findings: list[str] = []
+    repository_root = Path(root).resolve()
+    for path in _scan_paths(repository_root, paths):
+        relative = _relative_scan_path(repository_root, path)
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for line_number, line in enumerate(text.splitlines(), 1):
+            for pattern in _SECRET_PATTERNS:
+                if pattern.search(line):
+                    findings.append(f"{relative}:{line_number}:secret-pattern")
+                    break
+    return findings
+
+
+def scan_repository_placeholders(
+    root: Path, *, paths: Sequence[Path] | None = None
+) -> list[str]:
+    """Return unfinished marker findings while allowing historical control prose."""
+
+    findings: list[str] = []
+    repository_root = Path(root).resolve()
+    for path in _scan_paths(repository_root, paths):
+        relative = _relative_scan_path(repository_root, path)
+        if relative in _SCAN_CONTROL_DOCUMENTS:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for line_number, line in enumerate(text.splitlines(), 1):
+            if _PLACEHOLDER_PATTERN.search(line):
+                findings.append(f"{relative}:{line_number}:placeholder-marker")
+    return findings
 
 
 def _validate_interpreter(python: str, root: Path) -> str:
@@ -412,7 +539,31 @@ def _asset_verification(
                         f"benchmark command failed ({completed.returncode}): "
                         f"{completed.stderr.strip() or completed.stdout.strip()}"
                     )
-                benchmark = {"command": command, "artifact": json.loads(result_path.read_text())}
+                temporary_artifact = json.loads(result_path.read_text(encoding="utf-8"))
+                from semantic_layer.research.benchmark_runner import (
+                    validate_hash_manifest,
+                    validate_result_id_references,
+                )
+                from semantic_layer.research.contracts import load_and_validate_result
+
+                canonical_path = root / "results/latest_benchmark.json"
+                if not canonical_path.is_file():
+                    raise ValueError("canonical result artifact is missing")
+                canonical_artifact = load_and_validate_result(canonical_path)
+                validate_hash_manifest(canonical_artifact, root)
+                validate_result_id_references(canonical_artifact)
+                if canonical_artifact != temporary_artifact:
+                    raise ValueError(
+                        "canonical result artifact differs from a fresh temporary benchmark"
+                    )
+                benchmark = {"command": command, "artifact": temporary_artifact}
+                scan_findings = [
+                    *scan_repository_legacy_uris(root),
+                    *scan_repository_secrets(root),
+                    *scan_repository_placeholders(root),
+                ]
+                if scan_findings:
+                    raise ValueError("repository final scans failed: " + "; ".join(scan_findings))
     # Broad handling is intentional: verification must report every drift, not raise.
     except Exception as error:  # noqa: BLE001
         errors.append(f"{type(error).__name__}: {error}")
@@ -427,6 +578,55 @@ def _asset_verification(
         benchmark=benchmark,
         errors=tuple(errors),
     )
+
+
+def finalize_research_artifact(root: Path) -> Path:
+    """Generate and atomically publish the canonical result after final inputs settle.
+
+    The benchmark runner always writes to a caller-supplied temporary path.  This
+    boundary verifies that its manifest was built from the current repository
+    bytes, then performs the only replacement of ``results/latest_benchmark.json``.
+    Ordinary verification never calls this function and therefore cannot rewrite
+    a committed artifact.
+    """
+
+    repository_root = Path(root).resolve()
+    destination = repository_root / "results/latest_benchmark.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix="cifre-finalize-", dir=repository_root) as temporary:
+        temporary_path = Path(temporary) / "latest_benchmark.json"
+        command = [
+            sys.executable,
+            "-m",
+            "semantic_layer.research",
+            "--output",
+            str(temporary_path),
+        ]
+        completed = subprocess.run(
+            command,
+            cwd=repository_root,
+            env=_safe_environment(repository_root),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if completed.returncode:
+            raise RuntimeError(
+                f"benchmark finalization failed ({completed.returncode}): "
+                f"{completed.stderr.strip() or completed.stdout.strip()}"
+            )
+
+        from semantic_layer.research.benchmark_runner import build_hash_manifest
+        from semantic_layer.research.contracts import load_and_validate_result
+
+        artifact = load_and_validate_result(temporary_path)
+        expected_manifest = build_hash_manifest(repository_root).to_dict()
+        if artifact.get("hash_manifest") != expected_manifest:
+            raise ValueError(
+                "temporary benchmark manifest does not match final repository bytes"
+            )
+        os.replace(temporary_path, destination)
+    return destination
 
 
 def run_research_verify(
