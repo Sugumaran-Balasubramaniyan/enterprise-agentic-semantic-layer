@@ -38,6 +38,39 @@ LEGACY_URI_CONTROL_DOCUMENTS = frozenset(
 GENERATED_RESULT_ARTIFACT = "results/latest_benchmark.json"
 
 
+def _schema_valid_result() -> dict[str, object]:
+    return {
+        "schema_version": "1.0.0",
+        "artifact_id": "artifact-1",
+        "generated_by": "tests",
+        "canonicalization": {
+            "encoding": "UTF-8",
+            "key_order": "lexicographic",
+            "metric_precision": 6,
+        },
+        "hash_manifest": {
+            "manifest_version": "1.0",
+            "entries": [],
+            "digest_sha256": "0" * 64,
+        },
+        "environment": {
+            "python_version": "3.12.0",
+            "platform_system": "Linux",
+            "platform_machine": "x86_64",
+            "pip_version": "25.2",
+            "lock_sha256": "0" * 64,
+            "packages": {},
+        },
+        "namespace_registry": {
+            **NAMESPACE_REGISTRY,
+            "legacy_uris_rejected": list(LEGACY_URI_FAMILIES),
+        },
+        "validation": {"checks": [], "combined_graph": {}},
+        "corpus_runs": [],
+        "per_query": [],
+    }
+
+
 def test_namespace_registry_is_the_closed_neutral_registry() -> None:
     assert NAMESPACE_REGISTRY == {
         "cifsup": "https://example.org/cifre-kg/support#",
@@ -123,46 +156,37 @@ def test_result_loader_rejects_wrong_schema_version(tmp_path: Path) -> None:
 
 def test_result_loader_accepts_a_schema_valid_result(tmp_path: Path) -> None:
     schema = json.loads((ROOT / "tests/research/result_schema.json").read_text(encoding="utf-8"))
-    result = {
-        "schema_version": "1.0.0",
-        "artifact_id": "artifact-1",
-        "generated_by": "tests",
-        "canonicalization": {
-            "encoding": "UTF-8",
-            "key_order": "lexicographic",
-            "metric_precision": 6,
-        },
-        "hash_manifest": {
-            "manifest_version": "1.0",
-            "entries": [],
-            "digest_sha256": "0" * 64,
-        },
-        "environment": {
-            "python_version": "3.12",
-            "platform_system": "Linux",
-            "platform_machine": "x86_64",
-            "pip_version": "25.2",
-            "lock_sha256": "0" * 64,
-            "packages": {},
-        },
-        "namespace_registry": {
-            **NAMESPACE_REGISTRY,
-            "legacy_uris_rejected": [
-                "http://data." + "sap" + ".com/",
-                "http://ontology." + "sap" + ".com/",
-                "https://" + "sap.example/erp/",
-            ],
-        },
-        "validation": {"checks": [], "combined_graph": {}},
-        "corpus_runs": [],
-        "per_query": [],
-    }
+    result = _schema_valid_result()
     # Keep this fixture coupled to the authoritative schema, not to incidental
     # implementation details of the loader.
     assert schema["$id"] == "https://example.org/cifre-kg/schema/research-result-root-1.0.0.json"
     path = tmp_path / "result.json"
     path.write_bytes(canonical_json(result))
     assert load_and_validate_result(path) == result
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("pip_version", "24.0"),
+        ("pip_version", "unavailable"),
+        ("platform_system", "Darwin"),
+        ("platform_machine", "arm64"),
+        ("python_version", "3.12"),
+        ("python_version", "3.13.0"),
+        ("python_version", "3.12.patch"),
+    ],
+)
+def test_result_loader_rejects_unsupported_publication_environment(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    result = _schema_valid_result()
+    result["environment"][field] = value  # type: ignore[index]
+    path = tmp_path / "unsupported-environment.json"
+    path.write_bytes(canonical_json(result))
+
+    with pytest.raises(ValueError, match="environment"):
+        load_and_validate_result(path)
 
 
 def test_committed_result_loader_rejects_noncanonical_bytes(tmp_path: Path) -> None:
@@ -191,7 +215,7 @@ def test_result_loader_rejects_artifact_only_reason_code_per_query(tmp_path: Pat
             "digest_sha256": "0" * 64,
         },
         "environment": {
-            "python_version": "3.12",
+            "python_version": "3.12.0",
             "platform_system": "Linux",
             "platform_machine": "x86_64",
             "pip_version": "25.2",

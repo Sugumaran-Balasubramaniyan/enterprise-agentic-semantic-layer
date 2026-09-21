@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
@@ -28,6 +29,19 @@ CONDITIONS = (
     "deterministic_no_reflection_ablation",
     "deterministic_bounded_repair",
 )
+
+_ENVIRONMENT_FIELDS = frozenset(
+    {
+        "python_version",
+        "platform_system",
+        "platform_machine",
+        "pip_version",
+        "lock_sha256",
+        "packages",
+    }
+)
+_PYTHON_VERSION_PATTERN = re.compile(r"3\.12\.[0-9]+")
+_SUPPORTED_PLATFORM_MACHINES = frozenset({"aarch64", "x86_64"})
 
 
 class Status(StrEnum):
@@ -77,6 +91,31 @@ def canonical_json(value: object) -> bytes:
     ).encode("utf-8")
 
 
+def validate_environment_contract(
+    environment: Mapping[str, Any], *, label: str = "environment"
+) -> None:
+    """Reject runtime metadata outside the supported publication contract."""
+
+    if not isinstance(environment, Mapping):
+        raise TypeError(f"{label} must be an object")
+    if set(environment) != _ENVIRONMENT_FIELDS:
+        raise ValueError(f"{label} fields are incomplete")
+    python_version = environment["python_version"]
+    if (
+        not isinstance(python_version, str)
+        or _PYTHON_VERSION_PATTERN.fullmatch(python_version) is None
+    ):
+        raise ValueError(f"{label} python_version must match 3.12.<numeric patch>")
+    if environment["platform_system"] != "Linux":
+        raise ValueError(f"{label} platform_system must be Linux")
+    if environment["platform_machine"] not in _SUPPORTED_PLATFORM_MACHINES:
+        raise ValueError(
+            f"{label} platform_machine must be one of {sorted(_SUPPORTED_PLATFORM_MACHINES)}"
+        )
+    if environment["pip_version"] != "25.2":
+        raise ValueError(f"{label} pip_version must be exactly 25.2")
+
+
 def sha256_bytes(data: bytes) -> str:
     """Return the lowercase hexadecimal SHA-256 digest of *data*."""
 
@@ -105,6 +144,7 @@ def load_and_validate_result(
         raise TypeError("research result root must be a JSON object")
     if require_canonical_bytes and raw != canonical_json(document) + b"\n":
         raise ValueError("result artifact bytes are not canonical UTF-8 JSON")
+    validate_environment_contract(document["environment"])
     return document
 
 
@@ -116,4 +156,5 @@ __all__ = [
     "canonical_json",
     "load_and_validate_result",
     "sha256_bytes",
+    "validate_environment_contract",
 ]

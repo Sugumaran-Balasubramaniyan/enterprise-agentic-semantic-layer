@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import jsonschema
@@ -17,10 +18,12 @@ from semantic_layer.research.benchmark_runner import (
     BenchmarkRunner,
     _reject_metadata_nulls,
     _validate_corpus,
+    build_hash_manifest,
     build_validation_metadata,
     validate_result_id_references,
 )
-from semantic_layer.research.contracts import CONDITIONS, load_and_validate_result
+from semantic_layer.research.contracts import CONDITIONS, canonical_json, load_and_validate_result
+from semantic_layer.validation import finalize_research_artifact
 
 ROOT = Path(__file__).parents[2]
 
@@ -260,3 +263,31 @@ def test_cli_output_path_is_caller_supplied_and_not_canonical(tmp_path: Path) ->
     assert temporary != canonical
     assert not temporary.exists()
     assert before is None or canonical.read_bytes() == before
+
+
+def test_finalizer_rejects_unsupported_environment_without_replacing_destination(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "results/latest_benchmark.json"
+    destination.parent.mkdir()
+    sentinel = b"previous canonical artifact\n"
+    destination.write_bytes(sentinel)
+    invalid = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+    invalid["environment"]["pip_version"] = "24.0"
+    real_run = subprocess.run
+    real_run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        if "--output" not in command:
+            return real_run(command, **kwargs)
+        output = Path(command[command.index("--output") + 1])
+        invalid["hash_manifest"] = build_hash_manifest(tmp_path).to_dict()
+        output.write_bytes(canonical_json(invalid) + b"\n")
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("semantic_layer.validation.subprocess.run", fake_run)
+
+    with pytest.raises(ValueError, match="pip_version"):
+        finalize_research_artifact(tmp_path)
+
+    assert destination.read_bytes() == sentinel

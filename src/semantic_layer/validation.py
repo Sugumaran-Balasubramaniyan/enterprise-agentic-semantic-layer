@@ -284,6 +284,7 @@ def compare_result_artifacts(
         validate_hash_manifest,
         validate_result_id_references,
     )
+    from semantic_layer.research.contracts import validate_environment_contract
 
     validate_hash_manifest(recorded, root)
     validate_hash_manifest(current, root)
@@ -306,10 +307,12 @@ def compare_result_artifacts(
         "lock_sha256",
         "packages",
     }
+    validate_environment_contract(expected_current, label="verification runtime environment")
     for label, environment in (
         ("recorded", recorded_environment),
         ("current", current_environment),
     ):
+        validate_environment_contract(environment, label=f"{label} artifact environment")
         if set(environment) != required_environment:
             raise ValueError(f"{label} artifact environment fields are incomplete")
         version_parts = str(environment["python_version"]).split(".")

@@ -40,6 +40,7 @@ from semantic_layer.research.contracts import (
     ReasonCode,
     Status,
     canonical_json,
+    validate_environment_contract,
 )
 
 _SIX_PLACES = Decimal("0.000001")
@@ -708,6 +709,7 @@ def _validate_result_mapping(result: Mapping[str, Any]) -> None:
     validate_result_id_references(result)
     schema = json.loads(_schema_path().read_bytes())
     jsonschema.Draft202012Validator(schema).validate(dict(result))
+    validate_environment_contract(result["environment"])
     canonical_json(result)
 
 

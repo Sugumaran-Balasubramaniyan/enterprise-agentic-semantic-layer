@@ -239,8 +239,9 @@ def test_ci_uses_dedicated_research_job_and_bounded_post_install_gate() -> None:
 def test_reproducibility_comparison_allows_supported_environment_variation() -> None:
     artifact = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
     fresh = deepcopy(artifact)
-    fresh["environment"]["python_version"] = "3.12.11"
+    fresh["environment"]["python_version"] = "3.12.14"
     fresh["environment"]["platform_machine"] = "x86_64"
+    fresh["environment"]["pip_version"] = "25.2"
 
     evidence = compare_result_artifacts(
         artifact,
@@ -252,6 +253,12 @@ def test_reproducibility_comparison_allows_supported_environment_variation() -> 
     assert evidence["environment_match"] is False
     assert evidence["recorded_environment"] == artifact["environment"]
     assert evidence["current_environment"] == fresh["environment"]
+
+
+def test_committed_result_uses_authoritative_pip_publication_policy() -> None:
+    artifact = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+
+    assert artifact["environment"]["pip_version"] == "25.2"
 
 
 def test_reproducibility_comparison_rejects_deterministic_drift() -> None:
