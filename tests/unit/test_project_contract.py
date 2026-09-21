@@ -1,9 +1,39 @@
-from importlib.metadata import version
+import os
+import subprocess
+import sys
+import tomllib
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[2]
 
-def test_distribution_exposes_semantic_layer_package() -> None:
-    assert version("enterprise-agentic-semantic-layer") == "0.1.0"
+
+def test_source_layout_and_build_configuration_are_declared() -> None:
+    """Pin the source-only CI contract; wheel packaging is a separate concern."""
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    source_root = ROOT / "src"
+    package_init = source_root / "semantic_layer" / "__init__.py"
+
+    assert pyproject["project"]["name"] == "enterprise-agentic-semantic-layer"
+    assert pyproject["project"]["version"] == "0.1.0"
+    assert pyproject["build-system"]["build-backend"] == "setuptools.build_meta"
+    assert pyproject["tool"]["setuptools"]["packages"]["find"]["where"] == ["src"]
+    assert package_init.is_file()
+
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(source_root)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import semantic_layer; print(semantic_layer.__file__)",
+        ],
+        cwd=ROOT,
+        env=environment,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert Path(result.stdout.strip()).resolve() == package_init.resolve()
 
 
 def test_baseline_inventory_names_current_evidence() -> None:
