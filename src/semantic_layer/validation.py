@@ -298,36 +298,25 @@ def compare_result_artifacts(
     ):
         raise TypeError("result artifacts must contain environment mappings")
 
-    expected_current = dict(runtime_environment or _environment(Path(root).resolve()))
-    required_environment = {
-        "python_version",
-        "platform_system",
-        "platform_machine",
-        "pip_version",
-        "lock_sha256",
-        "packages",
-    }
-    validate_environment_contract(expected_current, label="verification runtime environment")
-    for label, environment in (
-        ("recorded", recorded_environment),
-        ("current", current_environment),
-    ):
-        validate_environment_contract(environment, label=f"{label} artifact environment")
-        if set(environment) != required_environment:
-            raise ValueError(f"{label} artifact environment fields are incomplete")
-        version_parts = str(environment["python_version"]).split(".")
-        if version_parts[:2] != ["3", "12"]:
-            raise ValueError(f"{label} artifact requires Python 3.12")
-        if environment["platform_system"] != expected_current["platform_system"]:
-            raise ValueError(f"{label} artifact platform system is unsupported")
-        if environment["platform_machine"] not in {"aarch64", "x86_64"}:
-            raise ValueError(f"{label} artifact platform machine is unsupported")
-        if environment["lock_sha256"] != expected_current["lock_sha256"]:
-            raise ValueError(f"{label} artifact lock does not match current inputs")
-        if environment["packages"] != expected_current["packages"]:
-            raise ValueError(f"{label} artifact package map does not match current lock")
-        if environment["pip_version"] != expected_current["pip_version"]:
-            raise ValueError(f"{label} artifact pip version does not match current run")
+    if runtime_environment is None:
+        expected_current = _environment(Path(root).resolve())
+    elif not isinstance(runtime_environment, Mapping):
+        raise TypeError("verification runtime environment must be a mapping")
+    else:
+        expected_current = dict(runtime_environment)
+    expected_current = validate_environment_contract(
+        expected_current, label="verification runtime environment"
+    )
+    recorded_environment = validate_environment_contract(
+        recorded_environment,
+        label="recorded artifact environment",
+        expected_environment=expected_current,
+    )
+    current_environment = validate_environment_contract(
+        current_environment,
+        label="current artifact environment",
+        expected_environment=expected_current,
+    )
 
     if dict(current_environment) != expected_current:
         raise ValueError("current artifact environment does not match the verification runtime")
@@ -731,7 +720,6 @@ def finalize_research_artifact(root: Path) -> Path:
 
     repository_root = Path(root).resolve()
     destination = repository_root / "results/latest_benchmark.json"
-    destination.parent.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(prefix="cifre-finalize-", dir=repository_root) as temporary:
         temporary_path = Path(temporary) / "latest_benchmark.json"
         command = [
@@ -755,8 +743,11 @@ def finalize_research_artifact(root: Path) -> Path:
                 f"{completed.stderr.strip() or completed.stdout.strip()}"
             )
 
-        from semantic_layer.research.benchmark_runner import build_hash_manifest
-        from semantic_layer.research.contracts import load_and_validate_result
+        from semantic_layer.research.benchmark_runner import _environment, build_hash_manifest
+        from semantic_layer.research.contracts import (
+            load_and_validate_result,
+            validate_environment_contract,
+        )
 
         artifact = load_and_validate_result(temporary_path)
         expected_manifest = build_hash_manifest(repository_root).to_dict()
@@ -764,6 +755,15 @@ def finalize_research_artifact(root: Path) -> Path:
             raise ValueError(
                 "temporary benchmark manifest does not match final repository bytes"
             )
+        expected_environment = validate_environment_contract(
+            _environment(repository_root), label="current environment"
+        )
+        validate_environment_contract(
+            artifact["environment"],
+            label="candidate environment",
+            expected_environment=expected_environment,
+        )
+        destination.parent.mkdir(parents=True, exist_ok=True)
         os.replace(temporary_path, destination)
     return destination
 

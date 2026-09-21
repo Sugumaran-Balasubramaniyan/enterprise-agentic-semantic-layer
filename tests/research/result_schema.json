@@ -34,12 +34,23 @@
       "additionalProperties": false,
       "required": ["python_version", "platform_system", "platform_machine", "pip_version", "lock_sha256", "packages"],
       "properties": {
-        "python_version": {"type": "string"},
-        "platform_system": {"type": "string"},
-        "platform_machine": {"type": "string"},
-        "pip_version": {"type": "string"},
+        "python_version": {"type": "string", "pattern": "^3\\.12\\.[0-9]+$"},
+        "platform_system": {"const": "Linux"},
+        "platform_machine": {"enum": ["aarch64", "x86_64"]},
+        "pip_version": {"const": "25.2"},
         "lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-        "packages": {"type": "object", "additionalProperties": {"type": "string"}}
+        "packages": {
+          "type": "object",
+          "minProperties": 1,
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9_.-]*$": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^\\S+$"
+            }
+          },
+          "additionalProperties": false
+        }
       }
     },
     "namespace_registry": {

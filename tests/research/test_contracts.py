@@ -59,7 +59,7 @@ def _schema_valid_result() -> dict[str, object]:
             "platform_machine": "x86_64",
             "pip_version": "25.2",
             "lock_sha256": "0" * 64,
-            "packages": {},
+            "packages": {"pip": "25.2"},
         },
         "namespace_registry": {
             **NAMESPACE_REGISTRY,
@@ -169,6 +169,25 @@ def test_result_loader_accepts_a_schema_valid_result(tmp_path: Path) -> None:
     ("field", "value"),
     [
         ("pip_version", "24.0"),
+        ("lock_sha256", "not-a-sha"),
+        ("packages", {"pip": None}),
+    ],
+)
+def test_result_schema_rejects_unsupported_environment_without_loader(
+    field: str, value: object
+) -> None:
+    schema = json.loads((ROOT / "tests/research/result_schema.json").read_bytes())
+    result = _schema_valid_result()
+    result["environment"][field] = value  # type: ignore[index]
+
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.Draft202012Validator(schema).validate(result)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("pip_version", "24.0"),
         ("pip_version", "unavailable"),
         ("platform_system", "Darwin"),
         ("platform_machine", "arm64"),
@@ -185,7 +204,7 @@ def test_result_loader_rejects_unsupported_publication_environment(
     path = tmp_path / "unsupported-environment.json"
     path.write_bytes(canonical_json(result))
 
-    with pytest.raises(ValueError, match="environment"):
+    with pytest.raises(jsonschema.ValidationError):
         load_and_validate_result(path)
 
 
@@ -220,7 +239,7 @@ def test_result_loader_rejects_artifact_only_reason_code_per_query(tmp_path: Pat
             "platform_machine": "x86_64",
             "pip_version": "25.2",
             "lock_sha256": "0" * 64,
-            "packages": {},
+            "packages": {"pip": "25.2"},
         },
         "namespace_registry": {
             **NAMESPACE_REGISTRY,

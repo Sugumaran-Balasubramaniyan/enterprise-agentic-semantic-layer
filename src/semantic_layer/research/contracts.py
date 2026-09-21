@@ -41,6 +41,8 @@ _ENVIRONMENT_FIELDS = frozenset(
     }
 )
 _PYTHON_VERSION_PATTERN = re.compile(r"3\.12\.[0-9]+")
+_SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
+_PACKAGE_KEY_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 _SUPPORTED_PLATFORM_MACHINES = frozenset({"aarch64", "x86_64"})
 
 
@@ -92,8 +94,11 @@ def canonical_json(value: object) -> bytes:
 
 
 def validate_environment_contract(
-    environment: Mapping[str, Any], *, label: str = "environment"
-) -> None:
+    environment: Mapping[str, Any],
+    *,
+    label: str = "environment",
+    expected_environment: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Reject runtime metadata outside the supported publication contract."""
 
     if not isinstance(environment, Mapping):
@@ -114,6 +119,34 @@ def validate_environment_contract(
         )
     if environment["pip_version"] != "25.2":
         raise ValueError(f"{label} pip_version must be exactly 25.2")
+    lock_sha256 = environment["lock_sha256"]
+    if not isinstance(lock_sha256, str) or _SHA256_PATTERN.fullmatch(lock_sha256) is None:
+        raise ValueError(f"{label} lock_sha256 must be a lowercase SHA-256")
+    packages = environment["packages"]
+    if not isinstance(packages, Mapping) or not packages:
+        raise ValueError(f"{label} packages must be a non-empty string mapping")
+    normalized_packages: dict[str, str] = {}
+    for package, version in packages.items():
+        if (
+            not isinstance(package, str)
+            or _PACKAGE_KEY_PATTERN.fullmatch(package) is None
+            or not isinstance(version, str)
+            or not version
+            or any(character.isspace() for character in version)
+        ):
+            raise ValueError(f"{label} packages must contain non-empty string versions")
+        normalized_packages[package] = version
+    normalized = dict(environment)
+    normalized["packages"] = dict(sorted(normalized_packages.items()))
+    if expected_environment is not None:
+        expected = validate_environment_contract(
+            expected_environment, label="expected environment"
+        )
+        if normalized["lock_sha256"] != expected["lock_sha256"]:
+            raise ValueError(f"{label} lock_sha256 does not match expected environment")
+        if normalized["packages"] != expected["packages"]:
+            raise ValueError(f"{label} packages do not match expected environment")
+    return normalized
 
 
 def sha256_bytes(data: bytes) -> str:

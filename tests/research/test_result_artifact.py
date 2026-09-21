@@ -21,6 +21,7 @@ from semantic_layer.research.benchmark_runner import (
     build_hash_manifest,
     build_validation_metadata,
     validate_result_id_references,
+    write_result_artifact,
 )
 from semantic_layer.research.contracts import CONDITIONS, canonical_json, load_and_validate_result
 from semantic_layer.validation import finalize_research_artifact
@@ -265,13 +266,15 @@ def test_cli_output_path_is_caller_supplied_and_not_canonical(tmp_path: Path) ->
     assert before is None or canonical.read_bytes() == before
 
 
-def test_finalizer_rejects_unsupported_environment_without_replacing_destination(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("existing_destination", [False, True])
+def test_finalizer_rejects_unsupported_environment_atomically(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, existing_destination: bool
 ) -> None:
     destination = tmp_path / "results/latest_benchmark.json"
-    destination.parent.mkdir()
     sentinel = b"previous canonical artifact\n"
-    destination.write_bytes(sentinel)
+    if existing_destination:
+        destination.parent.mkdir()
+        destination.write_bytes(sentinel)
     invalid = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
     invalid["environment"]["pip_version"] = "24.0"
     real_run = subprocess.run
@@ -287,7 +290,65 @@ def test_finalizer_rejects_unsupported_environment_without_replacing_destination
 
     monkeypatch.setattr("semantic_layer.validation.subprocess.run", fake_run)
 
-    with pytest.raises(ValueError, match="pip_version"):
+    with pytest.raises(jsonschema.ValidationError):
+        finalize_research_artifact(tmp_path)
+
+    if existing_destination:
+        assert destination.read_bytes() == sentinel
+    else:
+        assert not destination.exists()
+        assert not destination.parent.exists()
+
+
+def test_writer_rejects_malformed_environment_without_creating_parent(tmp_path: Path) -> None:
+    candidate = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+    candidate["environment"]["packages"] = None
+    destination = tmp_path / "missing" / "result.json"
+
+    with pytest.raises(jsonschema.ValidationError):
+        write_result_artifact(candidate, destination)
+
+    assert not destination.exists()
+    assert not destination.parent.exists()
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("lock_sha256", "0" * 64, "lock_sha256"),
+        ("packages", {"stale-package": "1.0"}, "packages"),
+    ],
+)
+def test_finalizer_rejects_well_formed_stale_environment_atomically(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    destination = tmp_path / "results/latest_benchmark.json"
+    destination.parent.mkdir()
+    lock_path = tmp_path / "constraints/py312.txt"
+    lock_path.parent.mkdir()
+    lock_path.write_bytes((ROOT / "constraints/py312.txt").read_bytes())
+    sentinel = b"previous canonical artifact\n"
+    destination.write_bytes(sentinel)
+    candidate = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+    candidate["environment"][field] = value
+    real_run = subprocess.run
+    real_run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        if "--output" not in command:
+            return real_run(command, **kwargs)
+        output = Path(command[command.index("--output") + 1])
+        candidate["hash_manifest"] = build_hash_manifest(tmp_path).to_dict()
+        output.write_bytes(canonical_json(candidate) + b"\n")
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr("semantic_layer.validation.subprocess.run", fake_run)
+
+    with pytest.raises(ValueError, match=message):
         finalize_research_artifact(tmp_path)
 
     assert destination.read_bytes() == sentinel

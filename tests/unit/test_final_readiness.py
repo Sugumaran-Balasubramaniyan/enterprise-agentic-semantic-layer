@@ -255,6 +255,36 @@ def test_reproducibility_comparison_allows_supported_environment_variation() -> 
     assert evidence["current_environment"] == fresh["environment"]
 
 
+@pytest.mark.parametrize(
+    "runtime_environment",
+    [
+        {},
+        {"lock_sha256": None},
+        {"lock_sha256": "not-a-sha"},
+        {"packages": None},
+        {"packages": {"pip": 25.2}},
+        {"packages": {"pip": ""}},
+    ],
+)
+def test_reproducibility_comparison_rejects_malformed_runtime_override(
+    runtime_environment: dict[str, object],
+) -> None:
+    artifact = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+    artifact["hash_manifest"] = build_hash_manifest(ROOT).to_dict()
+    override = deepcopy(artifact["environment"])
+    override.update(runtime_environment)
+    if not runtime_environment:
+        override = {}
+
+    with pytest.raises((TypeError, ValueError), match="environment"):
+        compare_result_artifacts(
+            artifact,
+            artifact,
+            ROOT,
+            runtime_environment=override,
+        )
+
+
 def test_committed_result_uses_authoritative_pip_publication_policy() -> None:
     artifact = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
 
