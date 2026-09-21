@@ -45,6 +45,18 @@ PUBLIC_FRAMING_DOCS = (
     ROOT / "README.md",
     *RESEARCH_HANDOFF_DOCS,
 )
+PUBLIC_FRAMING_ALLOWED_INTERNAL = (
+    "cifre-synthetic-aqr-v1",
+    "cifre-synthetic-aqr-v2",
+    "cifre_phd_proposal.md",
+    "cifre-interview-brief.md",
+    "cifre-hardening-baseline.md",
+)
+PUBLIC_FRAMING_HISTORICAL_DOCS = (
+    ROOT / "docs" / "research" / "cifre-hardening-baseline.md",
+    ROOT / "docs" / "superpowers" / "plans" / "2026-09-19-cifre-research-prototype-hardening.md",
+    ROOT / "docs" / "superpowers" / "specs" / "2026-09-19-cifre-research-prototype-hardening-design.md",
+)
 RESEARCH_SOURCE_LINKS = (
     "../../src/semantic_layer/reasoning/schema_linker.py",
     "../../src/semantic_layer/reasoning/query_planner.py",
@@ -87,15 +99,23 @@ FUTURE_ONLY_METRIC_FIELDS = (
     "human_unsupported_answer_rate",
 )
 PUBLIC_FRAMING_FORBIDDEN = (
-    re.compile(r"\bCIFRE\b"),
-    re.compile(r"\bSAP Labs France\b"),
-    re.compile(r"\bRequisition\b"),
+    re.compile(r"\bcifre\b", re.IGNORECASE),
+    re.compile(r"\bsap labs france\b", re.IGNORECASE),
+    re.compile(r"\brequisition(?:\s+\d+)?\b", re.IGNORECASE),
     re.compile(r"candidate-authored", re.IGNORECASE),
     re.compile(r"candidate prototype", re.IGNORECASE),
     re.compile(r"unaffiliated", re.IGNORECASE),
     re.compile(r"not an SAP product", re.IGNORECASE),
     re.compile(r"no affiliation", re.IGNORECASE),
 )
+
+
+def _normalize_public_framing_text(text: str) -> str:
+    """Return visible framing text while preserving internal-ID exclusions."""
+
+    for allowed in PUBLIC_FRAMING_ALLOWED_INTERNAL:
+        text = text.replace(allowed, " ")
+    return text.casefold()
 PUBLIC_FRAMING_REQUIRED = (
     "research prototype",
     "deterministic symbolic baseline",
@@ -643,9 +663,10 @@ def test_readme_states_mandatory_limitations_and_future_boundaries() -> None:
 def test_current_public_docs_use_neutral_research_framing() -> None:
     """Current public prose leads with research scope, not affiliation disclaimers."""
 
-    combined = "\n".join(
+    raw_combined = "\n".join(
         path.read_text(encoding="utf-8") for path in PUBLIC_FRAMING_DOCS
     )
+    combined = _normalize_public_framing_text(raw_combined)
     for pattern in PUBLIC_FRAMING_FORBIDDEN:
         assert not pattern.search(combined), pattern.pattern
     lowered = combined.lower()
@@ -654,4 +675,42 @@ def test_current_public_docs_use_neutral_research_framing() -> None:
 
     # Internal corpus IDs are reproducibility vocabulary, not visible
     # affiliation framing; retained filenames remain permitted when linked.
-    assert "cifre-synthetic-aqr-v1" in lowered
+    assert "cifre-synthetic-aqr-v1" in raw_combined.lower()
+
+
+def test_public_framing_cases_and_allowlist_are_explicit() -> None:
+    """Lowercase visible framing fails while internal paths and history stay allowed."""
+
+    visible_violation = _normalize_public_framing_text(
+        "cifre research programme; sAp LaBs FrAnCe; requisition 452538"
+    )
+    assert any(pattern.search(visible_violation) for pattern in PUBLIC_FRAMING_FORBIDDEN)
+
+    for phrase in (
+        "candidate-authored",
+        "candidate prototype",
+        "unaffiliated",
+        "not an sap product",
+        "no affiliation",
+    ):
+        defensive_violation = _normalize_public_framing_text(phrase)
+        assert any(
+            pattern.search(defensive_violation) for pattern in PUBLIC_FRAMING_FORBIDDEN
+        )
+
+    allowed_raw = (
+        "cifre-synthetic-aqr-v1 cifre-synthetic-aqr-v2 "
+        "cifre_phd_proposal.md cifre-interview-brief.md "
+        "cifre-hardening-baseline.md"
+    )
+    allowed_identifiers = _normalize_public_framing_text(allowed_raw)
+    assert all(identifier in allowed_raw for identifier in PUBLIC_FRAMING_ALLOWED_INTERNAL)
+    assert all(
+        pattern.search(allowed_identifiers) is None
+        for pattern in PUBLIC_FRAMING_FORBIDDEN
+    )
+    assert set(PUBLIC_FRAMING_DOCS).isdisjoint(PUBLIC_FRAMING_HISTORICAL_DOCS)
+    historical = _normalize_public_framing_text(
+        "\n".join(path.read_text(encoding="utf-8") for path in PUBLIC_FRAMING_HISTORICAL_DOCS)
+    )
+    assert any(pattern.search(historical) for pattern in PUBLIC_FRAMING_FORBIDDEN)
