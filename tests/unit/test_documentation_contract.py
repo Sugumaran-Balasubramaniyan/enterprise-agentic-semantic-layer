@@ -261,6 +261,21 @@ def test_publication_claim_contract_and_links() -> None:
         assert "proposed" in text.lower() or "not implemented" in text.lower(), path
 
 
+def test_current_benchmark_artifact_is_not_described_as_future() -> None:
+    """Keep current artifact provenance distinct from legitimate future research."""
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+    proposal = (ROOT / "docs" / "research" / "cifre_phd_proposal.md").read_text(
+        encoding="utf-8"
+    ).lower()
+
+    assert "the eventual artifact" not in readme
+    assert "the eventual artifact" not in proposal
+    assert "a final artifact" not in proposal
+    assert "future research" in readme
+    assert "future-only metric fields" in proposal
+
+
 def test_research_handoff_contract_and_links() -> None:
     """Keep the research handoff source-verifiable and explicit about evidence."""
 

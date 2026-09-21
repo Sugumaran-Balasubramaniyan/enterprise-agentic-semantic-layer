@@ -342,8 +342,11 @@ Every future run must report, at minimum:
 
 String equality of SPARQL is not the sole evaluation. Equivalent query forms
 should be judged by parsed structure, execution, projected bindings, and the
-declared relation/path policy. The eventual artifact is the source for exact
-baseline metric values; no values are copied from the historical proposal.
+declared relation/path policy. The committed canonical benchmark artifact is the
+source for exact baseline metric values and contains preliminary controlled
+synthetic evidence; it does not establish generalization or production
+readiness and must be regenerated after covered-byte changes. No values are
+copied from the historical proposal.
 
 ## Data, privacy, provenance, and human evaluation
 
@@ -448,8 +451,9 @@ collaboration, official dataset, access to private systems, or an operational
 service. It does not claim doctoral completion, universal reasoning
 capability, or a measured model/retrieval result. It does not turn synthetic note numbers or SAP-shaped labels into
 official knowledge. It does not treat a relaxed candidate as an answer to the
-original strict request, and it does not replace a final artifact, hash
-manifest, or verification command with prose.
+original strict request. The committed canonical benchmark artifact remains
+the reproducibility source; prose does not replace its hash manifest or
+verification command.
 
 ## Repository evidence
 

@@ -119,7 +119,7 @@ The following limitations are mandatory reading:
 - No LLM, embedding service, or vector retrieval system is implemented.
 - There is no production-scale graph or performance validation.
 - Security, privacy, authentication, and governance controls are incomplete in this prototype.
-- Findings are preliminary and should be reproduced from the source and the eventual artifact.
+- Findings are preliminary controlled synthetic evidence and should be reproduced from the source and the committed canonical benchmark artifact; they do not establish generalization or production readiness, and the artifact must be regenerated after covered-byte changes.
 - No affiliation is claimed; this is an independent candidate prototype.
 - Nothing here establishes an affiliation, employment, endorsement, or access to an external organization's systems.
 
