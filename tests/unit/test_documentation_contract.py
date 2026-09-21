@@ -41,6 +41,10 @@ RESEARCH_HANDOFF_DOCS = (
     ROOT / "docs" / "verification-report.md",
 )
 RESEARCH_METRIC_DOCS = RESEARCH_HANDOFF_DOCS
+PUBLIC_FRAMING_DOCS = (
+    ROOT / "README.md",
+    *RESEARCH_HANDOFF_DOCS,
+)
 RESEARCH_SOURCE_LINKS = (
     "../../src/semantic_layer/reasoning/schema_linker.py",
     "../../src/semantic_layer/reasoning/query_planner.py",
@@ -82,13 +86,24 @@ FUTURE_ONLY_METRIC_FIELDS = (
     "robustness",
     "human_unsupported_answer_rate",
 )
-DISCLAIMER = (
-    "This is an independent, unaffiliated candidate prototype using synthetic "
-    "support and product-lifecycle fixtures. It is not an SAP product, SAP "
-    "publication, SAP-endorsed benchmark, or report of access to SAP internal "
-    "data. The repository demonstrates a deterministic symbolic baseline and "
-    "proposes future LLM/retrieval experiments; it does not claim completed PhD "
-    "research or production readiness."
+PUBLIC_FRAMING_FORBIDDEN = (
+    re.compile(r"\bCIFRE\b"),
+    re.compile(r"\bSAP Labs France\b"),
+    re.compile(r"\bRequisition\b"),
+    re.compile(r"candidate-authored", re.IGNORECASE),
+    re.compile(r"candidate prototype", re.IGNORECASE),
+    re.compile(r"unaffiliated", re.IGNORECASE),
+    re.compile(r"not an SAP product", re.IGNORECASE),
+    re.compile(r"no affiliation", re.IGNORECASE),
+)
+PUBLIC_FRAMING_REQUIRED = (
+    "research prototype",
+    "deterministic symbolic baseline",
+    "proposed future LLM",
+    "synthetic",
+    "preliminary",
+    "controlled benchmark",
+    "no production-scale",
 )
 # Anchor the append-only baseline without consulting repository history.
 BASELINE_HANDOFF_SEPARATOR = b"\n## Final handoff pointer (appended by Task 12)\n"
@@ -219,15 +234,14 @@ def test_publication_claim_contract_and_links() -> None:
     """Pin public wording while allowing the final artifact to be absent."""
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    compact_readme = _compact_markdown(readme)
-    assert DISCLAIMER in compact_readme
-
     first_research_heading = readme.index("## Synthetic KG and AQR research prototype")
     first_reproducibility_command = readme.index(
         "make PYTHON=.venv/bin/python research-verify"
     )
-    assert DISCLAIMER in _compact_markdown(readme[:first_research_heading])
-    assert DISCLAIMER in _compact_markdown(readme[:first_reproducibility_command])
+    assert "research prototype" in _compact_markdown(readme[:first_research_heading]).lower()
+    assert "deterministic symbolic baseline" in _compact_markdown(
+        readme[:first_reproducibility_command]
+    ).lower()
 
     first_screen = readme[:readme.index("## Local setup")]
     for label in (
@@ -304,7 +318,6 @@ def test_research_handoff_contract_and_links() -> None:
         assert section in proposal, section
     for research_id in ("RQ1", "RQ2", "RQ3", "RQ4", "RQ5", "RQ6", "H1", "H2", "H3", "H4"):
         assert research_id in proposal, research_id
-    assert DISCLAIMER in _compact_markdown(proposal)
     assert "SAP Labs France" not in proposal
     assert "100.0%" not in proposal
     assert "0% hallucination" not in proposal.lower()
@@ -343,8 +356,13 @@ def test_research_handoff_contract_and_links() -> None:
         "cifre-synthetic-aqr-v1",
         "results/latest_benchmark.json",
         "make PYTHON=.venv/bin/python research-verify",
-        "independent",
-        "no affiliation",
+        "research prototype",
+        "deterministic symbolic baseline",
+        "proposed future LLM",
+        "synthetic",
+        "preliminary",
+        "controlled benchmark",
+        "no production-scale",
         "Task 13",
     ):
         assert required.lower() in brief.lower(), required
@@ -614,10 +632,26 @@ def test_readme_states_mandatory_limitations_and_future_boundaries() -> None:
         "no production-scale graph or performance validation",
         "security, privacy, authentication, and governance controls are incomplete",
         "findings are preliminary",
-        "no affiliation",
         "learned schema linking",
         "text-to-sparql",
         "learned repair",
         "hybrid graph/vector retrieval",
     ]:
         assert fragment in readme, fragment
+
+
+def test_current_public_docs_use_neutral_research_framing() -> None:
+    """Current public prose leads with research scope, not affiliation disclaimers."""
+
+    combined = "\n".join(
+        path.read_text(encoding="utf-8") for path in PUBLIC_FRAMING_DOCS
+    )
+    for pattern in PUBLIC_FRAMING_FORBIDDEN:
+        assert not pattern.search(combined), pattern.pattern
+    lowered = combined.lower()
+    for phrase in PUBLIC_FRAMING_REQUIRED:
+        assert phrase.lower() in lowered, phrase
+
+    # Internal corpus IDs are reproducibility vocabulary, not visible
+    # affiliation framing; retained filenames remain permitted when linked.
+    assert "cifre-synthetic-aqr-v1" in lowered

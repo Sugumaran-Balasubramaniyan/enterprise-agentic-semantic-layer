@@ -1,14 +1,15 @@
 # Technical design and research questions
 
-> This is an independent, unaffiliated candidate prototype using synthetic
-> support and product-lifecycle fixtures. It is not an SAP product, SAP
-> publication, SAP-endorsed benchmark, or report of access to SAP internal
-> data. The repository demonstrates a deterministic symbolic baseline and
-> proposes future LLM/retrieval experiments; it does not claim completed PhD
-> research or production readiness.
+This research prototype studies knowledge-grounded Agentic AI over RDF/OWL
+enterprise knowledge graphs. The current implementation is a deterministic
+symbolic baseline using synthetic support and product-lifecycle fixtures;
+proposed future work adds LLM-assisted grounding, constrained query synthesis,
+retrieval, and repair for controlled comparison. Preliminary benchmark results
+are small and controlled, with no proprietary data or production-scale
+validation.
 
-This note is an interview-oriented explanation of the current repository. It
-marks implemented behaviour separately from proposed research. The current
+This is a technical companion to the proposed research programme. It marks
+implemented behaviour separately from proposed research. The current
 system has no LLM call, embedding model, vector index, vector retriever,
 external graph store, proprietary data, or production integration.
 
@@ -358,7 +359,7 @@ These questions are proposals, not findings:
 ## Source map
 
 The following implementation files are the source of truth for current claims;
-the links are repository-relative and do not imply any external affiliation.
+the links are repository-relative pointers to implementation and test evidence.
 
 | Claim | Source |
 | --- | --- |

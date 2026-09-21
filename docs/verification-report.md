@@ -1,15 +1,15 @@
 # Research handoff verification report
 
 **Evidence date:** 2026-09-20 UTC
-**Scope:** final CIFRE synthetic research artifact and reproducibility gate
+**Scope:** final synthetic research artifact and reproducibility gate
 **Status:** final preliminary evidence recorded; canonical artifact finalized
 
-> This is an independent, unaffiliated candidate prototype using synthetic
-> support and product-lifecycle fixtures. It is not an SAP product, SAP
-> publication, SAP-endorsed benchmark, or report of access to SAP internal
-> data. The repository demonstrates a deterministic symbolic baseline and
-> proposes future LLM/retrieval experiments; it does not claim completed PhD
-> research or production readiness.
+This report records reproducibility evidence for a research prototype using
+synthetic RDF/OWL enterprise knowledge-graph fixtures. The current system is a
+deterministic symbolic baseline with SHACL, SPARQL, bounded query repair, and
+provenance; LLM-assisted reasoning is proposed future work. The benchmark is
+preliminary and controlled, with no proprietary data or production-scale
+validation.
 
 Historical commands and old comparative numbers remain historical evidence in
 [`cifre-hardening-baseline.md`](research/cifre-hardening-baseline.md); they are

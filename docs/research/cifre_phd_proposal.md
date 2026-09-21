@@ -1,16 +1,9 @@
 # Knowledge-Grounded Autonomous Query Reasoning for Enterprise Agentic AI
 
-**Working title:** proposed and not approved.
-**Document status:** independent research-proposal outline; this is not an
-approved doctoral project, employment application, sponsorship statement, or
-report of completed research.
-
-> This is an independent, unaffiliated candidate prototype using synthetic
-> support and product-lifecycle fixtures. It is not an SAP product, SAP
-> publication, SAP-endorsed benchmark, or report of access to SAP internal
-> data. The repository demonstrates a deterministic symbolic baseline and
-> proposes future LLM/retrieval experiments; it does not claim completed PhD
-> research or production readiness.
+**Working title:** proposed research programme.
+**Document status:** neutral research-proposal outline for a research prototype;
+the current implementation and the proposed future programme are stated
+separately below.
 
 ## Scope and status boundary
 
@@ -40,9 +33,8 @@ strict query.
 
 The local prototype makes this problem inspectable with a small semantic graph.
 Its support and product-lifecycle ontologies use neutral `cifsup`, `cifppms`,
-and related `cif*` namespaces. It is a research instrument rather than a claim
-about any external organization or dataset. The motivation for a future
-agentic system is therefore methodological: study how language understanding,
+and related `cif*` namespaces. The motivation for a future agentic system is
+methodological: study how language understanding,
 retrieval, and feedback can be added without losing semantic validity,
 abstention, reproducibility, or provenance.
 
@@ -446,14 +438,12 @@ require separate authorization and is outside this repository's current scope.
 
 ## Non-goals
 
-This document does not claim an external affiliation, host, sponsor,
-collaboration, official dataset, access to private systems, or an operational
-service. It does not claim doctoral completion, universal reasoning
-capability, or a measured model/retrieval result. It does not turn synthetic note numbers or SAP-shaped labels into
-official knowledge. It does not treat a relaxed candidate as an answer to the
-original strict request. The committed canonical benchmark artifact remains
-the reproducibility source; prose does not replace its hash manifest or
-verification command.
+The programme does not claim doctoral completion, universal reasoning
+capability, or a measured model/retrieval result. Synthetic note numbers and
+SAP-shaped labels remain fixture vocabulary, not external knowledge. A relaxed
+candidate is never treated as an answer to the original strict request. The
+committed canonical benchmark artifact remains the reproducibility source;
+prose does not replace its hash manifest or verification command.
 
 ## Repository evidence
 
