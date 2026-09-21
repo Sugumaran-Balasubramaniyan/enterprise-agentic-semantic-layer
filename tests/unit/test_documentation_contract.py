@@ -99,7 +99,7 @@ FUTURE_ONLY_METRIC_FIELDS = (
     "human_unsupported_answer_rate",
 )
 PUBLIC_FRAMING_FORBIDDEN = (
-    re.compile(r"\bcifre\b", re.IGNORECASE),
+    re.compile(r"\bcifre(?:[-_]|(?=\b))", re.IGNORECASE),
     re.compile(r"\bsap labs france\b", re.IGNORECASE),
     re.compile(r"\brequisition(?:\s+\d+)?\b", re.IGNORECASE),
     re.compile(r"candidate-authored", re.IGNORECASE),
@@ -113,8 +113,27 @@ PUBLIC_FRAMING_FORBIDDEN = (
 def _normalize_public_framing_text(text: str) -> str:
     """Return visible framing text while preserving internal-ID exclusions."""
 
-    for allowed in PUBLIC_FRAMING_ALLOWED_INTERNAL:
-        text = text.replace(allowed, " ")
+    corpus_ids = PUBLIC_FRAMING_ALLOWED_INTERNAL[:2]
+    filenames = PUBLIC_FRAMING_ALLOWED_INTERNAL[2:]
+    token_boundary = r"[A-Za-z0-9_./-]"
+    for allowed in corpus_ids + filenames:
+        text = re.sub(
+            rf"(?<!{token_boundary}){re.escape(allowed)}(?!{token_boundary})",
+            " ",
+            text,
+        )
+
+    def replace_allowed_link_destination(match: re.Match[str]) -> str:
+        target = match.group(1)
+        target_path, _, _ = target.partition("#")
+        if any(
+            target_path == filename or target_path.endswith(f"/{filename}")
+            for filename in filenames
+        ):
+            return match.group(0).replace(target, " ")
+        return match.group(0)
+
+    text = MARKDOWN_LINK_RE.sub(replace_allowed_link_destination, text)
     return text.casefold()
 PUBLIC_FRAMING_REQUIRED = (
     "research prototype",
@@ -714,3 +733,30 @@ def test_public_framing_cases_and_allowlist_are_explicit() -> None:
         "\n".join(path.read_text(encoding="utf-8") for path in PUBLIC_FRAMING_HISTORICAL_DOCS)
     )
     assert any(pattern.search(historical) for pattern in PUBLIC_FRAMING_FORBIDDEN)
+
+
+def test_public_framing_allowlist_boundaries_are_exact() -> None:
+    """Allow exact IDs/destinations while retaining every near-miss as visible text."""
+
+    near_misses = (
+        "`cifre-synthetic-aqr-v1x`",
+        "`cifre-synthetic-aqr-v1/extra`",
+        "`cifre_phd_proposal.md.bak`",
+        "`cifre-interview-brief.md2`",
+        "`cifre-hardening-baseline.md.old`",
+    )
+    for probe in near_misses:
+        normalized = _normalize_public_framing_text(probe)
+        assert any(pattern.search(normalized) for pattern in PUBLIC_FRAMING_FORBIDDEN), probe
+
+    valid_examples = (
+        "`cifre-synthetic-aqr-v1`, `cifre-synthetic-aqr-v2`",
+        "`cifre_phd_proposal.md`, `cifre-interview-brief.md`, `cifre-hardening-baseline.md`",
+        "[proposal](docs/research/cifre_phd_proposal.md)",
+        "[brief](../research/cifre-interview-brief.md#scope)",
+        "[history](research/cifre-hardening-baseline.md)",
+        "(`cifre-synthetic-aqr-v1`);",
+    )
+    for example in valid_examples:
+        normalized = _normalize_public_framing_text(example)
+        assert all(pattern.search(normalized) is None for pattern in PUBLIC_FRAMING_FORBIDDEN), example
