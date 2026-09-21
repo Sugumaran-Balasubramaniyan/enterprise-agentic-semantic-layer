@@ -1,371 +1,414 @@
-@prefix ppms: <http://ontology.sap.com/ppms#> .
+@prefix cifmeta: <https://example.org/cifre-kg/meta#> .
+@prefix cifmetaid: <https://example.org/cifre-kg/id/meta/> .
+@prefix cifppms: <https://example.org/cifre-kg/ppms#> .
+@prefix cifsup: <https://example.org/cifre-kg/support#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix sap: <http://ontology.sap.com/support#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<http://data.sap.com/ppms/component/SAP_APPL> a ppms:SoftwareComponent ;
+<https://example.org/cifre-kg/data/ppms/component/SAP_APPL> a cifppms:SoftwareComponent ;
     rdfs:label "SAP Logistics and Accounting Core"@en ;
-    ppms:componentName "SAP_APPL"^^xsd:string .
+    cifppms:componentName "SAP_APPL"^^xsd:string .
 
-<http://data.sap.com/ppms/product/NW_ABAP> a ppms:Product ;
+<https://example.org/cifre-kg/data/ppms/product/NW_ABAP> a cifppms:Product ;
     rdfs:label "SAP NetWeaver Application Server ABAP"@en ;
-    ppms:belongsToProductLine <http://data.sap.com/ppms/productline/NETWEAVER> .
+    cifppms:belongsToProductLine <https://example.org/cifre-kg/data/ppms/productline/NETWEAVER> .
 
-<http://data.sap.com/ppms/product/S4HANA_ONPREM> a ppms:Product ;
+<https://example.org/cifre-kg/data/ppms/product/S4HANA_ONPREM> a cifppms:Product ;
     rdfs:label "SAP S/4HANA On-Premise"@en ;
-    ppms:belongsToProductLine <http://data.sap.com/ppms/productline/S4HANA> ;
-    ppms:hasProductVersion <http://data.sap.com/ppms/version/S4HANA_2022>,
-        <http://data.sap.com/ppms/version/S4HANA_2023> ;
-    ppms:productCode "S4HANA_ONPREM"^^xsd:string .
+    cifppms:belongsToProductLine <https://example.org/cifre-kg/data/ppms/productline/S4HANA> ;
+    cifppms:hasProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2022>,
+        <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> ;
+    cifppms:productCode "S4HANA_ONPREM"^^xsd:string .
 
-<http://data.sap.com/support/note/2765001> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-CST-MM> ;
-    sap:maxSupportPackage 5 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "2765001"^^xsd:string ;
-    sap:priority "Low"^^xsd:string ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_TSV_PAGE_FAILED> ;
-    sap:title "NetWeaver 7.50 memory paging adjustment for background jobs"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/SAP_BASIS_757> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2022> .
+<https://example.org/cifre-kg/data/support/note/2765001> a cifsup:SAPNote ;
+    rdfs:label "NetWeaver 7.50 memory paging adjustment for background jobs"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM> ;
+    cifsup:maxSupportPackage 5 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "2765001"^^xsd:string ;
+    cifsup:priority "Low"^^xsd:string ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_TSV_PAGE_FAILED> ;
+    cifsup:title "NetWeaver 7.50 memory paging adjustment for background jobs"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_757> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2022> .
 
-<http://data.sap.com/support/note/2877120> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/FI> ;
-    sap:maxSupportPackage 2 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "2877120"^^xsd:string ;
-    sap:priority "Medium"^^xsd:string ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_CALL_FN_NOT_FOUND> ;
-    sap:title "Missing RFC function interface in external tax computation"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/S4CORE_108> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/2877120> a cifsup:SAPNote ;
+    rdfs:label "Missing RFC function interface in external tax computation"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/FI> ;
+    cifsup:maxSupportPackage 2 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "2877120"^^xsd:string ;
+    cifsup:priority "Medium"^^xsd:string ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_CALL_FN_NOT_FOUND> ;
+    cifsup:title "Missing RFC function interface in external tax computation"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/2954112> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-DB> ;
-    sap:maxSupportPackage 1 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "2954112"^^xsd:string ;
-    sap:priority "High"^^xsd:string ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_CX_SY_OPEN_SQL> ;
-    sap:title "Oracle to HANA migration data conversion syntax error in S4CORE"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/S4CORE_108> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/2954112> a cifsup:SAPNote ;
+    rdfs:label "Oracle to HANA migration data conversion syntax error in S4CORE"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB> ;
+    cifsup:maxSupportPackage 1 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "2954112"^^xsd:string ;
+    cifsup:priority "High"^^xsd:string ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_CX_SY_OPEN_SQL> ;
+    cifsup:title "Oracle to HANA migration data conversion syntax error in S4CORE"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3088210> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-DB-HDB> ;
-    sap:maxSupportPackage 2 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3088210"^^xsd:string ;
-    sap:priority "Medium"^^xsd:string ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_TIME_OUT> ;
-    sap:title "SAP HANA secondary index rebuild performance degradation"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/SAP_BASIS_758> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3088210> a cifsup:SAPNote ;
+    rdfs:label "SAP HANA secondary index rebuild performance degradation"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB-HDB> ;
+    cifsup:maxSupportPackage 2 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3088210"^^xsd:string ;
+    cifsup:priority "Medium"^^xsd:string ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_TIME_OUT> ;
+    cifsup:title "SAP HANA secondary index rebuild performance degradation"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3109922> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-CST-MM>,
-        <http://data.sap.com/support/component/FI-GL-GL> ;
-    sap:classifiedUnderSimCat <http://data.sap.com/support/simcat/PERFORMANCE> ;
-    sap:hasPrerequisiteNote <http://data.sap.com/support/note/3098110> ;
-    sap:maxSupportPackage 2 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3109922"^^xsd:string ;
-    sap:priority "Very High"^^xsd:string ;
-    sap:referencedDocumentation <http://data.sap.com/support/doc/DOC_ACDOCA_ARCH> ;
-    sap:resolution "Implement cursor-based chunking logic and apply prerequisite Note 3098110."@en ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_TSV_PAGE_FAILED> ;
-    sap:rootCause "Unbounded internal table accumulation in FAGL_ACCOUNT_ITEMS extractor."@en ;
-    sap:symptom "Universal Journal ACDOCA financial extraction triggers dump TSV_TNEW_PAGE_ALLOC_FAILED during year-end closing."@en ;
-    sap:title "Memory allocation dump TSV_TNEW_PAGE_ALLOC_FAILED in ACDOCA reporting on S/4HANA 2023"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/SAP_BASIS_758> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3109922> a cifsup:SAPNote ;
+    rdfs:label "Memory allocation dump TSV_TNEW_PAGE_ALLOC_FAILED in ACDOCA reporting on S/4HANA 2023"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM>,
+        <https://example.org/cifre-kg/data/support/component/FI-GL-GL> ;
+    cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/PERFORMANCE> ;
+    cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/3098110> ;
+    cifsup:maxSupportPackage 2 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3109922"^^xsd:string ;
+    cifsup:priority "Very High"^^xsd:string ;
+    cifsup:referencedDocumentation <https://example.org/cifre-kg/data/support/doc/DOC_ACDOCA_ARCH> ;
+    cifsup:resolution "Implement cursor-based chunking logic and apply prerequisite Note 3098110."@en ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_TSV_PAGE_FAILED> ;
+    cifsup:rootCause "Unbounded internal table accumulation in FAGL_ACCOUNT_ITEMS extractor."@en ;
+    cifsup:symptom "Universal Journal ACDOCA financial extraction triggers dump TSV_TNEW_PAGE_ALLOC_FAILED during year-end closing."@en ;
+    cifsup:title "Memory allocation dump TSV_TNEW_PAGE_ALLOC_FAILED in ACDOCA reporting on S/4HANA 2023"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3144890> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/SD-SLS> ;
-    sap:maxSupportPackage 2 ;
-    sap:minSupportPackage 1 ;
-    sap:noteNumber "3144890"^^xsd:string ;
-    sap:priority "High"^^xsd:string ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_TIME_OUT> ;
-    sap:title "Sales order pricing condition lock contention during billing runs"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/S4CORE_108> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3144890> a cifsup:SAPNote ;
+    rdfs:label "Sales order pricing condition lock contention during billing runs"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/SD-SLS> ;
+    cifsup:maxSupportPackage 2 ;
+    cifsup:minSupportPackage 1 ;
+    cifsup:noteNumber "3144890"^^xsd:string ;
+    cifsup:priority "High"^^xsd:string ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_TIME_OUT> ;
+    cifsup:title "Sales order pricing condition lock contention during billing runs"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3155700> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/MM-PUR> ;
-    sap:maxSupportPackage 3 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3155700"^^xsd:string ;
-    sap:priority "Very High"^^xsd:string ;
-    sap:title "Purchasing contract release authorization bypass check"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/S4CORE_108> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3155700> a cifsup:SAPNote ;
+    rdfs:label "Purchasing contract release authorization bypass check"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/MM-PUR> ;
+    cifsup:maxSupportPackage 3 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3155700"^^xsd:string ;
+    cifsup:priority "Very High"^^xsd:string ;
+    cifsup:title "Purchasing contract release authorization bypass check"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3201440> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/MM-PUR-PO> ;
-    sap:hasPrerequisiteNote <http://data.sap.com/support/note/3185002> ;
-    sap:maxSupportPackage 1 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3201440"^^xsd:string ;
-    sap:priority "High"^^xsd:string ;
-    sap:resolution "Refactor lock enqueue to batch mode and apply prerequisite Note 3185002."@en ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_TIME_OUT> ;
-    sap:rootCause "Sequential lock checks on table EKPO leading to lock escalation and dialog timeout."@en ;
-    sap:symptom "BAPI_PO_CREATE1 triggers TIME_OUT dump when processing POs with >500 line items."@en ;
-    sap:title "DUMP_SYSTEM_TIME_OUT during high-volume Purchase Order processing"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/S4CORE_108> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3201440> a cifsup:SAPNote ;
+    rdfs:label "DUMP_SYSTEM_TIME_OUT during high-volume Purchase Order processing"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/MM-PUR-PO> ;
+    cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/3185002> ;
+    cifsup:maxSupportPackage 1 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3201440"^^xsd:string ;
+    cifsup:priority "High"^^xsd:string ;
+    cifsup:resolution "Refactor lock enqueue to batch mode and apply prerequisite Note 3185002."@en ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_TIME_OUT> ;
+    cifsup:rootCause "Sequential lock checks on table EKPO leading to lock escalation and dialog timeout."@en ;
+    cifsup:symptom "BAPI_PO_CREATE1 triggers TIME_OUT dump when processing POs with >500 line items."@en ;
+    cifsup:title "DUMP_SYSTEM_TIME_OUT during high-volume Purchase Order processing"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3221980> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/FI-GL> ;
-    sap:maxSupportPackage 3 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3221980"^^xsd:string ;
-    sap:priority "Very High"^^xsd:string ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_CX_SY_OPEN_SQL> ;
-    sap:title "Database deadlock in General Ledger posting on S/4HANA 2022"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/S4CORE_108> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2022> .
+<https://example.org/cifre-kg/data/support/note/3221980> a cifsup:SAPNote ;
+    rdfs:label "Database deadlock in General Ledger posting on S/4HANA 2022"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/FI-GL> ;
+    cifsup:maxSupportPackage 3 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3221980"^^xsd:string ;
+    cifsup:priority "Very High"^^xsd:string ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_CX_SY_OPEN_SQL> ;
+    cifsup:title "Database deadlock in General Ledger posting on S/4HANA 2022"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2022> .
 
-<http://data.sap.com/support/note/3299100> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/FI-GL-GL> ;
-    sap:maxSupportPackage 3 ;
-    sap:minSupportPackage 1 ;
-    sap:noteNumber "3299100"^^xsd:string ;
-    sap:priority "High"^^xsd:string ;
-    sap:title "Universal Journal ACDOCA currency translation precision mismatch"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/S4CORE_108> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3299100> a cifsup:SAPNote ;
+    rdfs:label "Universal Journal ACDOCA currency translation precision mismatch"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/FI-GL-GL> ;
+    cifsup:maxSupportPackage 3 ;
+    cifsup:minSupportPackage 1 ;
+    cifsup:noteNumber "3299100"^^xsd:string ;
+    cifsup:priority "High"^^xsd:string ;
+    cifsup:title "Universal Journal ACDOCA currency translation precision mismatch"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3345100> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-DB-HDB> ;
-    sap:maxSupportPackage 2 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3345100"^^xsd:string ;
-    sap:priority "Very High"^^xsd:string ;
-    sap:resolution "Enable strict connection reclamation pool in DBSL."@en ;
-    sap:resolvesAlert <http://data.sap.com/support/alert/ALERT_DBSQL_NO_CONN> ;
-    sap:symptom "Intermittent DBSQL_NO_MORE_CONNECTION errors when secondary database connections fail to release."@en ;
-    sap:title "HANA connection leak DBSQL_NO_MORE_CONNECTION in multi-tenant environment"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/SAP_BASIS_758> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3345100> a cifsup:SAPNote ;
+    rdfs:label "HANA connection leak DBSQL_NO_MORE_CONNECTION in multi-tenant environment"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB-HDB> ;
+    cifsup:maxSupportPackage 2 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3345100"^^xsd:string ;
+    cifsup:priority "Very High"^^xsd:string ;
+    cifsup:resolution "Enable strict connection reclamation pool in DBSL."@en ;
+    cifsup:resolvesAlert <https://example.org/cifre-kg/data/support/alert/ALERT_DBSQL_NO_CONN> ;
+    cifsup:symptom "Intermittent DBSQL_NO_MORE_CONNECTION errors when secondary database connections fail to release."@en ;
+    cifsup:title "HANA connection leak DBSQL_NO_MORE_CONNECTION in multi-tenant environment"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/simcat/CONFIGURATION> a sap:SimCatCategory ;
-    sap:categoryName "Customizing and Configuration Inconsistency"^^xsd:string .
+<https://example.org/cifre-kg/data/support/simcat/CONFIGURATION> a cifsup:SimCatCategory ;
+    rdfs:label "Customizing and Configuration Inconsistency"@en ;
+    cifsup:categoryName "Customizing and Configuration Inconsistency"@en .
 
-<http://data.sap.com/ppms/component/S4CORE> a ppms:SoftwareComponent ;
+cifmetaid:dataset-cifre-synthetic-support-ppms-v1 a cifmeta:SyntheticDataset ;
+    cifmeta:authority "independent_repository" ;
+    cifmeta:datasetId "cifre-synthetic-support-ppms-v1" ;
+    cifmeta:generatedBy "src/semantic_layer/kg/sap_dataset_generator.py:build_sap_support_graph" ;
+    cifmeta:graphPath "semantic/data/sap_support_graph.ttl" ;
+    cifmeta:official false ;
+    cifmeta:sourceKind "synthetic_fixture" .
+
+<https://example.org/cifre-kg/data/ppms/component/S4CORE> a cifppms:SoftwareComponent ;
     rdfs:label "S/4HANA Core Application Logic"@en ;
-    ppms:componentName "S4CORE"^^xsd:string .
+    cifppms:componentName "S4CORE"^^xsd:string .
 
-<http://data.sap.com/ppms/productline/NETWEAVER> a ppms:ProductLine ;
+<https://example.org/cifre-kg/data/ppms/productline/NETWEAVER> a cifppms:ProductLine ;
     rdfs:label "SAP NetWeaver Platform"@en ;
-    ppms:productLineCode "NETWEAVER"^^xsd:string .
+    cifppms:productLineCode "NETWEAVER"^^xsd:string .
 
-<http://data.sap.com/ppms/productline/S4HANA> a ppms:ProductLine ;
+<https://example.org/cifre-kg/data/ppms/productline/S4HANA> a cifppms:ProductLine ;
     rdfs:label "SAP S/4HANA Product Line"@en ;
-    ppms:productLineCode "S4HANA"^^xsd:string .
+    cifppms:productLineCode "S4HANA"^^xsd:string .
 
-<http://data.sap.com/ppms/sp/SAP_BASIS_758_SP00> a ppms:SupportPackage ;
+<https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP00> a cifppms:SupportPackage ;
     rdfs:label "SAP_BASIS 758 SP00"@en ;
-    ppms:spName "SP00"^^xsd:string ;
-    ppms:stackLevel 0 .
+    cifppms:spName "SP00"^^xsd:string ;
+    cifppms:stackLevel 0 .
 
-<http://data.sap.com/ppms/sp/SAP_BASIS_758_SP01> a ppms:SupportPackage ;
+<https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP01> a cifppms:SupportPackage ;
     rdfs:label "SAP_BASIS 758 SP01"@en ;
-    ppms:spName "SP01"^^xsd:string ;
-    ppms:stackLevel 1 .
+    cifppms:spName "SP01"^^xsd:string ;
+    cifppms:stackLevel 1 .
 
-<http://data.sap.com/ppms/sp/SAP_BASIS_758_SP02> a ppms:SupportPackage ;
+<https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP02> a cifppms:SupportPackage ;
     rdfs:label "SAP_BASIS 758 SP02"@en ;
-    ppms:spName "SP02"^^xsd:string ;
-    ppms:stackLevel 2 .
+    cifppms:spName "SP02"^^xsd:string ;
+    cifppms:stackLevel 2 .
 
-<http://data.sap.com/ppms/sp/SAP_BASIS_758_SP03> a ppms:SupportPackage ;
+<https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP03> a cifppms:SupportPackage ;
     rdfs:label "SAP_BASIS 758 SP03"@en ;
-    ppms:spName "SP03"^^xsd:string ;
-    ppms:stackLevel 3 .
+    cifppms:spName "SP03"^^xsd:string ;
+    cifppms:stackLevel 3 .
 
-<http://data.sap.com/support/alert/ALERT_CALL_FN_NOT_FOUND> a sap:SystemAlert ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC> ;
-    sap:alertCode "CALL_FUNCTION_NOT_FOUND"^^xsd:string ;
-    sap:classifiedUnderSimCat <http://data.sap.com/support/simcat/ABAP_DUMP> ;
-    sap:severity "ERROR"^^xsd:string .
+<https://example.org/cifre-kg/data/support/alert/ALERT_CALL_FN_NOT_FOUND> a cifsup:SystemAlert ;
+    rdfs:label "CALL_FUNCTION_NOT_FOUND"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC> ;
+    cifsup:alertCode "CALL_FUNCTION_NOT_FOUND"^^xsd:string ;
+    cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/ABAP_DUMP> ;
+    cifsup:severity "ERROR"^^xsd:string .
 
-<http://data.sap.com/support/alert/ALERT_DBSQL_NO_CONN> a sap:SystemAlert ;
+<https://example.org/cifre-kg/data/support/alert/ALERT_DBSQL_NO_CONN> a cifsup:SystemAlert ;
     rdfs:label "Database connection pool exhausted (DBSQL_NO_MORE_CONNECTION)"@en ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-DB-HDB> ;
-    sap:alertCode "DBSQL_NO_MORE_CONNECTION"^^xsd:string ;
-    sap:classifiedUnderSimCat <http://data.sap.com/support/simcat/DATABASE_ERROR> ;
-    sap:severity "ERROR"^^xsd:string .
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB-HDB> ;
+    cifsup:alertCode "DBSQL_NO_MORE_CONNECTION"^^xsd:string ;
+    cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/DATABASE_ERROR> ;
+    cifsup:severity "ERROR"^^xsd:string .
 
-<http://data.sap.com/support/component/MM> a sap:ApplicationComponent ;
-    sap:componentCode "MM"^^xsd:string ;
-    sap:componentDescription "Materials Management"@en .
+<https://example.org/cifre-kg/data/support/component/MM> a cifsup:ApplicationComponent ;
+    rdfs:label "Materials Management"@en ;
+    cifsup:componentCode "MM"^^xsd:string ;
+    cifsup:componentDescription "Materials Management"@en .
 
-<http://data.sap.com/support/component/MM-PUR-PO> a sap:ApplicationComponent ;
-    sap:componentCode "MM-PUR-PO"^^xsd:string ;
-    sap:componentDescription "Purchase Orders"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/MM-PUR> .
+<https://example.org/cifre-kg/data/support/component/MM-PUR-PO> a cifsup:ApplicationComponent ;
+    rdfs:label "Purchase Orders"@en ;
+    cifsup:componentCode "MM-PUR-PO"^^xsd:string ;
+    cifsup:componentDescription "Purchase Orders"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/MM-PUR> .
 
-<http://data.sap.com/support/component/SD> a sap:ApplicationComponent ;
-    sap:componentCode "SD"^^xsd:string ;
-    sap:componentDescription "Sales and Distribution"@en .
+<https://example.org/cifre-kg/data/support/component/SD> a cifsup:ApplicationComponent ;
+    rdfs:label "Sales and Distribution"@en ;
+    cifsup:componentCode "SD"^^xsd:string ;
+    cifsup:componentDescription "Sales and Distribution"@en .
 
-<http://data.sap.com/support/component/SD-SLS> a sap:ApplicationComponent ;
-    sap:componentCode "SD-SLS"^^xsd:string ;
-    sap:componentDescription "Sales"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/SD> .
+<https://example.org/cifre-kg/data/support/component/SD-SLS> a cifsup:ApplicationComponent ;
+    rdfs:label "Sales"@en ;
+    cifsup:componentCode "SD-SLS"^^xsd:string ;
+    cifsup:componentDescription "Sales"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/SD> .
 
-<http://data.sap.com/support/doc/DOC_ACDOCA_ARCH> a sap:HelpDocumentation ;
-    rdfs:label "Universal Journal ACDOCA Architecture & Partitioning"@en ;
-    sap:docUri "https://help.sap.com/docs/s4hana_acdoca_perf"^^xsd:anyURI .
+<https://example.org/cifre-kg/data/support/doc/DOC_ACDOCA_ARCH> a cifsup:HelpDocumentation ;
+    rdfs:label "Synthetic Help Documentation: journal architecture and partitioning"@en ;
+    cifsup:docUri "https://example.org/cifre-kg/data/support/doc/s4hana_acdoca_perf"^^xsd:anyURI .
 
-<http://data.sap.com/support/doc/DOC_MEMORY_CONFIG> a sap:HelpDocumentation ;
-    rdfs:label "SAP S/4HANA Memory Management Configuration Guide"@en ;
-    sap:docUri "https://help.sap.com/docs/s4hana_memory_mgmt"^^xsd:anyURI .
+<https://example.org/cifre-kg/data/support/doc/DOC_MEMORY_CONFIG> a cifsup:HelpDocumentation ;
+    rdfs:label "Synthetic Help Documentation: memory management configuration"@en ;
+    cifsup:docUri "https://example.org/cifre-kg/data/support/doc/s4hana_memory_mgmt"^^xsd:anyURI .
 
-<http://data.sap.com/support/note/3012445> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-CST-MM> ;
-    sap:maxSupportPackage 3 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3012445"^^xsd:string ;
-    sap:priority "High"^^xsd:string ;
-    sap:referencedDocumentation <http://data.sap.com/support/doc/DOC_MEMORY_CONFIG> ;
-    sap:resolution "Apply updated profile parameters em/initial_size_MB and ztta/roll_extension."@en ;
-    sap:rootCause "Conservative legacy buffer allocation profile parameters."@en ;
-    sap:symptom "Suboptimal default heap limits causing early work process restarts."@en ;
-    sap:title "Core memory parameter configuration for HANA 2.0 SPS07"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/SAP_BASIS_758> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3012445> a cifsup:SAPNote ;
+    rdfs:label "Core memory parameter configuration for HANA 2.0 SPS07"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM> ;
+    cifsup:maxSupportPackage 3 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3012445"^^xsd:string ;
+    cifsup:priority "High"^^xsd:string ;
+    cifsup:referencedDocumentation <https://example.org/cifre-kg/data/support/doc/DOC_MEMORY_CONFIG> ;
+    cifsup:resolution "Apply updated profile parameters em/initial_size_MB and ztta/roll_extension."@en ;
+    cifsup:rootCause "Conservative legacy buffer allocation profile parameters."@en ;
+    cifsup:symptom "Suboptimal default heap limits causing early work process restarts."@en ;
+    cifsup:title "Core memory parameter configuration for HANA 2.0 SPS07"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3098110> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-CST-MM> ;
-    sap:hasPrerequisiteNote <http://data.sap.com/support/note/3012445> ;
-    sap:maxSupportPackage 2 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3098110"^^xsd:string ;
-    sap:priority "Very High"^^xsd:string ;
-    sap:resolution "Implement kernel patch and adjust abap/heaplimit."@en ;
-    sap:symptom "Paging area exhaustion under concurrent analytics reporting."@en ;
-    sap:title "Memory paging buffer expansion in SAP_BASIS 758"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/SAP_BASIS_758> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3098110> a cifsup:SAPNote ;
+    rdfs:label "Memory paging buffer expansion in SAP_BASIS 758"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM> ;
+    cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/3012445> ;
+    cifsup:maxSupportPackage 2 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3098110"^^xsd:string ;
+    cifsup:priority "Very High"^^xsd:string ;
+    cifsup:resolution "Implement kernel patch and adjust abap/heaplimit."@en ;
+    cifsup:symptom "Paging area exhaustion under concurrent analytics reporting."@en ;
+    cifsup:title "Memory paging buffer expansion in SAP_BASIS 758"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/support/note/3185002> a sap:SAPNote ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-CST> ;
-    sap:maxSupportPackage 3 ;
-    sap:minSupportPackage 0 ;
-    sap:noteNumber "3185002"^^xsd:string ;
-    sap:priority "High"^^xsd:string ;
-    sap:title "Dispatcher queue optimization for asynchronous update tasks"@en ;
-    sap:validForComponentVersion <http://data.sap.com/ppms/compversion/SAP_BASIS_758> ;
-    sap:validForProductVersion <http://data.sap.com/ppms/version/S4HANA_2023> .
+<https://example.org/cifre-kg/data/support/note/3185002> a cifsup:SAPNote ;
+    rdfs:label "Dispatcher queue optimization for asynchronous update tasks"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST> ;
+    cifsup:maxSupportPackage 3 ;
+    cifsup:minSupportPackage 0 ;
+    cifsup:noteNumber "3185002"^^xsd:string ;
+    cifsup:priority "High"^^xsd:string ;
+    cifsup:title "Dispatcher queue optimization for asynchronous update tasks"@en ;
+    cifsup:validForComponentVersion <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> ;
+    cifsup:validForProductVersion <https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> .
 
-<http://data.sap.com/ppms/component/SAP_BASIS> a ppms:SoftwareComponent ;
+<https://example.org/cifre-kg/data/ppms/component/SAP_BASIS> a cifppms:SoftwareComponent ;
     rdfs:label "SAP Basis Component (System Infrastructure)"@en ;
-    ppms:componentName "SAP_BASIS"^^xsd:string .
+    cifppms:componentName "SAP_BASIS"^^xsd:string .
 
-<http://data.sap.com/ppms/compversion/SAP_BASIS_757> a ppms:SoftwareComponentVersion ;
+<https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_757> a cifppms:SoftwareComponentVersion ;
     rdfs:label "SAP_BASIS 757"@en ;
-    ppms:componentVersionString "757"^^xsd:string ;
-    ppms:isVersionOfComponent <http://data.sap.com/ppms/component/SAP_BASIS> .
+    cifppms:componentVersionString "757"^^xsd:string ;
+    cifppms:isVersionOfComponent <https://example.org/cifre-kg/data/ppms/component/SAP_BASIS> .
 
-<http://data.sap.com/support/alert/ALERT_CX_SY_OPEN_SQL> a sap:SystemAlert ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-DB> ;
-    sap:alertCode "CX_SY_OPEN_SQL_ERROR"^^xsd:string ;
-    sap:classifiedUnderSimCat <http://data.sap.com/support/simcat/DATABASE_ERROR> ;
-    sap:severity "ERROR"^^xsd:string .
+<https://example.org/cifre-kg/data/support/alert/ALERT_CX_SY_OPEN_SQL> a cifsup:SystemAlert ;
+    rdfs:label "CX_SY_OPEN_SQL_ERROR"@en ;
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-DB> ;
+    cifsup:alertCode "CX_SY_OPEN_SQL_ERROR"^^xsd:string ;
+    cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/DATABASE_ERROR> ;
+    cifsup:severity "ERROR"^^xsd:string .
 
-<http://data.sap.com/support/alert/ALERT_TSV_PAGE_FAILED> a sap:SystemAlert ;
+<https://example.org/cifre-kg/data/support/alert/ALERT_TSV_PAGE_FAILED> a cifsup:SystemAlert ;
     rdfs:label "Memory allocation failure: TSV_TNEW_PAGE_ALLOC_FAILED"@en ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-CST-MM> ;
-    sap:alertCode "TSV_TNEW_PAGE_ALLOC_FAILED"^^xsd:string ;
-    sap:classifiedUnderSimCat <http://data.sap.com/support/simcat/PERFORMANCE> ;
-    sap:severity "CRITICAL"^^xsd:string .
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST-MM> ;
+    cifsup:alertCode "TSV_TNEW_PAGE_ALLOC_FAILED"^^xsd:string ;
+    cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/PERFORMANCE> ;
+    cifsup:severity "CRITICAL"^^xsd:string .
 
-<http://data.sap.com/support/component/FI> a sap:ApplicationComponent ;
-    sap:componentCode "FI"^^xsd:string ;
-    sap:componentDescription "Financial Accounting"@en .
+<https://example.org/cifre-kg/data/support/component/FI> a cifsup:ApplicationComponent ;
+    rdfs:label "Financial Accounting"@en ;
+    cifsup:componentCode "FI"^^xsd:string ;
+    cifsup:componentDescription "Financial Accounting"@en .
 
-<http://data.sap.com/support/component/FI-GL> a sap:ApplicationComponent ;
-    sap:componentCode "FI-GL"^^xsd:string ;
-    sap:componentDescription "General Ledger Accounting"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/FI> .
+<https://example.org/cifre-kg/data/support/component/FI-GL> a cifsup:ApplicationComponent ;
+    rdfs:label "General Ledger Accounting"@en ;
+    cifsup:componentCode "FI-GL"^^xsd:string ;
+    cifsup:componentDescription "General Ledger Accounting"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/FI> .
 
-<http://data.sap.com/support/component/FI-GL-GL> a sap:ApplicationComponent ;
-    sap:componentCode "FI-GL-GL"^^xsd:string ;
-    sap:componentDescription "Universal Journal ACDOCA & Basic Functions"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/FI-GL> .
+<https://example.org/cifre-kg/data/support/component/FI-GL-GL> a cifsup:ApplicationComponent ;
+    rdfs:label "Universal Journal ACDOCA & Basic Functions"@en ;
+    cifsup:componentCode "FI-GL-GL"^^xsd:string ;
+    cifsup:componentDescription "Universal Journal ACDOCA & Basic Functions"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/FI-GL> .
 
-<http://data.sap.com/support/component/MM-PUR> a sap:ApplicationComponent ;
-    sap:componentCode "MM-PUR"^^xsd:string ;
-    sap:componentDescription "Purchasing"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/MM> .
+<https://example.org/cifre-kg/data/support/component/MM-PUR> a cifsup:ApplicationComponent ;
+    rdfs:label "Purchasing"@en ;
+    cifsup:componentCode "MM-PUR"^^xsd:string ;
+    cifsup:componentDescription "Purchasing"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/MM> .
 
-<http://data.sap.com/support/simcat/ABAP_DUMP> a sap:SimCatCategory ;
-    sap:categoryName "Runtime ABAP Dump or Crash"^^xsd:string .
+<https://example.org/cifre-kg/data/support/simcat/ABAP_DUMP> a cifsup:SimCatCategory ;
+    rdfs:label "Runtime ABAP Dump or Crash"@en ;
+    cifsup:categoryName "Runtime ABAP Dump or Crash"@en .
 
-<http://data.sap.com/support/simcat/DATABASE_ERROR> a sap:SimCatCategory ;
-    sap:categoryName "Database Connection and Execution Failure"^^xsd:string .
+<https://example.org/cifre-kg/data/support/simcat/DATABASE_ERROR> a cifsup:SimCatCategory ;
+    rdfs:label "Database Connection and Execution Failure"@en ;
+    cifsup:categoryName "Database Connection and Execution Failure"@en .
 
-<http://data.sap.com/support/simcat/PERFORMANCE> a sap:SimCatCategory ;
-    sap:categoryName "Performance and Resource Contention"^^xsd:string .
+<https://example.org/cifre-kg/data/support/simcat/PERFORMANCE> a cifsup:SimCatCategory ;
+    rdfs:label "Performance and Resource Contention"@en ;
+    cifsup:categoryName "Performance and Resource Contention"@en .
 
-<http://data.sap.com/ppms/version/S4HANA_2022> a ppms:ProductVersion ;
+<https://example.org/cifre-kg/data/ppms/version/S4HANA_2022> a cifppms:ProductVersion ;
     rdfs:label "SAP S/4HANA 2022 Release"@en ;
-    ppms:includesComponent <http://data.sap.com/ppms/compversion/SAP_BASIS_757> ;
-    ppms:releaseYear 2022 ;
-    ppms:versionCode "S4HANA_2022"^^xsd:string .
+    cifppms:includesComponent <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_757> ;
+    cifppms:releaseYear 2022 ;
+    cifppms:versionCode "S4HANA_2022"^^xsd:string .
 
-<http://data.sap.com/support/alert/ALERT_TIME_OUT> a sap:SystemAlert ;
+<https://example.org/cifre-kg/data/support/alert/ALERT_TIME_OUT> a cifsup:SystemAlert ;
     rdfs:label "ABAP Short Dump: Maximum runtime exceeded (TIME_OUT)"@en ;
-    sap:affectsComponent <http://data.sap.com/support/component/BC-CST> ;
-    sap:alertCode "TIME_OUT"^^xsd:string ;
-    sap:classifiedUnderSimCat <http://data.sap.com/support/simcat/ABAP_DUMP> ;
-    sap:severity "CRITICAL"^^xsd:string .
+    cifsup:affectsComponent <https://example.org/cifre-kg/data/support/component/BC-CST> ;
+    cifsup:alertCode "TIME_OUT"^^xsd:string ;
+    cifsup:classifiedUnderSimCat <https://example.org/cifre-kg/data/support/simcat/ABAP_DUMP> ;
+    cifsup:severity "CRITICAL"^^xsd:string .
 
-<http://data.sap.com/support/component/BC> a sap:ApplicationComponent ;
-    sap:componentCode "BC"^^xsd:string ;
-    sap:componentDescription "Basis Components"@en .
+<https://example.org/cifre-kg/data/support/component/BC> a cifsup:ApplicationComponent ;
+    rdfs:label "Basis Components"@en ;
+    cifsup:componentCode "BC"^^xsd:string ;
+    cifsup:componentDescription "Basis Components"@en .
 
-<http://data.sap.com/support/component/BC-CST> a sap:ApplicationComponent ;
-    sap:componentCode "BC-CST"^^xsd:string ;
-    sap:componentDescription "Client Server Technology"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/BC> .
+<https://example.org/cifre-kg/data/support/component/BC-CST> a cifsup:ApplicationComponent ;
+    rdfs:label "Client Server Technology"@en ;
+    cifsup:componentCode "BC-CST"^^xsd:string ;
+    cifsup:componentDescription "Client Server Technology"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC> .
 
-<http://data.sap.com/support/component/BC-DB> a sap:ApplicationComponent ;
-    sap:componentCode "BC-DB"^^xsd:string ;
-    sap:componentDescription "Database Interface and Infrastructure"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/BC> .
+<https://example.org/cifre-kg/data/support/component/BC-DB> a cifsup:ApplicationComponent ;
+    rdfs:label "Database Interface and Infrastructure"@en ;
+    cifsup:componentCode "BC-DB"^^xsd:string ;
+    cifsup:componentDescription "Database Interface and Infrastructure"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC> .
 
-<http://data.sap.com/support/component/BC-DB-HDB> a sap:ApplicationComponent ;
-    sap:componentCode "BC-DB-HDB"^^xsd:string ;
-    sap:componentDescription "SAP HANA Database Interface"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/BC-DB> .
+<https://example.org/cifre-kg/data/support/component/BC-DB-HDB> a cifsup:ApplicationComponent ;
+    rdfs:label "SAP HANA Database Interface"@en ;
+    cifsup:componentCode "BC-DB-HDB"^^xsd:string ;
+    cifsup:componentDescription "SAP HANA Database Interface"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC-DB> .
 
-<http://data.sap.com/support/component/BC-CST-MM> a sap:ApplicationComponent ;
-    sap:componentCode "BC-CST-MM"^^xsd:string ;
-    sap:componentDescription "Memory Management & Work Processes"@en ;
-    sap:parentComponent <http://data.sap.com/support/component/BC-CST> .
+<https://example.org/cifre-kg/data/support/component/BC-CST-MM> a cifsup:ApplicationComponent ;
+    rdfs:label "Memory Management & Work Processes"@en ;
+    cifsup:componentCode "BC-CST-MM"^^xsd:string ;
+    cifsup:componentDescription "Memory Management & Work Processes"@en ;
+    cifsup:parentComponent <https://example.org/cifre-kg/data/support/component/BC-CST> .
 
-<http://data.sap.com/ppms/compversion/SAP_BASIS_758> a ppms:SoftwareComponentVersion ;
+<https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> a cifppms:SoftwareComponentVersion ;
     rdfs:label "SAP_BASIS 758"@en ;
-    ppms:componentVersionString "758"^^xsd:string ;
-    ppms:hasSupportPackage <http://data.sap.com/ppms/sp/SAP_BASIS_758_SP00>,
-        <http://data.sap.com/ppms/sp/SAP_BASIS_758_SP01>,
-        <http://data.sap.com/ppms/sp/SAP_BASIS_758_SP02>,
-        <http://data.sap.com/ppms/sp/SAP_BASIS_758_SP03> ;
-    ppms:isVersionOfComponent <http://data.sap.com/ppms/component/SAP_BASIS> .
+    cifppms:componentVersionString "758"^^xsd:string ;
+    cifppms:hasSupportPackage <https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP00>,
+        <https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP01>,
+        <https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP02>,
+        <https://example.org/cifre-kg/data/ppms/sp/SAP_BASIS_758_SP03> ;
+    cifppms:isVersionOfComponent <https://example.org/cifre-kg/data/ppms/component/SAP_BASIS> .
 
-<http://data.sap.com/ppms/compversion/S4CORE_108> a ppms:SoftwareComponentVersion ;
+<https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108> a cifppms:SoftwareComponentVersion ;
     rdfs:label "S4CORE 108"@en ;
-    ppms:componentVersionString "108"^^xsd:string ;
-    ppms:isVersionOfComponent <http://data.sap.com/ppms/component/S4CORE> .
+    cifppms:componentVersionString "108"^^xsd:string ;
+    cifppms:isVersionOfComponent <https://example.org/cifre-kg/data/ppms/component/S4CORE> .
 
-<http://data.sap.com/ppms/version/S4HANA_2023> a ppms:ProductVersion ;
+<https://example.org/cifre-kg/data/ppms/version/S4HANA_2023> a cifppms:ProductVersion ;
     rdfs:label "SAP S/4HANA 2023 Release"@en ;
-    ppms:includesComponent <http://data.sap.com/ppms/compversion/S4CORE_108>,
-        <http://data.sap.com/ppms/compversion/SAP_BASIS_758> ;
-    ppms:releaseYear 2023 ;
-    ppms:versionCode "S4HANA_2023"^^xsd:string .
+    cifppms:includesComponent <https://example.org/cifre-kg/data/ppms/compversion/S4CORE_108>,
+        <https://example.org/cifre-kg/data/ppms/compversion/SAP_BASIS_758> ;
+    cifppms:releaseYear 2023 ;
+    cifppms:versionCode "S4HANA_2023"^^xsd:string .
 

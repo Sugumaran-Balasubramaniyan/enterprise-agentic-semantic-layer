@@ -1,0 +1,490 @@
+corpus_id: cifre-synthetic-aqr-v1
+version: 1.0.0
+records:
+- id: Q01
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_alert
+  question: Which SAP Notes directly resolve alert DBSQL_NO_MORE_CONNECTION?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3345100'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q02
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_alert
+  question: Find notes resolving runtime dump TSV_TNEW_PAGE_ALLOC_FAILED.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '2765001'
+  - '3109922'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q03
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_component
+  question: List all notes affecting application component MM-PUR-PO.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3201440'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q04
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_component
+  question: What SAP notes affect component BC-DB-HDB?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3088210'
+  - '3345100'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q05
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_note
+  question: Retrieve the title and details for SAP Note 3012445.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3012445'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q06
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_alert
+  question: Which note fixes dump CX_SY_OPEN_SQL_ERROR?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '2954112'
+  - '3221980'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q07
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_alert
+  question: Find notes addressing CALL_FUNCTION_NOT_FOUND errors.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '2877120'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q08
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 1
+  category: single_hop_component
+  question: What notes are logged under component SD-SLS?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3144890'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q09
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: Which SAP note resolves alert TIME_OUT in component MM-PUR-PO?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3201440'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q10
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED in component FI-GL.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3109922'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q11
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: Which note resolves DBSQL_NO_MORE_CONNECTION on database component BC-DB-HDB?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3345100'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q12
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: Find notes for alert TIME_OUT affecting Sales and Distribution component
+    SD-SLS.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3144890'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q13
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: Which note addresses CX_SY_OPEN_SQL_ERROR in component BC-DB?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '2954112'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q14
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED in memory management component
+    BC-CST-MM.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '2765001'
+  - '3109922'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q15
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: What note resolves dump TIME_OUT in component BC-DB-HDB?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3088210'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q16
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 2
+  category: multihop_diagnostic
+  question: Find notes for CALL_FUNCTION_NOT_FOUND affecting component FI.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '2877120'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q17
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED valid for S/4HANA 2023.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3109922'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q18
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: Which notes resolve TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2022?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '2765001'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q19
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: Find notes for TIME_OUT on S/4HANA 2023 in component MM-PUR.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3201440'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q20
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: Which notes resolve CX_SY_OPEN_SQL_ERROR on S/4HANA 2022?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3221980'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q21
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: Find notes valid for S/4HANA 2023 in component FI-GL-GL.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3109922'
+  - '3299100'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q22
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: What notes are valid for S/4HANA 2023 in component BC-DB-HDB?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3088210'
+  - '3345100'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q23
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: Find notes resolving TIME_OUT on S/4HANA 2023 in component SD-SLS.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3144890'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q24
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 3
+  category: version_constrained
+  question: Find notes valid for S/4HANA 2023 affecting component MM-PUR.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3155700'
+  - '3201440'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q25
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: What are the prerequisite notes required for SAP Note 3109922?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3012445'
+  - '3098110'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q26
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: Identify prerequisite notes for SAP Note 3098110.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3012445'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q27
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: What prerequisite notes must be applied before SAP Note 3201440?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3185002'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q28
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: Does SAP Note 3109922 have any dependencies or prerequisites?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3012445'
+  - '3098110'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q29
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: What are the dependencies of Note 3201440?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3185002'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q30
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: List prerequisites for Note 3098110.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3012445'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q31
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: Find prerequisite notes for 3109922.
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3012445'
+  - '3098110'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q32
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 4
+  category: prerequisite_chain
+  question: Which note is a prerequisite for Note 3201440?
+  expected_status: SUCCESS
+  gold_note_numbers:
+  - '3185002'
+  reflection_reason: NONE
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q33
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes for alert TIME_OUT in component MM-PUR-PO at SP05
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q34
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED in component FI-GL at
+    SP09
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q35
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes for DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB at Support
+    Package SP08
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q36
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes resolving TIME_OUT in component SD-SLS at SP07
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q37
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes for dump CX_SY_OPEN_SQL_ERROR on S/4HANA 2022 in component
+    FI-GL at SP10
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q38
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes for TIME_OUT on component BC-DB-HDB at SP06
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q39
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes resolving TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2022 at SP08
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set
+- id: Q40
+  corpus_id: cifre-synthetic-aqr-v1
+  version: 1.0.0
+  tier: 5
+  category: reflective_relaxation
+  question: Find notes for CX_SY_OPEN_SQL_ERROR in component BC-DB at SP05
+  expected_status: EMPTY_RESULT
+  gold_note_numbers: []
+  reflection_reason: STRICT_EMPTY_SEMANTIC_RELAXATION
+  strict_constraints: true
+  gold_policy: exact_set

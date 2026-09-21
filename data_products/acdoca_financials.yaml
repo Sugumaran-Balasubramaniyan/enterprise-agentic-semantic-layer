@@ -1,11 +1,11 @@
 id: ACDOCAFinancials
 name: Universal Journal Financials (ACDOCA)
 version: "1.0.0"
-owner: SAP SE Financials and Controlling
-platform: Federated
-location: Group
+owner: repository-maintained synthetic contract
+platform: Local synthetic reference
+location: Repository
 grain: one row per financial posting
-sla: hourly, within 15 minutes of source update
+sla: not applicable to synthetic repository data
 classification: Restricted
 pii:
   - partner_id
@@ -16,7 +16,7 @@ quality:
     - posting_date is non-null and not in the future as of the query context
     - amount_in_company_currency_eur is non-negative
     - posting_status and country use governed values
-    - product resolves through a certified local mapping
+    - product resolves through an approved local mapping
 lineage:
   upstream:
     - local S/4HANA FI-GL/FI-AP/FI-AR engines in France, United Kingdom, and Germany
@@ -25,47 +25,47 @@ lineage:
     - local accounting statuses and materials are normalized to SAP ERP semantics
     - REVERSED and DUPLICATE entries remain observable but are excluded by QualifyingPosting
 concepts:
-  - sap:FinancialPosting
-  - sap:QualifyingPosting
-  - sap:FinancialLoss
-  - sap:PostingStatus
-  - sap:SalesOrder
-  - sap:BusinessPartner
+  - ciferp:FinancialPosting
+  - ciferp:QualifyingPosting
+  - ciferp:FinancialLoss
+  - ciferp:PostingStatus
+  - ciferp:SalesOrder
+  - ciferp:BusinessPartner
 schema:
   - name: journal_entry_id
     type: string
-    concept: sap:FinancialPosting
+    concept: ciferp:FinancialPosting
     nullable: false
   - name: sales_order_id
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: partner_id
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
     pii: true
   - name: country
     type: string
-    concept: sap:CompanyCode
+    concept: ciferp:CompanyCode
     nullable: false
   - name: product
     type: string
-    concept: sap:Product
+    concept: ciferp:Product
     nullable: false
   - name: posting_status
     type: string
-    concept: sap:PostingStatus
+    concept: ciferp:PostingStatus
     nullable: false
   - name: posting_date
     type: date
-    concept: sap:FinancialPosting
+    concept: ciferp:FinancialPosting
     nullable: false
   - name: amount_in_company_currency_eur
     type: decimal
-    concept: sap:FinancialLoss
+    concept: ciferp:FinancialLoss
     nullable: false
 certification:
   status: CERTIFIED
-  certified_by: SAP Enterprise Financial Governance Board
+  certified_by: repository-maintained synthetic contract
   certified_at: "2026-08-28"

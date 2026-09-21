@@ -7,18 +7,35 @@ SHACL validation with pyshacl.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import pyshacl
 import rdflib
+import yaml
 from rdflib import Graph, Namespace, URIRef
 from rdflib.plugins.sparql.processor import SPARQLResult
 
 logger = logging.getLogger(__name__)
 
-PPMS = Namespace("http://ontology.sap.com/ppms#")
-SAP = Namespace("http://ontology.sap.com/support#")
+@dataclass(frozen=True)
+class ValidationReport:
+    """Structured SHACL result with an explicit validation scope."""
+
+    conforms: bool
+    report_text: str
+    shapes_path: Path
+    scope: str = "support"
+    inference: str = "rdfs"
+
+    def __iter__(self):
+        """Retain the historical ``conforms, report`` unpacking API."""
+
+        yield self.conforms
+        yield self.report_text
 
 
 class SAPKnowledgeGraph:
@@ -30,8 +47,13 @@ class SAPKnowledgeGraph:
 
     def _bind_standard_namespaces(self) -> None:
         """Bind common prefixes for clean serialization and SPARQL parsing."""
-        self.graph.bind("ppms", PPMS)
-        self.graph.bind("sap", SAP)
+        self.graph.bind("cifsup", CIFSUP)
+        self.graph.bind("cifppms", CIFPPMS)
+        self.graph.bind("cifdata", CIFDATA)
+        self.graph.bind("ciferp", CIFERP)
+        self.graph.bind("cifskos", CIFSKOS)
+        self.graph.bind("cifmeta", CIFMETA)
+        self.graph.bind("cifmetaid", CIFMETAID)
         self.graph.bind("rdf", rdflib.RDF)
         self.graph.bind("rdfs", rdflib.RDFS)
         self.graph.bind("owl", rdflib.OWL)
@@ -52,11 +74,16 @@ class SAPKnowledgeGraph:
             self.load_file(path)
         return len(self.graph)
 
-    def validate_shacl(self, shapes_path: str | Path) -> tuple[bool, str]:
-        """Validate current graph against W3C SHACL shapes.
+    def validate_shacl(
+        self, shapes_path: str | Path, *, scope: str = "support"
+    ) -> ValidationReport:
+        """Validate the selected graph scope against W3C SHACL shapes.
 
-        Returns (conforms: bool, results_text: str).
+        Returns a structured report and preserves tuple unpacking for callers
+        written against the original loader API.
         """
+        if scope not in {"support", "erp", "combined"}:
+            raise ValueError("scope must be one of: support, erp, combined")
         shapes_p = Path(shapes_path)
         if not shapes_p.exists():
             raise FileNotFoundError(f"SHACL shapes file not found: {shapes_p}")
@@ -64,8 +91,10 @@ class SAPKnowledgeGraph:
         shapes_graph = Graph()
         shapes_graph.parse(location=str(shapes_p), format="turtle")
 
+        data_graph = self._graph_for_scope(scope)
+
         conforms, _, results_text = pyshacl.validate(
-            data_graph=self.graph,
+            data_graph=data_graph,
             shacl_graph=shapes_graph,
             inference="rdfs",
             abort_on_first=False,
@@ -74,7 +103,55 @@ class SAPKnowledgeGraph:
             js=False,
             debug=False,
         )
-        return bool(conforms), str(results_text)
+        return ValidationReport(
+            conforms=bool(conforms),
+            report_text=str(results_text),
+            shapes_path=shapes_p,
+            scope=scope,
+        )
+
+    def _graph_for_scope(self, scope: str) -> Graph:
+        """Return only triples belonging to the declared validation scope."""
+
+        if scope == "combined":
+            return self.graph
+
+        if scope == "support":
+            prefixes = (
+                str(CIFSUP),
+                str(CIFPPMS),
+                f"{CIFDATA}support/",
+                f"{CIFDATA}ppms/",
+                str(CIFMETA),
+                str(CIFMETAID),
+            )
+        elif scope == "erp":
+            prefixes = (
+                str(CIFERP),
+                f"{CIFDATA}erp/",
+                str(CIFMETA),
+                str(CIFMETAID),
+            )
+        else:  # pragma: no cover - guarded by validate_shacl
+            raise ValueError(f"unsupported validation scope: {scope}")
+
+        standard_prefixes = (
+            str(rdflib.RDF),
+            str(rdflib.RDFS),
+            str(rdflib.OWL),
+            str(rdflib.XSD),
+            "http://www.w3.org/ns/shacl#",
+        )
+        scoped = Graph()
+        for subject, predicate, obj in self.graph:
+            terms = (subject, predicate, obj)
+            if all(
+                not isinstance(term, URIRef)
+                or str(term).startswith(prefixes + standard_prefixes)
+                for term in terms
+            ):
+                scoped.add((subject, predicate, obj))
+        return scoped
 
     def query_sparql(self, sparql_query: str) -> list[dict[str, Any]]:
         """Execute a SPARQL 1.1 SELECT query and return list of variable bindings."""
@@ -107,8 +184,13 @@ class SAPKnowledgeGraph:
     def _ensure_prefixes(self, query: str) -> str:
         """Inject standard prefixes if missing from the query."""
         prefixes = [
-            "PREFIX ppms: <http://ontology.sap.com/ppms#>",
-            "PREFIX sap: <http://ontology.sap.com/support#>",
+            f"PREFIX cifsup: <{CIFSUP}>",
+            f"PREFIX cifppms: <{CIFPPMS}>",
+            f"PREFIX cifdata: <{CIFDATA}>",
+            f"PREFIX ciferp: <{CIFERP}>",
+            f"PREFIX cifskos: <{CIFSKOS}>",
+            f"PREFIX cifmeta: <{CIFMETA}>",
+            f"PREFIX cifmetaid: <{CIFMETAID}>",
             "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>",
             "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>",
             "PREFIX owl: <http://www.w3.org/2002/07/owl#>",
@@ -130,3 +212,34 @@ class SAPKnowledgeGraph:
 
     def __len__(self) -> int:
         return len(self.graph)
+
+
+def _load_namespace_registry() -> Mapping[str, str]:
+    """Load Task 2's registry, with a dependency-light local fallback.
+
+    Importing ``semantic_layer.research.contracts`` normally exposes the
+    canonical registry.  The shared checkout environment used for semantic
+    asset checks may intentionally omit the optional JSON Schema dependency,
+    so read the checked-in provenance contract only for that environment
+    bootstrap case.  No namespace literals are duplicated here.
+    """
+
+    try:
+        from semantic_layer.research.contracts import NAMESPACE_REGISTRY
+    except ModuleNotFoundError as error:
+        if error.name != "jsonschema":
+            raise
+        provenance_path = Path(__file__).resolve().parents[3] / "semantic/provenance/synthetic_source.yaml"
+        document = yaml.safe_load(provenance_path.read_text(encoding="utf-8"))
+        return MappingProxyType(dict(document["namespace_registry"]))
+    return NAMESPACE_REGISTRY
+
+
+NAMESPACE_REGISTRY = _load_namespace_registry()
+CIFSUP = Namespace(NAMESPACE_REGISTRY["cifsup"])
+CIFPPMS = Namespace(NAMESPACE_REGISTRY["cifppms"])
+CIFDATA = Namespace(NAMESPACE_REGISTRY["cifdata"])
+CIFERP = Namespace(NAMESPACE_REGISTRY["ciferp"])
+CIFSKOS = Namespace(NAMESPACE_REGISTRY["cifskos"])
+CIFMETA = Namespace(NAMESPACE_REGISTRY["cifmeta"])
+CIFMETAID = Namespace(NAMESPACE_REGISTRY["cifmetaid"])

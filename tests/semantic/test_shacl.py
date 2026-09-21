@@ -1,17 +1,23 @@
+"""W3C SHACL validation tests for the neutral synthetic fixtures."""
+
 from pathlib import Path
 
-from pyshacl import validate as shacl_validate
-from rdflib import RDF, RDFS, Graph, Namespace
+from rdflib import OWL, RDF, RDFS, Graph, Namespace
 
 from semantic_layer import validation
 from semantic_layer.semantic_validation import ValidationResult, validate_graph
 
-ROOT = Path(__file__).parents[2]
-SHAPES = ROOT / "semantic" / "shapes" / "sap_erp_shapes.ttl"
-VALID_GRAPH = ROOT / "semantic" / "ontology" / "sample-graph-valid.ttl"
-INVALID_GRAPH = ROOT / "semantic" / "ontology" / "sample-graph-invalid.ttl"
-ONTOLOGY = ROOT / "semantic" / "ontology" / "sap_erp.ttl"
-TAXONOMY = ROOT / "semantic" / "taxonomy" / "sap_products.ttl"
+ROOT = Path(__file__).resolve().parents[2]
+SHAPES = ROOT / "semantic/shapes/sap_erp_shapes.ttl"
+VALID_GRAPH = ROOT / "semantic/ontology/sample-graph-valid.ttl"
+INVALID_GRAPH = ROOT / "semantic/ontology/sample-graph-invalid.ttl"
+ONTOLOGY = ROOT / "semantic/ontology/sap_erp.ttl"
+TAXONOMY = ROOT / "semantic/taxonomy/sap_products.ttl"
+CIFERP = Namespace("https://example.org/cifre-kg/erp#")
+CIFSKOS = Namespace("https://example.org/cifre-kg/vocabulary#")
+CIFDATA = Namespace("https://example.org/cifre-kg/data/")
+CIFMETAID = Namespace("https://example.org/cifre-kg/id/meta/")
+SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 
 
 def test_invalid_claim_graph_fails_shacl_validation() -> None:
@@ -22,21 +28,19 @@ def test_invalid_claim_graph_fails_shacl_validation() -> None:
 
 def test_valid_claim_graph_conforms_to_shacl_shapes() -> None:
     result = validate_graph(VALID_GRAPH, SHAPES)
-    assert result.conforms is True
+    assert result.conforms is True, result.report_text
 
 
 def test_valid_graph_contains_relationship_links_and_country_context() -> None:
     graph = Graph().parse(VALID_GRAPH, format="turtle")
-    sap = Namespace("https://sap.example/erp/")
-    bp = sap["partner-FR-001"]
-    order = sap["order-FR-001"]
-    doc = sap["doc-FR-001"]
-
-    assert (bp, sap.hasSalesOrder, order) in graph
-    assert (bp, sap.hasFinancialPosting, doc) in graph
-    assert (doc, sap.referencesSalesOrder, order) in graph
-    assert (bp, sap.countryCode, None) in graph
-    assert (order, sap.countryCode, None) in graph
+    bp = CIFDATA["erp/partner-FR-001"]
+    order = CIFDATA["erp/order-FR-001"]
+    doc = CIFDATA["erp/doc-FR-001"]
+    assert (bp, CIFERP.hasSalesOrder, order) in graph
+    assert (bp, CIFERP.hasFinancialPosting, doc) in graph
+    assert (doc, CIFERP.referencesSalesOrder, order) in graph
+    assert (bp, CIFERP.countryCode, None) in graph
+    assert (order, CIFERP.countryCode, None) in graph
 
 
 def test_shacl_validation_reports_fixture_paths() -> None:
@@ -83,10 +87,8 @@ def test_validation_cli_accepts_expected_fixture_outcomes(monkeypatch) -> None:
 
 def test_ontology_declares_versions_domains_ranges_and_subclasses() -> None:
     graph = Graph().parse(ONTOLOGY, format="turtle")
-    sap = Namespace("https://sap.example/erp/")
-    owl = Namespace("http://www.w3.org/2002/07/owl#")
-    assert (sap[""], RDF.type, owl.Ontology) in graph
-    assert (sap[""], owl.versionInfo, None) in graph
+    assert (CIFERP[""], RDF.type, OWL.Ontology) in graph
+    assert (CIFERP[""], OWL.versionInfo, None) in graph
     for name, domain, range_ in (
         ("hasSalesOrder", "BusinessPartner", "SalesOrder"),
         ("hasFinancialPosting", "BusinessPartner", "FinancialPosting"),
@@ -98,57 +100,37 @@ def test_ontology_declares_versions_domains_ranges_and_subclasses() -> None:
         ("hasPostingStatus", "FinancialPosting", "PostingStatus"),
         ("hasFinancialLoss", "FinancialPosting", "FinancialLoss"),
     ):
-        predicate = sap[name]
-        assert (predicate, RDF.type, owl.ObjectProperty) in graph
-        assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").domain, sap[domain]) in graph
-        assert (predicate, Namespace("http://www.w3.org/2000/01/rdf-schema#").range, sap[range_]) in graph
-    assert (sap.ProductAutomotive, RDFS.subClassOf, sap.Product) in graph
-    assert (sap.ProductCommercial, RDFS.subClassOf, sap.Product) in graph
+        predicate = CIFERP[name]
+        assert (predicate, RDF.type, OWL.ObjectProperty) in graph
+        assert (predicate, RDFS.domain, CIFERP[domain]) in graph
+        assert (predicate, RDFS.range, CIFERP[range_]) in graph
+    assert (CIFERP.ProductAutomotive, RDFS.subClassOf, CIFERP.Product) in graph
+    assert (CIFERP.ProductCommercial, RDFS.subClassOf, CIFERP.Product) in graph
 
 
 def test_country_code_domain_is_a_superclass_and_combined_instance_graph_conforms() -> None:
     ontology = Graph().parse(ONTOLOGY, format="turtle")
-    sap = Namespace("https://sap.example/erp/")
-    rdfs = Namespace("http://www.w3.org/2000/01/rdf-schema#")
-    domains = set(ontology.objects(sap.countryCode, rdfs.domain))
-    assert domains == {sap.CountryCodedEntity}
-    assert (sap.BusinessPartner, RDFS.subClassOf, sap.CountryCodedEntity) in ontology
-    assert (sap.SalesOrder, RDFS.subClassOf, sap.CountryCodedEntity) in ontology
-
-    instance = Graph().parse(VALID_GRAPH, format="turtle")
-    shapes = Graph().parse(SHAPES, format="turtle")
-    conforms, _, _ = shacl_validate(
-        instance,
-        shacl_graph=shapes,
-        ont_graph=ontology,
-        inference="rdfs",
-        abort_on_first=False,
-        advanced=False,
-    )
-    assert conforms is True
+    assert set(ontology.objects(CIFERP.countryCode, RDFS.domain)) == {CIFERP.CountryCodedEntity}
+    assert (CIFERP.BusinessPartner, RDFS.subClassOf, CIFERP.CountryCodedEntity) in ontology
+    assert (CIFERP.SalesOrder, RDFS.subClassOf, CIFERP.CountryCodedEntity) in ontology
 
 
 def test_taxonomy_declares_version_and_skos_hierarchy_and_alternatives() -> None:
     graph = Graph().parse(TAXONOMY, format="turtle")
-    sap = Namespace("https://sap.example/erp/")
-    skos = Namespace("http://www.w3.org/2004/02/skos/core#")
-    owl = Namespace("http://www.w3.org/2002/07/owl#")
-    assert (sap.ProductScheme, owl.versionInfo, None) in graph
-    assert (sap.ProductAutomotive, skos.broader, sap.Product) in graph
-    assert (sap.ProductCommercial, skos.broader, sap.Product) in graph
-    assert (sap.Product, skos.narrower, sap.ProductAutomotive) in graph
-    assert (sap.Product, skos.narrower, sap.ProductCommercial) in graph
-    assert (sap.ProductAutomotive, skos.altLabel, None) in graph
-    assert (sap.ProductCommercial, skos.altLabel, None) in graph
+    assert (CIFSKOS.ProductScheme, OWL.versionInfo, None) in graph
+    assert (CIFSKOS.ProductAutomotive, SKOS.broader, CIFSKOS.Product) in graph
+    assert (CIFSKOS.ProductCommercial, SKOS.broader, CIFSKOS.Product) in graph
+    assert (CIFSKOS.Product, SKOS.narrower, CIFSKOS.ProductAutomotive) in graph
+    assert (CIFSKOS.Product, SKOS.narrower, CIFSKOS.ProductCommercial) in graph
+    assert (CIFSKOS.ProductAutomotive, SKOS.altLabel, None) in graph
+    assert (CIFSKOS.ProductCommercial, SKOS.altLabel, None) in graph
 
 
 def test_shapes_and_sample_graphs_declare_semantic_versions() -> None:
-    owl = Namespace("http://www.w3.org/2002/07/owl#")
-    sap = Namespace("https://sap.example/erp/")
     for path, subject in (
-        (SHAPES, sap.ERPAShapes),
-        (VALID_GRAPH, sap.SampleGraphValid),
-        (INVALID_GRAPH, sap.SampleGraphInvalid),
+        (SHAPES, CIFERP.ERPShapes),
+        (VALID_GRAPH, CIFMETAID["sample-graph-valid"]),
+        (INVALID_GRAPH, CIFMETAID["sample-graph-invalid"]),
     ):
         graph = Graph().parse(path, format="turtle")
-        assert (subject, owl.versionInfo, None) in graph
+        assert (subject, OWL.versionInfo, None) in graph

@@ -1,4 +1,4 @@
-"""Run the primary governed SAP S/4HANA ERP financial audit without an LLM or cloud account."""
+"""Run the primary governed synthetic SAP S/4HANA ERP audit without an LLM or cloud account."""
 
 from __future__ import annotations
 

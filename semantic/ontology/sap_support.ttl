@@ -1,141 +1,154 @@
-@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix cifsup: <https://example.org/cifre-kg/support#> .
+@prefix cifmeta: <https://example.org/cifre-kg/meta#> .
+@prefix cifppms: <https://example.org/cifre-kg/ppms#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix owl:  <http://www.w3.org/2002/07/owl#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix sap:  <http://ontology.sap.com/support#> .
-@prefix ppms: <http://ontology.sap.com/ppms#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<http://ontology.sap.com/support>
-    a owl:Ontology ;
-    rdfs:label "SAP Service and Support Knowledge Graph Ontology"@en ;
-    rdfs:comment "Multi-source ontology connecting SAP Notes, System Alerts, Application Components, SimCat taxonomies, and Documentation with PPMS."@en ;
-    owl:imports <http://ontology.sap.com/ppms> ;
+cifsup: a owl:Ontology ;
+    rdfs:label "Synthetic support knowledge graph ontology"@en ;
+    rdfs:comment "Repository-authored synthetic support notes, alerts, components, categories, and documentation."@en ;
     owl:versionInfo "1.0.0" .
 
-### Classes
-
-sap:SAPNote a owl:Class ;
-    rdfs:label "SAP Note / KBA"@en ;
-    rdfs:comment "Official SAP technical support knowledge base article or code correction note."@en .
-
-sap:SystemAlert a owl:Class ;
-    rdfs:label "System Alert / Dump"@en ;
-    rdfs:comment "Runtime system telemetry event, ABAP short dump, or monitoring exception."@en .
-
-sap:ApplicationComponent a owl:Class ;
+cifsup:SAPNote a owl:Class ;
+    rdfs:label "Synthetic Support Note"@en ;
+    rdfs:comment "A repository-authored support note fixture with symptoms, resolution text, and governed links."@en .
+cifsup:SystemAlert a owl:Class ;
+    rdfs:label "System Alert"@en ;
+    rdfs:comment "A synthetic runtime alert or diagnostic event used by the local support fixtures."@en .
+cifsup:ApplicationComponent a owl:Class ;
     rdfs:label "Application Component"@en ;
-    rdfs:comment "Hierarchical functional area responsible for software artifacts (e.g., BC-DB, FI-GL)."@en .
+    rdfs:comment "A synthetic hierarchical functional area associated with support resources."@en .
+cifsup:SimCatCategory a owl:Class ;
+    rdfs:label "Similarity Category"@en ;
+    rdfs:comment "A synthetic problem-classification category for grouping support events."@en .
+cifsup:HelpDocumentation a owl:Class ;
+    rdfs:label "Synthetic Help Documentation"@en ;
+    rdfs:comment "A repository-authored documentation reference used in support fixtures."@en .
 
-sap:SimCatCategory a owl:Class ;
-    rdfs:label "SimCat Similarity Category"@en ;
-    rdfs:comment "Problem classification taxonomy for clustering similar support issues."@en .
-
-sap:HelpDocumentation a owl:Class ;
-    rdfs:label "Help Documentation"@en ;
-    rdfs:comment "Official product documentation guide, configuration manual, or troubleshooting handbook."@en .
-
-### Object Properties
-
-sap:affectsComponent a owl:ObjectProperty ;
+cifsup:affectsComponent a owl:ObjectProperty ;
     rdfs:label "affects application component"@en ;
-    rdfs:range sap:ApplicationComponent .
-
-sap:parentComponent a owl:ObjectProperty ;
+    rdfs:comment "Intentionally mixed-subject relation: associates a synthetic support note or system alert with an application component; no single rdfs:domain is asserted."@en ;
+    rdfs:range cifsup:ApplicationComponent .
+cifsup:parentComponent a owl:ObjectProperty ;
     rdfs:label "parent application component"@en ;
-    rdfs:domain sap:ApplicationComponent ;
-    rdfs:range sap:ApplicationComponent .
-
-sap:resolvesAlert a owl:ObjectProperty ;
+    rdfs:comment "Places an application component below its synthetic parent component."@en ;
+    rdfs:domain cifsup:ApplicationComponent ; rdfs:range cifsup:ApplicationComponent .
+cifsup:resolvesAlert a owl:ObjectProperty ;
     rdfs:label "resolves system alert"@en ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range sap:SystemAlert .
-
-sap:validForComponentVersion a owl:ObjectProperty ;
+    rdfs:comment "Associates a support note with an alert it is intended to resolve."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range cifsup:SystemAlert .
+cifsup:validForComponentVersion a owl:ObjectProperty ;
     rdfs:label "valid for software component version"@en ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range ppms:SoftwareComponentVersion .
-
-sap:validForProductVersion a owl:ObjectProperty ;
+    rdfs:comment "Links a support note to a synthetic software-component version."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range cifppms:SoftwareComponentVersion .
+cifsup:validForProductVersion a owl:ObjectProperty ;
     rdfs:label "valid for product version"@en ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range ppms:ProductVersion .
-
-sap:hasPrerequisiteNote a owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:comment "Links a support note to a synthetic product version."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range cifppms:ProductVersion .
+cifsup:hasPrerequisiteNote a owl:ObjectProperty , owl:TransitiveProperty ;
     rdfs:label "has prerequisite note"@en ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range sap:SAPNote .
-
-sap:hasSideEffectNote a owl:ObjectProperty ;
-    rdfs:label "has side effect note"@en ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range sap:SAPNote .
-
-sap:classifiedUnderSimCat a owl:ObjectProperty ;
-    rdfs:label "classified under SimCat category"@en ;
-    rdfs:range sap:SimCatCategory .
-
-sap:referencedDocumentation a owl:ObjectProperty ;
+    rdfs:comment "Links a support note to another note that must be applied first; the relation is transitive."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range cifsup:SAPNote .
+cifsup:hasSideEffectNote a owl:ObjectProperty ;
+    rdfs:label "has side-effect note"@en ;
+    rdfs:comment "Links a support note to a synthetic note describing a side effect."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range cifsup:SAPNote .
+cifsup:classifiedUnderSimCat a owl:ObjectProperty ;
+    rdfs:label "classified under similarity category"@en ;
+    rdfs:comment "Intentionally mixed-subject relation: associates a synthetic support note or system alert with a similarity category; no single rdfs:domain is asserted."@en ;
+    rdfs:range cifsup:SimCatCategory .
+cifsup:referencedDocumentation a owl:ObjectProperty ;
     rdfs:label "references help documentation"@en ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range sap:HelpDocumentation .
+    rdfs:comment "Associates a support note with a repository-authored documentation fixture."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range cifsup:HelpDocumentation .
 
-### Data Properties
+cifsup:noteNumber a owl:DatatypeProperty ;
+    rdfs:label "note number"@en ;
+    rdfs:comment "Synthetic identifier assigned to a support note fixture."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range xsd:string .
+cifsup:title a owl:DatatypeProperty ;
+    rdfs:label "title"@en ;
+    rdfs:comment "English human-readable title of a synthetic support note."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range rdf:langString .
+cifsup:symptom a owl:DatatypeProperty ;
+    rdfs:label "symptom"@en ;
+    rdfs:comment "English human-readable symptom recorded by a support fixture."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range rdf:langString .
+cifsup:rootCause a owl:DatatypeProperty ;
+    rdfs:label "root cause"@en ;
+    rdfs:comment "English human-readable synthetic root-cause description."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range rdf:langString .
+cifsup:resolution a owl:DatatypeProperty ;
+    rdfs:label "resolution"@en ;
+    rdfs:comment "English human-readable synthetic remediation description."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range rdf:langString .
+cifsup:priority a owl:DatatypeProperty ;
+    rdfs:label "priority"@en ;
+    rdfs:comment "Governed priority value for a synthetic support note."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range xsd:string .
+cifsup:alertCode a owl:DatatypeProperty ;
+    rdfs:label "alert code"@en ;
+    rdfs:comment "Synthetic code identifying a system alert fixture."@en ;
+    rdfs:domain cifsup:SystemAlert ; rdfs:range xsd:string .
+cifsup:severity a owl:DatatypeProperty ;
+    rdfs:label "severity"@en ;
+    rdfs:comment "Governed severity value for a synthetic system alert."@en ;
+    rdfs:domain cifsup:SystemAlert ; rdfs:range xsd:string .
+cifsup:systemId a owl:DatatypeProperty ;
+    rdfs:label "system identifier"@en ;
+    rdfs:comment "Synthetic system identifier associated with an alert."@en ;
+    rdfs:domain cifsup:SystemAlert ; rdfs:range xsd:string .
+cifsup:componentCode a owl:DatatypeProperty ;
+    rdfs:label "component code"@en ;
+    rdfs:comment "Synthetic code identifying an application component."@en ;
+    rdfs:domain cifsup:ApplicationComponent ; rdfs:range xsd:string .
+cifsup:componentDescription a owl:DatatypeProperty ;
+    rdfs:label "component description"@en ;
+    rdfs:comment "English human-readable description of a synthetic component."@en ;
+    rdfs:domain cifsup:ApplicationComponent ; rdfs:range rdf:langString .
+cifsup:categoryName a owl:DatatypeProperty ;
+    rdfs:label "category name"@en ;
+    rdfs:comment "English human-readable name of a synthetic similarity category."@en ;
+    rdfs:domain cifsup:SimCatCategory ; rdfs:range rdf:langString .
+cifsup:docUri a owl:DatatypeProperty ;
+    rdfs:label "documentation URI"@en ;
+    rdfs:comment "URI-valued reference to repository-authored synthetic documentation."@en ;
+    rdfs:domain cifsup:HelpDocumentation ; rdfs:range xsd:anyURI .
+cifsup:minSupportPackage a owl:DatatypeProperty ;
+    rdfs:label "minimum support package"@en ;
+    rdfs:comment "Synthetic lower support-package bound for a note."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range xsd:integer .
+cifsup:maxSupportPackage a owl:DatatypeProperty ;
+    rdfs:label "maximum support package"@en ;
+    rdfs:comment "Synthetic upper support-package bound for a note."@en ;
+    rdfs:domain cifsup:SAPNote ; rdfs:range xsd:integer .
 
-sap:noteNumber a owl:DatatypeProperty ;
-    rdfs:domain sap:SAPNote ;
+cifmeta:SyntheticDataset a owl:Class ;
+    rdfs:label "Synthetic Dataset"@en ;
+    rdfs:comment "Metadata resource describing a repository-authored synthetic dataset."@en .
+cifmeta:datasetId a owl:DatatypeProperty ;
+    rdfs:label "dataset identifier"@en ;
+    rdfs:comment "Stable identifier for a synthetic dataset fixture."@en ;
     rdfs:range xsd:string .
-
-sap:title a owl:DatatypeProperty ;
+cifmeta:sourceKind a owl:DatatypeProperty ;
+    rdfs:label "source kind"@en ;
+    rdfs:comment "Provenance classification for the dataset source."@en ;
     rdfs:range xsd:string .
-
-sap:symptom a owl:DatatypeProperty ;
-    rdfs:domain sap:SAPNote ;
+cifmeta:authority a owl:DatatypeProperty ;
+    rdfs:label "authority"@en ;
+    rdfs:comment "Repository authority scope recorded for synthetic provenance."@en ;
     rdfs:range xsd:string .
-
-sap:rootCause a owl:DatatypeProperty ;
-    rdfs:domain sap:SAPNote ;
+cifmeta:official a owl:DatatypeProperty ;
+    rdfs:label "official status"@en ;
+    rdfs:comment "Boolean marker that remains false for repository fixtures."@en ;
+    rdfs:range xsd:boolean .
+cifmeta:generatedBy a owl:DatatypeProperty ;
+    rdfs:label "generated by"@en ;
+    rdfs:comment "Generator identifier recorded for reproducibility."@en ;
     rdfs:range xsd:string .
-
-sap:resolution a owl:DatatypeProperty ;
-    rdfs:domain sap:SAPNote ;
+cifmeta:graphPath a owl:DatatypeProperty ;
+    rdfs:label "graph path"@en ;
+    rdfs:comment "Checked-in graph path associated with the synthetic dataset."@en ;
     rdfs:range xsd:string .
-
-sap:priority a owl:DatatypeProperty ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range xsd:string .
-
-sap:alertCode a owl:DatatypeProperty ;
-    rdfs:domain sap:SystemAlert ;
-    rdfs:range xsd:string .
-
-sap:severity a owl:DatatypeProperty ;
-    rdfs:domain sap:SystemAlert ;
-    rdfs:range xsd:string .
-
-sap:systemId a owl:DatatypeProperty ;
-    rdfs:domain sap:SystemAlert ;
-    rdfs:range xsd:string .
-
-sap:componentCode a owl:DatatypeProperty ;
-    rdfs:domain sap:ApplicationComponent ;
-    rdfs:range xsd:string .
-
-sap:componentDescription a owl:DatatypeProperty ;
-    rdfs:domain sap:ApplicationComponent ;
-    rdfs:range xsd:string .
-
-sap:categoryName a owl:DatatypeProperty ;
-    rdfs:domain sap:SimCatCategory ;
-    rdfs:range xsd:string .
-
-sap:docUri a owl:DatatypeProperty ;
-    rdfs:domain sap:HelpDocumentation ;
-    rdfs:range xsd:anyURI .
-
-sap:minSupportPackage a owl:DatatypeProperty ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range xsd:integer .
-
-sap:maxSupportPackage a owl:DatatypeProperty ;
-    rdfs:domain sap:SAPNote ;
-    rdfs:range xsd:integer .

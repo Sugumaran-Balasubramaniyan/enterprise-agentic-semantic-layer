@@ -1,4 +1,4 @@
--- UNEXECUTED INCOMPLETE SQL FRAGMENT (NOT EQUIVALENT TO THE GOVERNED PLAN): Databricks execution is disabled locally.
+-- UNEXECUTED SIMULATION (INCOMPLETE SQL FRAGMENT; NOT EQUIVALENT TO THE GOVERNED PLAN): Databricks execution is disabled locally.
 -- Use the governed plan, approved France mapping, and native Databricks security.
 SELECT partner.partner_id, COUNT(DISTINCT posting.journal_entry_id) AS posting_count
 FROM s4hana_france.business_partner.partners AS partner

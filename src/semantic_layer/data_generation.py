@@ -1,6 +1,6 @@
-"""Deterministic SAP S/4HANA ERP demo data and product normalization.
+"""Deterministic synthetic SAP S/4HANA ERP demo data and product normalization.
 
-The generated records model an SAP S/4HANA enterprise landscape:
+The generated records model a synthetic SAP S/4HANA enterprise landscape:
 - Business Partners (BUT000)
 - Sales Orders (VBAK/VBAP)
 - Universal Journal Financial Postings (ACDOCA)
@@ -20,8 +20,8 @@ from pathlib import Path
 
 import yaml
 
-_CANONICAL_AUTOMOTIVE = "sap:ProductAutomotive"
-_CANONICAL_COMMERCIAL = "sap:ProductCommercial"
+_CANONICAL_AUTOMOTIVE = "ciferp:ProductAutomotive"
+_CANONICAL_COMMERCIAL = "ciferp:ProductCommercial"
 _GOVERNED_PRODUCT_CONCEPTS = {_CANONICAL_AUTOMOTIVE, _CANONICAL_COMMERCIAL}
 _PLATFORM_DIRECTORIES = {
     "databricks": "databricks/france.yaml",
@@ -32,7 +32,7 @@ _PLATFORM_DIRECTORIES = {
 
 
 def canonical_product(platform: str, value: str) -> str:
-    """Normalize a local ERP product/material code to a governed SAP concept.
+    """Normalize a local ERP product/material code to a synthetic SAP-inspired concept.
 
     Unknown platforms and values fail closed rather than silently passing an
     unmapped local code into a semantic query.

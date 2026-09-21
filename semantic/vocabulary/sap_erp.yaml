@@ -1,221 +1,221 @@
 version: "1.0.0"
-namespace: "sap"
-owner: "SAP SE"
+namespace: "ciferp"
+owner: "repository-maintained synthetic contract"
 concepts:
-  - id: "sap:BusinessPartner"
+  - id: "ciferp:BusinessPartner"
     name: "Business Partner"
     version: "1.0.0"
     definition: "A person or organization with an active commercial and financial relationship in SAP S/4HANA (BUT000)."
     description: "The governed party connecting sales orders, billing documents, and general ledger journal postings."
     synonyms: ["Customer", "Commercial Partner", "BP", "Customers", "Partner", "Partners", "Policyholder", "Policyholders", "Insured Customer", "Insured Customers"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"
       rationale: "Business partner identity is protected enterprise personal and organizational data."
     relationships:
-      - predicate: "sap:hasSalesOrder"
-        target: "sap:SalesOrder"
+      - predicate: "ciferp:hasSalesOrder"
+        target: "ciferp:SalesOrder"
         description: "A business partner holds one or more sales orders."
-      - predicate: "sap:hasFinancialPosting"
-        target: "sap:FinancialPosting"
+      - predicate: "ciferp:hasFinancialPosting"
+        target: "ciferp:FinancialPosting"
         description: "A business partner is associated with universal journal postings."
     examples: ["FR_001", "UK_001"]
-  - id: "sap:SalesOrder"
+  - id: "ciferp:SalesOrder"
     name: "Sales Order"
     version: "1.0.0"
     definition: "A contractual sales document in SAP S/4HANA Sales and Distribution (VBAK/VBAP)."
     description: "The sales order contract against which delivery, billing, and postings are governed."
     synonyms: ["Order", "Sales Document", "Contract", "Policy", "Policies", "Insurance Policy"]
     domain: "Sales"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Confidential"
       rationale: "Sales order commercial values and line items."
     relationships:
-      - predicate: "sap:hasProduct"
-        target: "sap:Product"
+      - predicate: "ciferp:hasProduct"
+        target: "ciferp:Product"
         description: "A sales order is issued for a governed product/material."
-      - predicate: "sap:coversRisk"
-        target: "sap:Risk"
-      - predicate: "sap:hasCoverage"
-        target: "sap:Coverage"
-      - predicate: "sap:referencesBusinessPartner"
-        target: "sap:BusinessPartner"
+      - predicate: "ciferp:coversRisk"
+        target: "ciferp:Risk"
+      - predicate: "ciferp:hasCoverage"
+        target: "ciferp:Coverage"
+      - predicate: "ciferp:referencesBusinessPartner"
+        target: "ciferp:BusinessPartner"
         description: "A sales order belongs to a business partner."
     allowed_values: ["RELEASED", "OPEN", "CLOSED", "CANCELLED"]
     examples: ["FR_SO_001", "UK_SO_001"]
-  - id: "sap:FinancialPosting"
+  - id: "ciferp:FinancialPosting"
     name: "Financial Posting"
     version: "1.0.0"
     definition: "A financial journal entry item in SAP S/4HANA Universal Journal (ACDOCA)."
     description: "A ledger posting is assessed, tracked by posting status, and associated with a sales order and financial loss/debit."
     synonyms: ["Journal Entry", "Universal Journal Item", "ACDOCA Entry", "Posting", "Postings", "Financial Posting", "Financial Postings", "Cost-Revenue Ratio", "Cost Revenue Ratio", "Claim", "Claims", "Insurance Claim"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"
       rationale: "Financial postings contain sensitive audit, debit, and loss details."
     relationships:
-      - predicate: "sap:referencesSalesOrder"
-        target: "sap:SalesOrder"
-      - predicate: "sap:hasPostingStatus"
-        target: "sap:PostingStatus"
-      - predicate: "sap:hasFinancialLoss"
-        target: "sap:FinancialLoss"
+      - predicate: "ciferp:referencesSalesOrder"
+        target: "ciferp:SalesOrder"
+      - predicate: "ciferp:hasPostingStatus"
+        target: "ciferp:PostingStatus"
+      - predicate: "ciferp:hasFinancialLoss"
+        target: "ciferp:FinancialLoss"
     allowed_values: ["POSTED", "CLEARED", "REVERSED", "DUPLICATE"]
     examples: ["FR_DOC_001"]
-  - id: "sap:Product"
+  - id: "ciferp:Product"
     name: "Product"
     version: "1.0.0"
     definition: "A governed category of products and materials in SAP S/4HANA (MARA)."
     description: "The material hierarchy provides canonical grouping for orders and financials."
     synonyms: ["Material", "Product Hierarchy"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Public"
     relationships: []
-    examples: ["sap:ProductAutomotive"]
-  - id: "sap:ProductAutomotive"
+    examples: ["ciferp:ProductAutomotive"]
+  - id: "ciferp:ProductAutomotive"
     name: "Automotive Product"
     version: "1.0.0"
     definition: "Material group and products for automotive components, vehicles, and parts."
     description: "Canonical group concept for local motor, auto, and vehicle material codes."
     synonyms: ["Motor Insurance", "Automotive", "Vehicle Materials", "Car Insurance"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Public"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:Product"
+        target: "ciferp:Product"
     examples: ["MOTOR", "MTR", "AUTO", "CAR"]
-  - id: "sap:ProductCommercial"
+  - id: "ciferp:ProductCommercial"
     name: "Commercial Product"
     version: "1.0.0"
     definition: "Material group for commercial, industrial, and facility products."
     description: "Canonical group concept for commercial facility material codes."
     synonyms: ["Commercial Equipment", "Home Insurance", "Facilities"]
     domain: "MasterData"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Public"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:Product"
+        target: "ciferp:Product"
     examples: ["HOME", "Commercial"]
-  - id: "sap:Risk"
+  - id: "ciferp:Risk"
     name: "Risk"
     version: "1.0.0"
     definition: "An assessed financial or operational exposure in SAP Financial Risk Management."
     description: "A risk is addressed by order controls and financial buffers."
     synonyms: ["Credit Risk", "Operational Exposure"]
     domain: "Governance"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
     relationships: []
     examples: ["Counterparty default"]
-  - id: "sap:Coverage"
+  - id: "ciferp:Coverage"
     name: "Coverage"
     version: "1.0.0"
     definition: "Warranty and credit limits associated with an SAP commercial contract."
     description: "Coverage describes warranty and commitment boundaries."
     synonyms: ["Warranty Cover", "Contract Protection", "Coverage", "Cover", "Motor Cover"]
     domain: "Sales"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
     relationships: []
     examples: ["Full warranty coverage"]
-  - id: "sap:BillingDocument"
+  - id: "ciferp:BillingDocument"
     name: "Billing Document"
     version: "1.0.0"
     definition: "A billed invoice document item in SAP S/4HANA (VBRK/VBRP)."
     description: "Billed revenue amount associated with a sales order period."
     synonyms: ["Invoice", "Billed Revenue", "Billing Item"]
     domain: "Billing"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"
     relationships: []
     examples: ["1250.00 EUR"]
-  - id: "sap:PostingStatus"
+  - id: "ciferp:PostingStatus"
     name: "Posting Status"
     version: "1.0.0"
     definition: "The governed lifecycle state of an SAP accounting document."
     description: "Status values support consistent audit filtering and quality validation."
     synonyms: ["Document Status", "Accounting Status"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
     allowed_values: ["POSTED", "CLEARED", "REVERSED", "DUPLICATE"]
     examples: ["POSTED"]
-  - id: "sap:CompanyCode"
+  - id: "ciferp:CompanyCode"
     name: "Company Code"
     version: "1.0.0"
     definition: "The SAP Company Code and country jurisdiction governing master and transactional records."
     description: "Company code scopes federation, data residency, and financial authorization."
     synonyms: ["Company Jurisdiction", "Country", "BUKRS"]
     domain: "Governance"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Internal"
     allowed_values: ["FR", "GB", "DE"]
     examples: ["FR"]
-  - id: "sap:ActiveSalesOrder"
+  - id: "ciferp:ActiveSalesOrder"
     name: "Active Sales Order"
     version: "1.0.0"
     definition: "A sales order whose governed lifecycle status is RELEASED."
     description: "ActiveSalesOrder is the reusable semantic subset for in-force released orders."
     synonyms: ["Released Order", "In-force Order", "Active Policy", "Active Policies", "Active Sales Order", "Active Sales Orders"]
     domain: "Sales"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Confidential"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:SalesOrder"
+        target: "ciferp:SalesOrder"
     allowed_values: ["RELEASED"]
     examples: ["FR_SO_001"]
-  - id: "sap:QualifyingPosting"
+  - id: "ciferp:QualifyingPosting"
     name: "Qualifying Posting"
     version: "1.0.0"
     definition: "A financial posting eligible for governed audit and debit metrics after exclusions."
     description: "Qualifying postings exclude REVERSED and DUPLICATE records."
     synonyms: ["Audited Posting", "Valid Journal Entry", "Qualifying Financial Posting", "Qualifying Financial Postings", "Qualifying Posting", "Qualifying Postings", "Qualifying Claim", "Qualifying Claims"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Internal"
     sensitivity:
       classification: "Confidential"
     relationships:
       - predicate: "rdfs:subClassOf"
-        target: "sap:FinancialPosting"
+        target: "ciferp:FinancialPosting"
     allowed_values: ["POSTED", "CLEARED"]
     examples: ["FR_DOC_001"]
-  - id: "sap:FinancialLoss"
+  - id: "ciferp:FinancialLoss"
     name: "Financial Loss"
     version: "1.0.0"
     definition: "The total debit amount or financial write-off loss for an accounting entry."
     description: "Financial loss is non-negative and measured in company code currency (EUR)."
     synonyms: ["Debit Loss", "Incurred Loss", "Posting Amount"]
     domain: "Financials"
-    owner: "SAP SE"
+    owner: "repository-maintained synthetic contract"
     classification: "Restricted"
     sensitivity:
       classification: "Confidential"

@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/cifre-kg/schema/research-result-root-1.0.0.json",
+  "title": "CIFRE benchmark result root",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_id", "generated_by", "canonicalization", "hash_manifest", "environment", "namespace_registry", "validation", "corpus_runs", "per_query"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_id": {"type": "string"},
+    "generated_by": {"type": "string"},
+    "canonicalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["encoding", "key_order", "metric_precision"],
+      "properties": {
+        "encoding": {"const": "UTF-8"},
+        "key_order": {"const": "lexicographic"},
+        "metric_precision": {"const": 6}
+      }
+    },
+    "hash_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_version", "entries", "digest_sha256"],
+      "properties": {
+        "manifest_version": {"const": "1.0"},
+        "entries": {"type": "array", "items": {"type": "object"}},
+        "digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python_version", "platform_system", "platform_machine", "pip_version", "lock_sha256", "packages"],
+      "properties": {
+        "python_version": {"type": "string", "pattern": "^(?![\\s\\S]*[\\r\\n])3\\.12\\.[0-9]+$"},
+        "platform_system": {"const": "Linux"},
+        "platform_machine": {"enum": ["aarch64", "x86_64"]},
+        "pip_version": {"const": "25.2"},
+        "lock_sha256": {"type": "string", "pattern": "^(?![\\s\\S]*[\\r\\n])[0-9a-f]{64}$"},
+        "packages": {
+          "type": "object",
+          "minProperties": 1,
+          "patternProperties": {
+            "^(?![\\s\\S]*[\\r\\n])[A-Za-z0-9][A-Za-z0-9_.-]*$": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?![\\s\\S]*[\\r\\n])\\S+$"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "namespace_registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cifsup", "cifppms", "cifdata", "ciferp", "cifskos", "cifmeta", "cifmetaid", "legacy_uris_rejected"],
+      "properties": {
+        "cifsup": {"const": "https://example.org/cifre-kg/support#"},
+        "cifppms": {"const": "https://example.org/cifre-kg/ppms#"},
+        "cifdata": {"const": "https://example.org/cifre-kg/data/"},
+        "ciferp": {"const": "https://example.org/cifre-kg/erp#"},
+        "cifskos": {"const": "https://example.org/cifre-kg/vocabulary#"},
+        "cifmeta": {"const": "https://example.org/cifre-kg/meta#"},
+        "cifmetaid": {"const": "https://example.org/cifre-kg/id/meta/"},
+        "legacy_uris_rejected": {"type": "array", "const": ["http://data.\u0073ap.com/", "http://ontology.\u0073ap.com/", "https://\u0073ap.example/erp/"]}
+      }
+    },
+    "validation": {"$ref": "#/$defs/validation"},
+    "corpus_runs": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/corpus_run"}},
+    "per_query": {"type": "array", "items": {"$ref": "#/$defs/per_query"}, "uniqueItems": true}
+  },
+  "$defs": {
+    "status": {"enum": ["SUCCESS", "UNSUPPORTED", "SYNTAX_ERROR", "EXECUTION_ERROR", "EMPTY_RESULT"]},
+    "reason_code": {
+      "enum": [
+        "NONE",
+        "UNKNOWN_TOKEN",
+        "UNKNOWN_ENTITY",
+        "AMBIGUOUS_INPUT",
+        "AMBIGUOUS_INTENT",
+        "MULTIPLE_DISTINCT_ENTITIES",
+        "UNSUPPORTED_INTENT",
+        "MISSING_REQUIRED_ENTITY",
+        "UNBOUND_REQUIRED_PROJECTION",
+        "SPARQL_SYNTAX",
+        "SPARQL_EXECUTION",
+        "EMPTY_STRICT_RESULT",
+        "RELAX_SUPPORT_PACKAGE",
+        "WIDEN_COMPONENT",
+        "REPAIR_BUDGET_EXHAUSTED",
+        "PROVENANCE_MISSING",
+        "NO_OP_REPAIR",
+        "PREREQUISITE_DEPTH_EXCEEDED"
+      ]
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "numerator", "denominator"],
+      "properties": {
+        "value": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"}]},
+        "numerator": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "string", "pattern": "^[0-9]+\\.[0-9]{6}$"}]},
+        "denominator": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "string", "pattern": "^[0-9]+\\.[0-9]{6}$"}]}
+      }
+    },
+    "status_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["SUCCESS", "UNSUPPORTED", "SYNTAX_ERROR", "EXECUTION_ERROR", "EMPTY_RESULT"],
+      "properties": {
+        "SUCCESS": {"type": "integer", "minimum": 0},
+        "UNSUPPORTED": {"type": "integer", "minimum": 0},
+        "SYNTAX_ERROR": {"type": "integer", "minimum": 0},
+        "EXECUTION_ERROR": {"type": "integer", "minimum": 0},
+        "EMPTY_RESULT": {"type": "integer", "minimum": 0}
+      }
+    },
+    "metric_group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exact_set", "precision", "recall", "f1"],
+      "properties": {
+        "exact_set": {"$ref": "#/$defs/metric"},
+        "precision": {"$ref": "#/$defs/metric"},
+        "recall": {"$ref": "#/$defs/metric"},
+        "f1": {"$ref": "#/$defs/metric"}
+      }
+    },
+    "aggregate_slice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query_count", "status_counts", "applicable_count", "not_applicable_count", "exact_set", "precision", "recall", "f1", "micro", "macro", "optional_binding_rate"],
+      "properties": {
+        "query_count": {"type": "integer", "minimum": 0},
+        "status_counts": {"$ref": "#/$defs/status_counts"},
+        "applicable_count": {"type": "integer", "minimum": 0},
+        "not_applicable_count": {"type": "integer", "minimum": 0},
+        "exact_set": {"$ref": "#/$defs/metric"},
+        "precision": {"$ref": "#/$defs/metric"},
+        "recall": {"$ref": "#/$defs/metric"},
+        "f1": {"$ref": "#/$defs/metric"},
+        "micro": {"$ref": "#/$defs/metric_group"},
+        "macro": {"$ref": "#/$defs/metric_group"},
+        "optional_binding_rate": {"$ref": "#/$defs/metric"}
+      }
+    },
+    "condition_aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query_count", "status_counts", "status_accuracy", "answer_metrics", "operational_metrics"],
+      "properties": {
+        "query_count": {"type": "integer", "minimum": 0},
+        "status_counts": {"$ref": "#/$defs/status_counts"},
+        "status_accuracy": {"$ref": "#/$defs/metric"},
+        "answer_metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["applicable_count", "not_applicable_count", "exact_set", "precision", "recall", "f1", "micro", "macro", "by_tier", "by_category"],
+          "properties": {
+            "applicable_count": {"type": "integer", "minimum": 0},
+            "not_applicable_count": {"type": "integer", "minimum": 0},
+            "exact_set": {"$ref": "#/$defs/metric"},
+            "precision": {"$ref": "#/$defs/metric"},
+            "recall": {"$ref": "#/$defs/metric"},
+            "f1": {"$ref": "#/$defs/metric"},
+            "micro": {"$ref": "#/$defs/metric_group"},
+            "macro": {"$ref": "#/$defs/metric_group"},
+            "by_tier": {"type": "object", "additionalProperties": {"$ref": "#/$defs/aggregate_slice"}},
+            "by_category": {"type": "object", "additionalProperties": {"$ref": "#/$defs/aggregate_slice"}}
+          }
+        },
+        "operational_metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["syntax_success_rate", "execution_success_rate", "recovery_attempt_rate", "recovery_success_rate", "strict_empty_rate", "unsupported_rejection_rate", "optional_binding_rate"],
+          "properties": {
+            "syntax_success_rate": {"$ref": "#/$defs/metric"},
+            "execution_success_rate": {"$ref": "#/$defs/metric"},
+            "recovery_attempt_rate": {"$ref": "#/$defs/metric"},
+            "recovery_success_rate": {"$ref": "#/$defs/metric"},
+            "strict_empty_rate": {"$ref": "#/$defs/metric"},
+            "unsupported_rejection_rate": {"$ref": "#/$defs/metric"},
+            "optional_binding_rate": {"$ref": "#/$defs/metric"}
+          }
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_ids", "by_condition"],
+      "properties": {
+        "condition_ids": {"const": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]},
+        "by_condition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"],
+          "properties": {
+            "deterministic_no_reflection_ablation": {"$ref": "#/$defs/condition_aggregate"},
+            "deterministic_bounded_repair": {"$ref": "#/$defs/condition_aggregate"}
+          }
+        }
+      }
+    },
+    "corpus_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["corpus_id", "version", "path", "dataset_sha256", "query_count", "query_ids", "conditions", "aggregate", "result_ids"],
+      "properties": {
+        "corpus_id": {"type": "string"},
+        "version": {"type": "string"},
+        "path": {"type": "string"},
+        "dataset_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "query_count": {"type": "integer", "minimum": 0},
+        "query_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "conditions": {"const": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]},
+        "aggregate": {"$ref": "#/$defs/aggregate"},
+        "result_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "binding": {
+      "type": "object",
+      "required": ["note", "noteNumber", "title"],
+      "properties": {
+        "note": {"type": "string"},
+        "noteNumber": {"type": "string"},
+        "title": {"type": ["string", "null"]}
+      }
+    },
+    "per_query_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicable", "exact_set", "precision", "recall", "f1"],
+      "properties": {
+        "applicable": {"type": "boolean"},
+        "exact_set": {"type": ["boolean", "null"]},
+        "precision": {"type": ["string", "null"], "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"},
+        "recall": {"type": ["string", "null"], "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"},
+        "f1": {"type": ["string", "null"], "pattern": "^(0\\.[0-9]{6}|1\\.000000)$"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "source_kind", "official", "graph_sha256", "citation"],
+      "properties": {
+        "dataset_id": {"type": "string"},
+        "source_kind": {"const": "synthetic_fixture"},
+        "official": {"const": false},
+        "graph_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "citation": {"type": "string"}
+      }
+    },
+    "per_query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "corpus_id", "query_id", "condition", "question", "normalized_request", "expected_status", "observed_status", "reason_code", "original_constraints", "grounding", "plan", "sparql", "attempts", "repair", "relaxation", "answer_scope", "relaxed_candidates", "bindings", "predicted_note_numbers", "gold_note_numbers", "metrics", "provenance"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"},
+        "corpus_id": {"type": "string"},
+        "query_id": {"type": "string"},
+        "condition": {"enum": ["deterministic_no_reflection_ablation", "deterministic_bounded_repair"]},
+        "question": {"type": "string"},
+        "normalized_request": {"type": "string"},
+        "expected_status": {"$ref": "#/$defs/status"},
+        "observed_status": {"$ref": "#/$defs/status"},
+        "reason_code": {"$ref": "#/$defs/reason_code"},
+        "original_constraints": {"type": "object"},
+        "grounding": {"oneOf": [{"type": "null"}, {"type": "object"}]},
+        "plan": {"oneOf": [{"type": "null"}, {"type": "object"}]},
+        "sparql": {"oneOf": [{"type": "null"}, {"type": "object"}]},
+        "attempts": {"type": "integer", "minimum": 0, "maximum": 4},
+        "repair": {"type": "object"},
+        "relaxation": {"type": "object"},
+        "answer_scope": {"enum": ["strict", "relaxed_candidates", "none"]},
+        "relaxed_candidates": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+        "bindings": {"type": "array", "items": {"$ref": "#/$defs/binding"}},
+        "predicted_note_numbers": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9]{7}$"}},
+        "gold_note_numbers": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[0-9]{7}$"}},
+        "metrics": {"$ref": "#/$defs/per_query_metrics"},
+        "provenance": {"$ref": "#/$defs/provenance"}
+      },
+      "allOf": [
+        {"if": {"properties": {"observed_status": {"const": "SUCCESS"}}}, "then": {"properties": {"reason_code": {"const": "NONE"}}}},
+        {"if": {"properties": {"observed_status": {"const": "UNSUPPORTED"}}}, "then": {"properties": {"reason_code": {"enum": ["UNKNOWN_TOKEN", "UNKNOWN_ENTITY", "AMBIGUOUS_INPUT", "AMBIGUOUS_INTENT", "MULTIPLE_DISTINCT_ENTITIES", "UNSUPPORTED_INTENT", "MISSING_REQUIRED_ENTITY"]}}}},
+        {"if": {"properties": {"observed_status": {"const": "SYNTAX_ERROR"}}}, "then": {"properties": {"reason_code": {"enum": ["UNBOUND_REQUIRED_PROJECTION", "SPARQL_SYNTAX", "NO_OP_REPAIR", "REPAIR_BUDGET_EXHAUSTED"]}}}},
+        {"if": {"properties": {"observed_status": {"const": "EXECUTION_ERROR"}}}, "then": {"properties": {"reason_code": {"enum": ["SPARQL_EXECUTION", "PROVENANCE_MISSING", "NO_OP_REPAIR", "REPAIR_BUDGET_EXHAUSTED"]}}}},
+        {"if": {"properties": {"observed_status": {"const": "EMPTY_RESULT"}}}, "then": {"properties": {"reason_code": {"enum": ["EMPTY_STRICT_RESULT", "RELAX_SUPPORT_PACKAGE", "WIDEN_COMPONENT", "PREREQUISITE_DEPTH_EXCEEDED"]}}}}
+      ]
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checks", "combined_graph"],
+      "properties": {
+"checks": {"type": "array", "items": {"type": "object", "required": ["check_id", "scope"], "properties": {"check_id": {"type": "string"}, "scope": {"enum": ["support", "erp", "combined"]}}}},
+        "combined_graph": {"type": "object"}
+      }
+    }
+  }
+}

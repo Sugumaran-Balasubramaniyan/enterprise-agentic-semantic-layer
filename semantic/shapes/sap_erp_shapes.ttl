@@ -1,21 +1,70 @@
-@prefix sap: <https://sap.example/erp/> .
+@prefix ciferp: <https://example.org/cifre-kg/erp#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-sap:ERPAShapes a sh:NodeShape ;
+ciferp:ERPShapes a sh:NodeShape ;
     owl:versionInfo "1.0.0" .
 
-sap:FinancialPostingShape a sh:NodeShape ;
-    sh:targetClass sap:FinancialPosting ;
-    sh:property [ sh:path sap:journalEntryId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
-    sh:property [ sh:path sap:postingDate ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
-    sh:property [ sh:path sap:postingStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "POSTED" "CLEARED" "REVERSED" "DUPLICATE" ) ] ;
-    sh:property [ sh:path sap:referencesSalesOrder ; sh:minCount 1 ; sh:maxCount 1 ; sh:class sap:SalesOrder ] ;
-    sh:property [ sh:path sap:amountInCompanyCurrency ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:decimal ; sh:minInclusive 0 ] .
+ciferp:FinancialPostingShape a sh:NodeShape ;
+    sh:targetClass ciferp:FinancialPosting ;
+    sh:property [
+        sh:path ciferp:journalEntryId ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "Every synthetic financial posting has one journal-entry identifier."@en
+    ] ;
+    sh:property [
+        sh:path ciferp:postingDate ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:date ;
+        sh:message "Every synthetic financial posting has one posting date."@en
+    ] ;
+    sh:property [
+        sh:path ciferp:postingStatus ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in ( "POSTED"^^xsd:string "CLEARED"^^xsd:string "REVERSED"^^xsd:string "DUPLICATE"^^xsd:string ) ;
+        sh:message "Synthetic posting status uses a governed value."@en
+    ] ;
+    sh:property [
+        sh:path ciferp:referencesSalesOrder ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class ciferp:SalesOrder ;
+        sh:message "Every synthetic financial posting references one sales order."@en
+    ] ;
+    sh:property [
+        sh:path ciferp:amountInCompanyCurrency ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:message "Synthetic posting amounts are non-negative decimals."@en
+    ] .
 
-sap:SalesOrderShape a sh:NodeShape ;
-    sh:targetClass sap:SalesOrder ;
-    sh:property [ sh:path sap:salesOrderId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
-    sh:property [ sh:path sap:hasProduct ; sh:minCount 1 ; sh:maxCount 1 ; sh:class sap:Product ] ;
-    sh:property [ sh:path sap:orderStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "RELEASED" "CLOSED" "CANCELLED" ) ] .
+ciferp:SalesOrderShape a sh:NodeShape ;
+    sh:targetClass ciferp:SalesOrder ;
+    sh:property [
+        sh:path ciferp:salesOrderId ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "Every synthetic sales order has one identifier."@en
+    ] ;
+    sh:property [
+        sh:path ciferp:hasProduct ;
+        sh:minCount 1 ;
+        sh:class ciferp:Product ;
+        sh:message "Every synthetic sales order has a product."@en
+    ] ;
+    sh:property [
+        sh:path ciferp:orderStatus ;
+        sh:minCount 1 ;
+        sh:in ( "RELEASED"^^xsd:string "CLOSED"^^xsd:string "CANCELLED"^^xsd:string ) ;
+        sh:message "Synthetic order status uses a governed value."@en
+    ] .

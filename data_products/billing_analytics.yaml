@@ -1,11 +1,11 @@
 id: BillingAnalytics
 name: Billing Analytics (VBRK/VBRP)
 version: "1.0.0"
-owner: SAP SE Billing and Revenue Management
-platform: Federated
-location: Group
+owner: repository-maintained synthetic contract
+platform: Local synthetic reference
+location: Repository
 grain: one row per billing document
-sla: daily by 07:00 UTC
+sla: not applicable to synthetic repository data
 classification: Confidential
 pii:
   - partner_id
@@ -15,7 +15,7 @@ quality:
     - billing_doc_id is non-null and unique
     - billed_amount_eur is non-negative
     - sales_order_id references SalesOrders
-    - product resolves through a certified local mapping
+    - product resolves through an approved local mapping
 lineage:
   upstream:
     - local S/4HANA billing engines in France, United Kingdom, and Germany
@@ -23,41 +23,41 @@ lineage:
     - billing amounts are conformed to EUR company currency
     - local product codes are normalized to SAP product taxonomy
 concepts:
-  - sap:BillingDocument
-  - sap:SalesOrder
-  - sap:BusinessPartner
-  - sap:Product
+  - ciferp:BillingDocument
+  - ciferp:SalesOrder
+  - ciferp:BusinessPartner
+  - ciferp:Product
 schema:
   - name: billing_doc_id
     type: string
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
   - name: sales_order_id
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: partner_id
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
     pii: true
   - name: country
     type: string
-    concept: sap:CompanyCode
+    concept: ciferp:CompanyCode
     nullable: false
   - name: product
     type: string
-    concept: sap:Product
+    concept: ciferp:Product
     nullable: false
   - name: billing_date
     type: date
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
   - name: billed_amount_eur
     type: decimal
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
 certification:
   status: CERTIFIED
-  certified_by: SAP Enterprise Financial Governance Board
+  certified_by: repository-maintained synthetic contract
   certified_at: "2026-08-28"

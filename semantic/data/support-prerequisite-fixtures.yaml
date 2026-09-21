@@ -1,0 +1,9 @@
+schema_version: "1.0"
+source_kind: synthetic_fixture
+fixtures:
+  - path: semantic/data/support-prerequisite-cycle.ttl
+    dataset_id: cifre-synthetic-support-prerequisite-cycle-v1
+    target: support/note/A
+  - path: semantic/data/support-prerequisite-depth17.ttl
+    dataset_id: cifre-synthetic-support-prerequisite-depth17-v1
+    target: support/note/N0

@@ -1,15 +1,22 @@
-@prefix sap: <https://sap.example/erp/> .
+@prefix ciferp: <https://example.org/cifre-kg/erp#> .
+@prefix cifmeta: <https://example.org/cifre-kg/meta#> .
+@prefix cifmetaid: <https://example.org/cifre-kg/id/meta/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-sap:SampleGraphInvalid a owl:Ontology ; owl:versionInfo "1.0.0" .
-sap:order-FR-BAD a sap:SalesOrder ;
-    sap:salesOrderId "FR_SO_BAD" ;
-    sap:hasProduct sap:ProductAutomotive ;
-    sap:orderStatus "RELEASED" .
-sap:ProductAutomotive a sap:ProductAutomotive, sap:Product .
-sap:doc-FR-BAD a sap:FinancialPosting ;
-    sap:journalEntryId "FR_DOC_BAD" ;
-    sap:postingStatus "POSTED" ;
-    sap:referencesSalesOrder sap:order-FR-BAD ;
-    sap:amountInCompanyCurrency "-10.00"^^xsd:decimal .
+cifmetaid:sample-graph-invalid a owl:Ontology ; owl:versionInfo "1.0.0" .
+cifmetaid:dataset-sample-invalid a cifmeta:SyntheticDataset ;
+    cifmeta:datasetId "cifre-synthetic-erp-invalid" ;
+    cifmeta:sourceKind "synthetic_fixture" ;
+    cifmeta:official false .
+
+<https://example.org/cifre-kg/data/erp/order-FR-BAD> a ciferp:SalesOrder ;
+    ciferp:salesOrderId "FR_SO_BAD"^^xsd:string ;
+    ciferp:hasProduct <https://example.org/cifre-kg/data/erp/product-automotive> ;
+    ciferp:orderStatus "RELEASED"^^xsd:string .
+<https://example.org/cifre-kg/data/erp/product-automotive> a ciferp:Product .
+<https://example.org/cifre-kg/data/erp/doc-FR-BAD> a ciferp:FinancialPosting ;
+    ciferp:journalEntryId "FR_DOC_BAD"^^xsd:string ;
+    ciferp:postingStatus "POSTED"^^xsd:string ;
+    ciferp:referencesSalesOrder <https://example.org/cifre-kg/data/erp/order-FR-BAD> ;
+    ciferp:amountInCompanyCurrency "-10.00"^^xsd:decimal .

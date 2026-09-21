@@ -1,19 +1,19 @@
 version: "1.0.0"
-owner: SAP SE
+owner: repository-maintained synthetic contract
 rules:
-  - id: sap:QualifyingPosting
+  - id: ciferp:QualifyingPosting
     name: Qualifying Posting
     version: "1.0.0"
-    applies_to: sap:FinancialPosting
+    applies_to: ciferp:FinancialPosting
     definition: A journal posting eligible for governed financial metrics after exclusions.
     include_statuses: [POSTED, CLEARED]
     exclude_statuses: [REVERSED, DUPLICATE]
     predicate: posting_status IN ('POSTED', 'CLEARED')
     rationale: Reversal and duplicate journal entries remain auditable but must not inflate debit loss metrics.
-  - id: sap:ActiveSalesOrder
+  - id: ciferp:ActiveSalesOrder
     name: Active Sales Order
     version: "1.0.0"
-    applies_to: sap:SalesOrder
+    applies_to: ciferp:SalesOrder
     definition: A sales order currently released and in-force under the governed lifecycle vocabulary.
     include_statuses: [RELEASED]
     exclude_statuses: [CLOSED, CANCELLED]

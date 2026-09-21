@@ -23,7 +23,7 @@ def test_metrics_reference_governed_rules_and_certified_products() -> None:
 
 def test_qualifying_claim_rule_excludes_cancelled_and_duplicate() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
-    rule = registry.rules["sap:QualifyingPosting"]
+    rule = registry.rules["ciferp:QualifyingPosting"]
 
     assert set(rule.include_statuses) == {"POSTED", "CLEARED"}
     assert set(rule.exclude_statuses) == {"REVERSED", "DUPLICATE"}
@@ -31,7 +31,7 @@ def test_qualifying_claim_rule_excludes_cancelled_and_duplicate() -> None:
 
 def test_claims_ratio_preserves_independent_aggregate_contract() -> None:
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
-    metric = registry.metrics["sap:CostRevenueRatio"]
+    metric = registry.metrics["ciferp:CostRevenueRatio"]
 
     assert metric.aggregation == "ratio_of_aggregates"
     assert metric.numerator["product"] == "ACDOCAFinancials"

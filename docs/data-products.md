@@ -1,63 +1,64 @@
-# Certified data products
+# Repository-maintained synthetic data contracts
 
-SAP SE publishes four versioned contracts under `data_products/`. Each
-contract names its owner, platform/location boundary, row grain, service level,
-quality checks, classification, PII fields, lineage, exposed concepts, schema,
-and certification state. The contracts are the selection boundary for agents;
-an agent cannot choose an uncertified physical table by guessing a name.
+The files under `data_products/` are repository-maintained synthetic contracts.
+They describe grain, quality checks, classification, PII fields, lineage,
+exposed concepts, and an internal selection status for the local demonstration.
+They are not published by an external organization and are not external
+certifications.
 
-| Product | Grain | Primary concepts | Quality state |
+| Product | Grain | Primary concepts | Local status |
 | --- | --- | --- | --- |
-| `BusinessPartners` | one row per partner | BusinessPartner, CompanyCode | CERTIFIED |
-| `SalesOrders` | one row per sales order | SalesOrder, ActiveSalesOrder, Product | CERTIFIED |
-| `ACDOCAFinancials` | one row per journal entry item | FinancialPosting, QualifyingPosting, FinancialLoss | CERTIFIED |
-| `BillingAnalytics` | one row per order and billing period | BillingDocument, SalesOrder | CERTIFIED |
+| `BusinessPartners` | one row per partner | BusinessPartner, CompanyCode | `CERTIFIED` synthetic contract status |
+| `SalesOrders` | one row per sales order | SalesOrder, ActiveSalesOrder, Product | `CERTIFIED` synthetic contract status |
+| `ACDOCAFinancials` | one row per journal entry item | FinancialPosting, QualifyingPosting, FinancialLoss | `CERTIFIED` synthetic contract status |
+| `BillingAnalytics` | one row per order and billing period | BillingDocument, SalesOrder | `CERTIFIED` synthetic contract status |
 
-The curated demo files in `data/curated/` implement these schemas locally.
-`data/raw/` also contains deliberately invalid records (blank IDs, negative
-amounts, future dates, and an unknown status) for quality-check verification.
-The generated values are synthetic demonstration data and use EUR for a reproducible local run.
+The `CERTIFIED` value is an internal contract gate used by local selection and
+tests. It does not mean a platform, catalog, regulator, or external authority
+has certified the data. The generated values are synthetic demonstration data
+for a reproducible local run.
 
-## Governed metrics
+## Local fixtures and metrics
+
+Curated files in `data/curated/` implement the local schemas. Files in
+`data/raw/` contain deliberate invalid records such as blank IDs, negative
+amounts, future dates, and unknown statuses for quality-check verification.
 
 `semantic/metrics/metrics.yaml` defines `PostingCount`, `TotalDebitLossEur`,
-`AveragePostingAmountEur`, `ActiveSalesOrderCount`, and `CostRevenueRatio`, including the
-expression, unit, source product, and rule. `QualifyingPosting` in
-`semantic/rules/financial_postings.yaml` excludes `REVERSED` and `DUPLICATE` journal entries while
-keeping those records observable for audit and quality analysis.
+`AveragePostingAmountEur`, `ActiveSalesOrderCount`, and `CostRevenueRatio`.
+`semantic/rules/financial_postings.yaml` excludes reversed and duplicate
+postings from the qualifying-posting rule while retaining those rows for local
+quality analysis.
 
-`CostRevenueRatio` is a safe multi-product metric: ACDOCAFinancials loss and
-BillingAnalytics billed revenue are each filtered and aggregated independently, then
-joined on `partner_id`, `country`, and canonical `product` before division.
-The caller's as-of date and reporting window apply independently to
-`posting_date` and `billing_date`; the contract explicitly forbids joining raw
-posting and billing rows, which would multiply measures for partners with more
-than one posting or billing period. A zero revenue denominator produces a null
-ratio rather than an unbounded value.
+`CostRevenueRatio` is a discovery-only contract in this checkout. Its two
+inputs are filtered and aggregated independently before joining on stable keys,
+so raw posting and billing rows are not multiplied. The local simulated roles
+do not authorize a complete ratio execution path; no production enablement or
+cloud execution is implied.
 
-This repository validates that definition during discovery only. No local
-simulated role is authorized for the complete product set, so authorization
-returns `PRODUCT_DENIED`, and the DuckDB compiler does not implement the ratio.
-Production enablement requires an aggregate-only workload policy and executable
-compiler, platform-control, and evidence tests; the checked-in definition is not
-an execution claim.
+Regenerate the deterministic local data with:
 
-Generate the same dataset for any explicit as-of date with the project
-environment active:
+```bash
+.venv/bin/python data/generate_demo_data.py
+```
+
+Or choose the fixed as-of date explicitly:
 
 ```bash
 .venv/bin/python -c "from datetime import date; from pathlib import Path; from semantic_layer.data_generation import generate_demo_data; generate_demo_data(Path('data'), date(2026, 8, 28))"
 ```
 
-The repository script uses the same fixed date: `.venv/bin/python data/generate_demo_data.py`.
+## Selection boundary
 
-## Certification boundary
+The resolver and planner select only contracts whose local status is
+`CERTIFIED`. Grain, quality, classification, and PII declarations feed the
+local policy check. Static lineage is combined with dynamic provenance after a
+local execution. An agent cannot choose a physical table by guessing a name.
 
-An agent may select only contracts whose certification status is `CERTIFIED`.
-Product grain prevents accidental join multiplication, while classification
-and PII declarations feed authorization. Static upstream lineage in each YAML
-contract is combined with dynamic query provenance after execution. These
-contracts describe the local reference implementation; they are not claims
-that a production catalog or cloud platform is connected.
+This boundary is a local design decision and a future integration seam, not a
+claim that an external catalog or cloud platform is connected. See
+[governance](governance.md) and
+[ADR-008](decisions/ADR-008-certified-data-products.md).
 
-See [governance](governance.md) and [ADR-008](decisions/ADR-008-certified-data-products.md).
+Cloud execution and external catalog integration are **Not implemented**;
+future adapters would require their own evidence and controls.

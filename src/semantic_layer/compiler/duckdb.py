@@ -1,4 +1,4 @@
-"""Trusted DuckDB compiler for one fully represented governed SAP ERP audit plan."""
+"""Local DuckDB compiler for one fully represented synthetic SAP ERP audit plan."""
 
 from __future__ import annotations
 
@@ -15,16 +15,16 @@ from semantic_layer.registry import SemanticRegistry
 
 _AS_OF_DATE = date(2026, 8, 28)
 _PRIMARY_PRODUCTS = ("BusinessPartners", "SalesOrders", "ACDOCAFinancials")
-_PRIMARY_DIMENSIONS = ("sap:BusinessPartner", "sap:CompanyCode")
+_PRIMARY_DIMENSIONS = ("ciferp:BusinessPartner", "ciferp:CompanyCode")
 _PRIMARY_EDGES = (
-    ("sap:BusinessPartner", "sap:hasSalesOrder", "sap:SalesOrder"),
-    ("sap:BusinessPartner", "sap:hasFinancialPosting", "sap:FinancialPosting"),
-    ("sap:FinancialPosting", "sap:referencesSalesOrder", "sap:SalesOrder"),
+    ("ciferp:BusinessPartner", "ciferp:hasSalesOrder", "ciferp:SalesOrder"),
+    ("ciferp:BusinessPartner", "ciferp:hasFinancialPosting", "ciferp:FinancialPosting"),
+    ("ciferp:FinancialPosting", "ciferp:referencesSalesOrder", "ciferp:SalesOrder"),
 )
-_COUNTRY_CONCEPT = "sap:CompanyCode"
-_PRODUCT_CONCEPT = "sap:Product"
-_POSTING_COUNT = "sap:PostingCount"
-_TOTAL_LOSS = "sap:TotalDebitLossEur"
+_COUNTRY_CONCEPT = "ciferp:CompanyCode"
+_PRODUCT_CONCEPT = "ciferp:Product"
+_POSTING_COUNT = "ciferp:PostingCount"
+_TOTAL_LOSS = "ciferp:TotalDebitLossEur"
 _USED_FIELDS = (
     "partner_id",
     "sales_order_id",
@@ -71,7 +71,7 @@ class DuckDBCompiler:
             raise TypeError("compiler accepts validated SemanticQueryPlan instances only")
         if plan.target_platform != "DuckDB":
             raise ValueError("DuckDB compiler cannot compile a non-DuckDB plan")
-        if plan.root_entity != "sap:BusinessPartner":
+        if plan.root_entity != "ciferp:BusinessPartner":
             raise ValueError("unsupported root entity for trusted SAP ERP audit template")
         if tuple(plan.projected_dimensions) != _PRIMARY_DIMENSIONS:
             raise ValueError("unsupported projected dimensions are not represented by trusted SQL")
@@ -123,8 +123,8 @@ class DuckDBCompiler:
             for product_id in _PRIMARY_PRODUCTS
         }
         versions[f"mapping:{mapping.id}"] = mapping.version
-        versions["rule:sap:QualifyingPosting"] = self.registry.rules[
-            "sap:QualifyingPosting"
+        versions["rule:ciferp:QualifyingPosting"] = self.registry.rules[
+            "ciferp:QualifyingPosting"
         ].version
         versions["policy:authorization"] = "1.0.0"
         return (
@@ -159,7 +159,7 @@ class DuckDBCompiler:
         if digest(expected_plan) != digest(plan):
             raise ValueError("question does not resolve to the submitted semantic plan")
         start_date = _AS_OF_DATE.replace(year=_AS_OF_DATE.year - 1)
-        statuses = self.registry.rules["sap:QualifyingPosting"].include_statuses
+        statuses = self.registry.rules["ciferp:QualifyingPosting"].include_statuses
         if not statuses:
             raise ValueError("QualifyingPosting rule must specify governed included statuses")
         status_parameters = tuple(statuses)

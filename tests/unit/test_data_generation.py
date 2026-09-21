@@ -19,7 +19,7 @@ def test_generated_data_contains_primary_use_case_candidates(tmp_path: Path) -> 
         posting
         for posting in postings
         if posting["country"] == "FR"
-        and posting["product"] == "sap:ProductAutomotive"
+        and posting["product"] == "ciferp:ProductAutomotive"
         and posting["posting_status"] not in {"REVERSED", "DUPLICATE"}
         and cutoff <= date.fromisoformat(posting["posting_date"]) <= date(2026, 8, 28)
     ]

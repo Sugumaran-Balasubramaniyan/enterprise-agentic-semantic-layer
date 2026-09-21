@@ -1,38 +1,33 @@
-# Golden semantic evaluation
+# Local evaluation and preliminary research
 
-The checked-in suite in `tests/golden/questions.yaml` is a small, reviewable
-contract test set for the semantic control plane. It contains 31 governed
-questions, including ten secondary examples covering active-sales-order and
-cost-revenue-ratio discovery across the French, UK, and German vocabulary. Every case
-declares expected canonical concepts, relationship paths, certified products,
-metrics, authorization outcome, and either an executable deterministic answer
-or an explicit discovery-only constraint.
+The checked-in golden suite in `tests/golden/questions.yaml` is a small,
+reviewable semantic regression contract. It checks canonical resolution,
+relationship paths, synthetic contract selection, metrics, simulated policy,
+and deterministic answers where a case has an executable local path. Discovery-
+only cases stop before execution by design.
 
-`run_evaluation(registry)` loads the cases and evaluates each dimension against
-the supplied `SemanticRegistry`. The resulting `EvaluationReport` includes
-per-case evidence and independent `resolution`, `relationships`, `products`,
-`metrics`, `authorization`, `deterministic_answers`, and `discovery_only`
-summaries. This is a local semantic regression signal, not a benchmark: no
-external traffic, production data, or fabricated accuracy claim is involved.
-The primary local DuckDB answer and governed primary/threshold variants execute
-the agent path with quality, authorization, provenance, and metric evidence;
-discovery-only cases intentionally stop after semantic discovery and are counted
-separately.
-
-Run the evaluation from the repository root:
+Run the local regression command from the repository root:
 
 ```bash
 make PYTHON=.venv/bin/python evaluate
 ```
 
-Example output from the current synthetic fixture set:
+`run_evaluation(registry)` returns per-case evidence and separate summaries for
+resolution, relationships, products, metrics, authorization, deterministic
+answers, and discovery-only cases. This is a local regression signal over
+synthetic fixtures. It is not a production evaluation, a proprietary-data
+study, or evidence of broad generalization.
 
-```text
-Golden evaluation: 31/31 cases passed (resolution=31/31, relationships=31/31, products=31/31, metrics=31/31, authorization=31/31, deterministic_answers=31/31, discovery_only=10/10)
-```
+The controlled v1/v2 KG/AQR benchmark methodology is described first in the
+README. It records exact per-query outcomes, strict versus relaxed status,
+repair attempts, and provenance. The canonical result artifact and final
+metrics are owned by the final publication task, so this page intentionally
+does not state final numbers or hashes.
 
-The semantic regression tests separately protect metric/rule references,
-CostRevenueRatio's independent aggregate contract, and the `ActiveSalesOrder` semantic
-version, definition, included status, and exclusions. CI runs YAML parsing,
-SHACL validation, mapping/data-quality tests, compiler tests, this golden
-suite, and the complete pytest suite.
+The regression suite also covers metric/rule references, independent aggregate
+semantics for the ratio definition, SHACL outcomes, namespace contracts, and
+the bounded deterministic core. A green local test run is evidence about the
+checked-in implementation only.
+
+External-model comparisons and production-scale evaluation are **Not
+implemented**. They remain **Proposed future work** with separate protocols.

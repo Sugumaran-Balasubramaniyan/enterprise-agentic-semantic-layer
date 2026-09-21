@@ -1,6 +1,7 @@
+# Illustrative mapping only; this repository does not connect to Snowflake.
 id: SnowflakeUnitedKingdomMapping
 version: "1.0.0"
-owner: SAP United Kingdom Data Office
+owner: repository-maintained synthetic contract
 platform: Snowflake
 location: GB
 data_products:
@@ -16,29 +17,29 @@ source:
     acdoca_financials: ERP_ACDOCA_FINANCIALS
     billing_documents: ERP_BILLING_DOCUMENT
 fields:
-  partner_id: {physical_name: PARTNER_KEY, concept: sap:BusinessPartner, pii: true}
-  partner_name: {physical_name: PARTNER_NAME, concept: sap:BusinessPartner, pii: true}
-  email: {physical_name: EMAIL_ADDRESS, concept: sap:BusinessPartner, pii: true}
-  sales_order_id: {physical_name: SALES_ORDER_KEY, concept: sap:SalesOrder, pii: false}
-  order_status: {physical_name: ORDER_STATUS, concept: sap:SalesOrder, canonical_subset: sap:ActiveSalesOrder, pii: false}
-  effective_date: {physical_name: EFFECTIVE_DATE, concept: sap:SalesOrder, pii: false}
-  expiry_date: {physical_name: EXPIRY_DATE, concept: sap:SalesOrder, pii: false}
-  net_value_eur: {physical_name: NET_VALUE_EUR, concept: sap:BillingDocument, pii: false}
-  journal_entry_id: {physical_name: JOURNAL_ENTRY_KEY, concept: sap:FinancialPosting, pii: false}
-  country: {physical_name: MARKET_CODE, concept: sap:CompanyCode, pii: false}
-  product: {physical_name: MATERIAL_GROUP, concept: sap:Product, pii: false}
-  posting_status: {physical_name: POSTING_STATUS, concept: sap:PostingStatus, pii: false}
-  posting_date: {physical_name: POSTING_DATE, concept: sap:FinancialPosting, pii: false}
-  amount_in_company_currency_eur: {physical_name: DEBIT_LOSS_EUR, concept: sap:FinancialLoss, pii: false}
-  billing_doc_id: {physical_name: BILLING_DOC_KEY, concept: sap:BillingDocument, pii: false}
-  billing_date: {physical_name: BILLING_DATE, concept: sap:BillingDocument, pii: false}
-  billed_amount_eur: {physical_name: BILLED_AMOUNT_EUR, concept: sap:BillingDocument, pii: false}
+  partner_id: {physical_name: PARTNER_KEY, concept: ciferp:BusinessPartner, pii: true}
+  partner_name: {physical_name: PARTNER_NAME, concept: ciferp:BusinessPartner, pii: true}
+  email: {physical_name: EMAIL_ADDRESS, concept: ciferp:BusinessPartner, pii: true}
+  sales_order_id: {physical_name: SALES_ORDER_KEY, concept: ciferp:SalesOrder, pii: false}
+  order_status: {physical_name: ORDER_STATUS, concept: ciferp:SalesOrder, canonical_subset: ciferp:ActiveSalesOrder, pii: false}
+  effective_date: {physical_name: EFFECTIVE_DATE, concept: ciferp:SalesOrder, pii: false}
+  expiry_date: {physical_name: EXPIRY_DATE, concept: ciferp:SalesOrder, pii: false}
+  net_value_eur: {physical_name: NET_VALUE_EUR, concept: ciferp:BillingDocument, pii: false}
+  journal_entry_id: {physical_name: JOURNAL_ENTRY_KEY, concept: ciferp:FinancialPosting, pii: false}
+  country: {physical_name: MARKET_CODE, concept: ciferp:CompanyCode, pii: false}
+  product: {physical_name: MATERIAL_GROUP, concept: ciferp:Product, pii: false}
+  posting_status: {physical_name: POSTING_STATUS, concept: ciferp:PostingStatus, pii: false}
+  posting_date: {physical_name: POSTING_DATE, concept: ciferp:FinancialPosting, pii: false}
+  amount_in_company_currency_eur: {physical_name: DEBIT_LOSS_EUR, concept: ciferp:FinancialLoss, pii: false}
+  billing_doc_id: {physical_name: BILLING_DOC_KEY, concept: ciferp:BillingDocument, pii: false}
+  billing_date: {physical_name: BILLING_DATE, concept: ciferp:BillingDocument, pii: false}
+  billed_amount_eur: {physical_name: BILLED_AMOUNT_EUR, concept: ciferp:BillingDocument, pii: false}
 normalization:
   products:
-    AUTO: sap:ProductAutomotive
-    CAR: sap:ProductAutomotive
-    sap:ProductAutomotive: sap:ProductAutomotive
-    HOME: sap:ProductCommercial
+    AUTO: ciferp:ProductAutomotive
+    CAR: ciferp:ProductAutomotive
+    ciferp:ProductAutomotive: ciferp:ProductAutomotive
+    HOME: ciferp:ProductCommercial
   statuses:
     POSTED: POSTED
     CLEARED: CLEARED

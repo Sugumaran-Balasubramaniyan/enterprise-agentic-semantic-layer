@@ -1,4 +1,4 @@
-"""Deterministic generator for high-fidelity SAP Enterprise Support Knowledge Graph.
+"""Deterministic generator for a synthetic support knowledge graph.
 
 Synthesizes interconnected multi-source RDF data:
 - PPMS product and software lifecycle hierarchy
@@ -6,27 +6,59 @@ Synthesizes interconnected multi-source RDF data:
 - System alerts and ABAP runtime dumps
 - SimCat problem categories
 - SAP Notes with symptoms, resolutions, and prerequisite dependency chains
-- Official Help Documentation references
+- Synthetic Help Documentation references
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from rdflib import RDF, RDFS, XSD, Graph, Literal, Namespace, URIRef
+from rdflib import RDF, RDFS, XSD, Graph, Literal, Namespace
 
-PPMS = Namespace("http://ontology.sap.com/ppms#")
-SAP = Namespace("http://ontology.sap.com/support#")
+from semantic_layer.kg.loader import NAMESPACE_REGISTRY as _LOADER_NAMESPACE_REGISTRY
+
+try:
+    from semantic_layer.research.contracts import (
+        NAMESPACE_REGISTRY as _CANONICAL_NAMESPACE_REGISTRY,
+    )
+except ModuleNotFoundError as error:
+    if error.name != "jsonschema":
+        raise
+    NAMESPACE_REGISTRY = _LOADER_NAMESPACE_REGISTRY
+else:
+    NAMESPACE_REGISTRY = _CANONICAL_NAMESPACE_REGISTRY
+
+CIFSUP = Namespace(NAMESPACE_REGISTRY["cifsup"])
+CIFPPMS = Namespace(NAMESPACE_REGISTRY["cifppms"])
+CIFDATA = Namespace(NAMESPACE_REGISTRY["cifdata"])
+CIFERP = Namespace(NAMESPACE_REGISTRY["ciferp"])
+CIFSKOS = Namespace(NAMESPACE_REGISTRY["cifskos"])
+CIFMETA = Namespace(NAMESPACE_REGISTRY["cifmeta"])
+CIFMETAID = Namespace(NAMESPACE_REGISTRY["cifmetaid"])
 
 
 def build_sap_support_graph(ontology_paths: list[str | Path] | None = None) -> Graph:
     """Build and populate the SAP Enterprise Support Knowledge Graph."""
     g = Graph()
-    g.bind("ppms", PPMS)
-    g.bind("sap", SAP)
+    g.bind("cifsup", CIFSUP)
+    g.bind("cifppms", CIFPPMS)
+    g.bind("cifdata", CIFDATA)
+    g.bind("ciferp", CIFERP)
+    g.bind("cifskos", CIFSKOS)
+    g.bind("cifmeta", CIFMETA)
+    g.bind("cifmetaid", CIFMETAID)
     g.bind("rdf", RDF)
     g.bind("rdfs", RDFS)
     g.bind("xsd", XSD)
+
+    metadata = CIFMETAID["dataset-cifre-synthetic-support-ppms-v1"]
+    g.add((metadata, RDF.type, CIFMETA.SyntheticDataset))
+    g.add((metadata, CIFMETA.datasetId, Literal("cifre-synthetic-support-ppms-v1")))
+    g.add((metadata, CIFMETA.sourceKind, Literal("synthetic_fixture")))
+    g.add((metadata, CIFMETA.authority, Literal("independent_repository")))
+    g.add((metadata, CIFMETA.official, Literal(False)))
+    g.add((metadata, CIFMETA.generatedBy, Literal("src/semantic_layer/kg/sap_dataset_generator.py:build_sap_support_graph")))
+    g.add((metadata, CIFMETA.graphPath, Literal("semantic/data/sap_support_graph.ttl")))
 
     # Load base ontologies if provided
     if ontology_paths:
@@ -36,342 +68,342 @@ def build_sap_support_graph(ontology_paths: list[str | Path] | None = None) -> G
     # -------------------------------------------------------------
     # 1. PPMS Product Line & Products
     # -------------------------------------------------------------
-    pl_s4 = URIRef("http://data.sap.com/ppms/productline/S4HANA")
-    g.add((pl_s4, RDF.type, PPMS.ProductLine))
+    pl_s4 = CIFDATA["ppms/productline/S4HANA"]
+    g.add((pl_s4, RDF.type, CIFPPMS.ProductLine))
     g.add((pl_s4, RDFS.label, Literal("SAP S/4HANA Product Line", lang="en")))
-    g.add((pl_s4, PPMS.productLineCode, Literal("S4HANA", datatype=XSD.string)))
+    g.add((pl_s4, CIFPPMS.productLineCode, Literal("S4HANA", datatype=XSD.string)))
 
-    pl_nw = URIRef("http://data.sap.com/ppms/productline/NETWEAVER")
-    g.add((pl_nw, RDF.type, PPMS.ProductLine))
+    pl_nw = CIFDATA["ppms/productline/NETWEAVER"]
+    g.add((pl_nw, RDF.type, CIFPPMS.ProductLine))
     g.add((pl_nw, RDFS.label, Literal("SAP NetWeaver Platform", lang="en")))
-    g.add((pl_nw, PPMS.productLineCode, Literal("NETWEAVER", datatype=XSD.string)))
+    g.add((pl_nw, CIFPPMS.productLineCode, Literal("NETWEAVER", datatype=XSD.string)))
 
-    prod_s4_onprem = URIRef("http://data.sap.com/ppms/product/S4HANA_ONPREM")
-    g.add((prod_s4_onprem, RDF.type, PPMS.Product))
+    prod_s4_onprem = CIFDATA["ppms/product/S4HANA_ONPREM"]
+    g.add((prod_s4_onprem, RDF.type, CIFPPMS.Product))
     g.add((prod_s4_onprem, RDFS.label, Literal("SAP S/4HANA On-Premise", lang="en")))
-    g.add((prod_s4_onprem, PPMS.belongsToProductLine, pl_s4))
-    g.add((prod_s4_onprem, PPMS.productCode, Literal("S4HANA_ONPREM", datatype=XSD.string)))
+    g.add((prod_s4_onprem, CIFPPMS.belongsToProductLine, pl_s4))
+    g.add((prod_s4_onprem, CIFPPMS.productCode, Literal("S4HANA_ONPREM", datatype=XSD.string)))
 
-    prod_nw_abap = URIRef("http://data.sap.com/ppms/product/NW_ABAP")
-    g.add((prod_nw_abap, RDF.type, PPMS.Product))
+    prod_nw_abap = CIFDATA["ppms/product/NW_ABAP"]
+    g.add((prod_nw_abap, RDF.type, CIFPPMS.Product))
     g.add((prod_nw_abap, RDFS.label, Literal("SAP NetWeaver Application Server ABAP", lang="en")))
-    g.add((prod_nw_abap, PPMS.belongsToProductLine, pl_nw))
+    g.add((prod_nw_abap, CIFPPMS.belongsToProductLine, pl_nw))
 
     # -------------------------------------------------------------
     # 2. PPMS Software Components
     # -------------------------------------------------------------
-    sc_basis = URIRef("http://data.sap.com/ppms/component/SAP_BASIS")
-    g.add((sc_basis, RDF.type, PPMS.SoftwareComponent))
+    sc_basis = CIFDATA["ppms/component/SAP_BASIS"]
+    g.add((sc_basis, RDF.type, CIFPPMS.SoftwareComponent))
     g.add((sc_basis, RDFS.label, Literal("SAP Basis Component (System Infrastructure)", lang="en")))
-    g.add((sc_basis, PPMS.componentName, Literal("SAP_BASIS", datatype=XSD.string)))
+    g.add((sc_basis, CIFPPMS.componentName, Literal("SAP_BASIS", datatype=XSD.string)))
 
-    sc_s4core = URIRef("http://data.sap.com/ppms/component/S4CORE")
-    g.add((sc_s4core, RDF.type, PPMS.SoftwareComponent))
+    sc_s4core = CIFDATA["ppms/component/S4CORE"]
+    g.add((sc_s4core, RDF.type, CIFPPMS.SoftwareComponent))
     g.add((sc_s4core, RDFS.label, Literal("S/4HANA Core Application Logic", lang="en")))
-    g.add((sc_s4core, PPMS.componentName, Literal("S4CORE", datatype=XSD.string)))
+    g.add((sc_s4core, CIFPPMS.componentName, Literal("S4CORE", datatype=XSD.string)))
 
-    sc_appl = URIRef("http://data.sap.com/ppms/component/SAP_APPL")
-    g.add((sc_appl, RDF.type, PPMS.SoftwareComponent))
+    sc_appl = CIFDATA["ppms/component/SAP_APPL"]
+    g.add((sc_appl, RDF.type, CIFPPMS.SoftwareComponent))
     g.add((sc_appl, RDFS.label, Literal("SAP Logistics and Accounting Core", lang="en")))
-    g.add((sc_appl, PPMS.componentName, Literal("SAP_APPL", datatype=XSD.string)))
+    g.add((sc_appl, CIFPPMS.componentName, Literal("SAP_APPL", datatype=XSD.string)))
 
     # -------------------------------------------------------------
     # 3. PPMS Product Versions & Component Versions
     # -------------------------------------------------------------
     # S/4HANA 2023
-    pv_s4_2023 = URIRef("http://data.sap.com/ppms/version/S4HANA_2023")
-    g.add((pv_s4_2023, RDF.type, PPMS.ProductVersion))
+    pv_s4_2023 = CIFDATA["ppms/version/S4HANA_2023"]
+    g.add((pv_s4_2023, RDF.type, CIFPPMS.ProductVersion))
     g.add((pv_s4_2023, RDFS.label, Literal("SAP S/4HANA 2023 Release", lang="en")))
-    g.add((pv_s4_2023, PPMS.versionCode, Literal("S4HANA_2023", datatype=XSD.string)))
-    g.add((pv_s4_2023, PPMS.releaseYear, Literal(2023, datatype=XSD.integer)))
-    g.add((prod_s4_onprem, PPMS.hasProductVersion, pv_s4_2023))
+    g.add((pv_s4_2023, CIFPPMS.versionCode, Literal("S4HANA_2023", datatype=XSD.string)))
+    g.add((pv_s4_2023, CIFPPMS.releaseYear, Literal(2023, datatype=XSD.integer)))
+    g.add((prod_s4_onprem, CIFPPMS.hasProductVersion, pv_s4_2023))
 
-    scv_basis_758 = URIRef("http://data.sap.com/ppms/compversion/SAP_BASIS_758")
-    g.add((scv_basis_758, RDF.type, PPMS.SoftwareComponentVersion))
+    scv_basis_758 = CIFDATA["ppms/compversion/SAP_BASIS_758"]
+    g.add((scv_basis_758, RDF.type, CIFPPMS.SoftwareComponentVersion))
     g.add((scv_basis_758, RDFS.label, Literal("SAP_BASIS 758", lang="en")))
-    g.add((scv_basis_758, PPMS.componentVersionString, Literal("758", datatype=XSD.string)))
-    g.add((scv_basis_758, PPMS.isVersionOfComponent, sc_basis))
-    g.add((pv_s4_2023, PPMS.includesComponent, scv_basis_758))
+    g.add((scv_basis_758, CIFPPMS.componentVersionString, Literal("758", datatype=XSD.string)))
+    g.add((scv_basis_758, CIFPPMS.isVersionOfComponent, sc_basis))
+    g.add((pv_s4_2023, CIFPPMS.includesComponent, scv_basis_758))
 
-    scv_s4core_108 = URIRef("http://data.sap.com/ppms/compversion/S4CORE_108")
-    g.add((scv_s4core_108, RDF.type, PPMS.SoftwareComponentVersion))
+    scv_s4core_108 = CIFDATA["ppms/compversion/S4CORE_108"]
+    g.add((scv_s4core_108, RDF.type, CIFPPMS.SoftwareComponentVersion))
     g.add((scv_s4core_108, RDFS.label, Literal("S4CORE 108", lang="en")))
-    g.add((scv_s4core_108, PPMS.componentVersionString, Literal("108", datatype=XSD.string)))
-    g.add((scv_s4core_108, PPMS.isVersionOfComponent, sc_s4core))
-    g.add((pv_s4_2023, PPMS.includesComponent, scv_s4core_108))
+    g.add((scv_s4core_108, CIFPPMS.componentVersionString, Literal("108", datatype=XSD.string)))
+    g.add((scv_s4core_108, CIFPPMS.isVersionOfComponent, sc_s4core))
+    g.add((pv_s4_2023, CIFPPMS.includesComponent, scv_s4core_108))
 
     # S/4HANA 2022
-    pv_s4_2022 = URIRef("http://data.sap.com/ppms/version/S4HANA_2022")
-    g.add((pv_s4_2022, RDF.type, PPMS.ProductVersion))
+    pv_s4_2022 = CIFDATA["ppms/version/S4HANA_2022"]
+    g.add((pv_s4_2022, RDF.type, CIFPPMS.ProductVersion))
     g.add((pv_s4_2022, RDFS.label, Literal("SAP S/4HANA 2022 Release", lang="en")))
-    g.add((pv_s4_2022, PPMS.versionCode, Literal("S4HANA_2022", datatype=XSD.string)))
-    g.add((pv_s4_2022, PPMS.releaseYear, Literal(2022, datatype=XSD.integer)))
-    g.add((prod_s4_onprem, PPMS.hasProductVersion, pv_s4_2022))
+    g.add((pv_s4_2022, CIFPPMS.versionCode, Literal("S4HANA_2022", datatype=XSD.string)))
+    g.add((pv_s4_2022, CIFPPMS.releaseYear, Literal(2022, datatype=XSD.integer)))
+    g.add((prod_s4_onprem, CIFPPMS.hasProductVersion, pv_s4_2022))
 
-    scv_basis_757 = URIRef("http://data.sap.com/ppms/compversion/SAP_BASIS_757")
-    g.add((scv_basis_757, RDF.type, PPMS.SoftwareComponentVersion))
+    scv_basis_757 = CIFDATA["ppms/compversion/SAP_BASIS_757"]
+    g.add((scv_basis_757, RDF.type, CIFPPMS.SoftwareComponentVersion))
     g.add((scv_basis_757, RDFS.label, Literal("SAP_BASIS 757", lang="en")))
-    g.add((scv_basis_757, PPMS.componentVersionString, Literal("757", datatype=XSD.string)))
-    g.add((scv_basis_757, PPMS.isVersionOfComponent, sc_basis))
-    g.add((pv_s4_2022, PPMS.includesComponent, scv_basis_757))
+    g.add((scv_basis_757, CIFPPMS.componentVersionString, Literal("757", datatype=XSD.string)))
+    g.add((scv_basis_757, CIFPPMS.isVersionOfComponent, sc_basis))
+    g.add((pv_s4_2022, CIFPPMS.includesComponent, scv_basis_757))
 
     # Support Packages for SAP_BASIS 758 (SP00, SP01, SP02, SP03)
     for sp_level in range(4):
-        sp_uri = URIRef(f"http://data.sap.com/ppms/sp/SAP_BASIS_758_SP{sp_level:02d}")
-        g.add((sp_uri, RDF.type, PPMS.SupportPackage))
+        sp_uri = CIFDATA[f"ppms/sp/SAP_BASIS_758_SP{sp_level:02d}"]
+        g.add((sp_uri, RDF.type, CIFPPMS.SupportPackage))
         g.add((sp_uri, RDFS.label, Literal(f"SAP_BASIS 758 SP{sp_level:02d}", lang="en")))
-        g.add((sp_uri, PPMS.stackLevel, Literal(sp_level, datatype=XSD.integer)))
-        g.add((sp_uri, PPMS.spName, Literal(f"SP{sp_level:02d}", datatype=XSD.string)))
-        g.add((scv_basis_758, PPMS.hasSupportPackage, sp_uri))
+        g.add((sp_uri, CIFPPMS.stackLevel, Literal(sp_level, datatype=XSD.integer)))
+        g.add((sp_uri, CIFPPMS.spName, Literal(f"SP{sp_level:02d}", datatype=XSD.string)))
+        g.add((scv_basis_758, CIFPPMS.hasSupportPackage, sp_uri))
 
     # -------------------------------------------------------------
     # 4. Application Components Hierarchy
     # -------------------------------------------------------------
     # BC (Basis)
-    comp_bc = URIRef("http://data.sap.com/support/component/BC")
-    g.add((comp_bc, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_bc, SAP.componentCode, Literal("BC", datatype=XSD.string)))
-    g.add((comp_bc, SAP.componentDescription, Literal("Basis Components", lang="en")))
+    comp_bc = CIFDATA["support/component/BC"]
+    g.add((comp_bc, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_bc, CIFSUP.componentCode, Literal("BC", datatype=XSD.string)))
+    g.add((comp_bc, CIFSUP.componentDescription, Literal("Basis Components", lang="en")))
 
-    comp_bc_db = URIRef("http://data.sap.com/support/component/BC-DB")
-    g.add((comp_bc_db, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_bc_db, SAP.componentCode, Literal("BC-DB", datatype=XSD.string)))
-    g.add((comp_bc_db, SAP.componentDescription, Literal("Database Interface and Infrastructure", lang="en")))
-    g.add((comp_bc_db, SAP.parentComponent, comp_bc))
+    comp_bc_db = CIFDATA["support/component/BC-DB"]
+    g.add((comp_bc_db, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_bc_db, CIFSUP.componentCode, Literal("BC-DB", datatype=XSD.string)))
+    g.add((comp_bc_db, CIFSUP.componentDescription, Literal("Database Interface and Infrastructure", lang="en")))
+    g.add((comp_bc_db, CIFSUP.parentComponent, comp_bc))
 
-    comp_bc_db_hdb = URIRef("http://data.sap.com/support/component/BC-DB-HDB")
-    g.add((comp_bc_db_hdb, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_bc_db_hdb, SAP.componentCode, Literal("BC-DB-HDB", datatype=XSD.string)))
-    g.add((comp_bc_db_hdb, SAP.componentDescription, Literal("SAP HANA Database Interface", lang="en")))
-    g.add((comp_bc_db_hdb, SAP.parentComponent, comp_bc_db))
+    comp_bc_db_hdb = CIFDATA["support/component/BC-DB-HDB"]
+    g.add((comp_bc_db_hdb, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_bc_db_hdb, CIFSUP.componentCode, Literal("BC-DB-HDB", datatype=XSD.string)))
+    g.add((comp_bc_db_hdb, CIFSUP.componentDescription, Literal("SAP HANA Database Interface", lang="en")))
+    g.add((comp_bc_db_hdb, CIFSUP.parentComponent, comp_bc_db))
 
-    comp_bc_cst = URIRef("http://data.sap.com/support/component/BC-CST")
-    g.add((comp_bc_cst, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_bc_cst, SAP.componentCode, Literal("BC-CST", datatype=XSD.string)))
-    g.add((comp_bc_cst, SAP.componentDescription, Literal("Client Server Technology", lang="en")))
-    g.add((comp_bc_cst, SAP.parentComponent, comp_bc))
+    comp_bc_cst = CIFDATA["support/component/BC-CST"]
+    g.add((comp_bc_cst, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_bc_cst, CIFSUP.componentCode, Literal("BC-CST", datatype=XSD.string)))
+    g.add((comp_bc_cst, CIFSUP.componentDescription, Literal("Client Server Technology", lang="en")))
+    g.add((comp_bc_cst, CIFSUP.parentComponent, comp_bc))
 
-    comp_bc_cst_mm = URIRef("http://data.sap.com/support/component/BC-CST-MM")
-    g.add((comp_bc_cst_mm, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_bc_cst_mm, SAP.componentCode, Literal("BC-CST-MM", datatype=XSD.string)))
-    g.add((comp_bc_cst_mm, SAP.componentDescription, Literal("Memory Management & Work Processes", lang="en")))
-    g.add((comp_bc_cst_mm, SAP.parentComponent, comp_bc_cst))
+    comp_bc_cst_mm = CIFDATA["support/component/BC-CST-MM"]
+    g.add((comp_bc_cst_mm, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_bc_cst_mm, CIFSUP.componentCode, Literal("BC-CST-MM", datatype=XSD.string)))
+    g.add((comp_bc_cst_mm, CIFSUP.componentDescription, Literal("Memory Management & Work Processes", lang="en")))
+    g.add((comp_bc_cst_mm, CIFSUP.parentComponent, comp_bc_cst))
 
     # FI (Financials)
-    comp_fi = URIRef("http://data.sap.com/support/component/FI")
-    g.add((comp_fi, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_fi, SAP.componentCode, Literal("FI", datatype=XSD.string)))
-    g.add((comp_fi, SAP.componentDescription, Literal("Financial Accounting", lang="en")))
+    comp_fi = CIFDATA["support/component/FI"]
+    g.add((comp_fi, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_fi, CIFSUP.componentCode, Literal("FI", datatype=XSD.string)))
+    g.add((comp_fi, CIFSUP.componentDescription, Literal("Financial Accounting", lang="en")))
 
-    comp_fi_gl = URIRef("http://data.sap.com/support/component/FI-GL")
-    g.add((comp_fi_gl, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_fi_gl, SAP.componentCode, Literal("FI-GL", datatype=XSD.string)))
-    g.add((comp_fi_gl, SAP.componentDescription, Literal("General Ledger Accounting", lang="en")))
-    g.add((comp_fi_gl, SAP.parentComponent, comp_fi))
+    comp_fi_gl = CIFDATA["support/component/FI-GL"]
+    g.add((comp_fi_gl, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_fi_gl, CIFSUP.componentCode, Literal("FI-GL", datatype=XSD.string)))
+    g.add((comp_fi_gl, CIFSUP.componentDescription, Literal("General Ledger Accounting", lang="en")))
+    g.add((comp_fi_gl, CIFSUP.parentComponent, comp_fi))
 
-    comp_fi_gl_gl = URIRef("http://data.sap.com/support/component/FI-GL-GL")
-    g.add((comp_fi_gl_gl, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_fi_gl_gl, SAP.componentCode, Literal("FI-GL-GL", datatype=XSD.string)))
-    g.add((comp_fi_gl_gl, SAP.componentDescription, Literal("Universal Journal ACDOCA & Basic Functions", lang="en")))
-    g.add((comp_fi_gl_gl, SAP.parentComponent, comp_fi_gl))
+    comp_fi_gl_gl = CIFDATA["support/component/FI-GL-GL"]
+    g.add((comp_fi_gl_gl, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_fi_gl_gl, CIFSUP.componentCode, Literal("FI-GL-GL", datatype=XSD.string)))
+    g.add((comp_fi_gl_gl, CIFSUP.componentDescription, Literal("Universal Journal ACDOCA & Basic Functions", lang="en")))
+    g.add((comp_fi_gl_gl, CIFSUP.parentComponent, comp_fi_gl))
 
     # MM (Materials Management)
-    comp_mm = URIRef("http://data.sap.com/support/component/MM")
-    g.add((comp_mm, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_mm, SAP.componentCode, Literal("MM", datatype=XSD.string)))
-    g.add((comp_mm, SAP.componentDescription, Literal("Materials Management", lang="en")))
+    comp_mm = CIFDATA["support/component/MM"]
+    g.add((comp_mm, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_mm, CIFSUP.componentCode, Literal("MM", datatype=XSD.string)))
+    g.add((comp_mm, CIFSUP.componentDescription, Literal("Materials Management", lang="en")))
 
-    comp_mm_pur = URIRef("http://data.sap.com/support/component/MM-PUR")
-    g.add((comp_mm_pur, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_mm_pur, SAP.componentCode, Literal("MM-PUR", datatype=XSD.string)))
-    g.add((comp_mm_pur, SAP.componentDescription, Literal("Purchasing", lang="en")))
-    g.add((comp_mm_pur, SAP.parentComponent, comp_mm))
+    comp_mm_pur = CIFDATA["support/component/MM-PUR"]
+    g.add((comp_mm_pur, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_mm_pur, CIFSUP.componentCode, Literal("MM-PUR", datatype=XSD.string)))
+    g.add((comp_mm_pur, CIFSUP.componentDescription, Literal("Purchasing", lang="en")))
+    g.add((comp_mm_pur, CIFSUP.parentComponent, comp_mm))
 
-    comp_mm_pur_po = URIRef("http://data.sap.com/support/component/MM-PUR-PO")
-    g.add((comp_mm_pur_po, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_mm_pur_po, SAP.componentCode, Literal("MM-PUR-PO", datatype=XSD.string)))
-    g.add((comp_mm_pur_po, SAP.componentDescription, Literal("Purchase Orders", lang="en")))
-    g.add((comp_mm_pur_po, SAP.parentComponent, comp_mm_pur))
+    comp_mm_pur_po = CIFDATA["support/component/MM-PUR-PO"]
+    g.add((comp_mm_pur_po, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_mm_pur_po, CIFSUP.componentCode, Literal("MM-PUR-PO", datatype=XSD.string)))
+    g.add((comp_mm_pur_po, CIFSUP.componentDescription, Literal("Purchase Orders", lang="en")))
+    g.add((comp_mm_pur_po, CIFSUP.parentComponent, comp_mm_pur))
 
     # SD (Sales & Distribution)
-    comp_sd = URIRef("http://data.sap.com/support/component/SD")
-    g.add((comp_sd, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_sd, SAP.componentCode, Literal("SD", datatype=XSD.string)))
-    g.add((comp_sd, SAP.componentDescription, Literal("Sales and Distribution", lang="en")))
+    comp_sd = CIFDATA["support/component/SD"]
+    g.add((comp_sd, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_sd, CIFSUP.componentCode, Literal("SD", datatype=XSD.string)))
+    g.add((comp_sd, CIFSUP.componentDescription, Literal("Sales and Distribution", lang="en")))
 
-    comp_sd_sls = URIRef("http://data.sap.com/support/component/SD-SLS")
-    g.add((comp_sd_sls, RDF.type, SAP.ApplicationComponent))
-    g.add((comp_sd_sls, SAP.componentCode, Literal("SD-SLS", datatype=XSD.string)))
-    g.add((comp_sd_sls, SAP.componentDescription, Literal("Sales", lang="en")))
-    g.add((comp_sd_sls, SAP.parentComponent, comp_sd))
+    comp_sd_sls = CIFDATA["support/component/SD-SLS"]
+    g.add((comp_sd_sls, RDF.type, CIFSUP.ApplicationComponent))
+    g.add((comp_sd_sls, CIFSUP.componentCode, Literal("SD-SLS", datatype=XSD.string)))
+    g.add((comp_sd_sls, CIFSUP.componentDescription, Literal("Sales", lang="en")))
+    g.add((comp_sd_sls, CIFSUP.parentComponent, comp_sd))
 
     # -------------------------------------------------------------
     # 5. SimCat Taxonomies
     # -------------------------------------------------------------
-    simcat_perf = URIRef("http://data.sap.com/support/simcat/PERFORMANCE")
-    g.add((simcat_perf, RDF.type, SAP.SimCatCategory))
-    g.add((simcat_perf, SAP.categoryName, Literal("Performance and Resource Contention", datatype=XSD.string)))
+    simcat_perf = CIFDATA["support/simcat/PERFORMANCE"]
+    g.add((simcat_perf, RDF.type, CIFSUP.SimCatCategory))
+    g.add((simcat_perf, CIFSUP.categoryName, Literal("Performance and Resource Contention", lang="en")))
 
-    simcat_dump = URIRef("http://data.sap.com/support/simcat/ABAP_DUMP")
-    g.add((simcat_dump, RDF.type, SAP.SimCatCategory))
-    g.add((simcat_dump, SAP.categoryName, Literal("Runtime ABAP Dump or Crash", datatype=XSD.string)))
+    simcat_dump = CIFDATA["support/simcat/ABAP_DUMP"]
+    g.add((simcat_dump, RDF.type, CIFSUP.SimCatCategory))
+    g.add((simcat_dump, CIFSUP.categoryName, Literal("Runtime ABAP Dump or Crash", lang="en")))
 
-    simcat_db = URIRef("http://data.sap.com/support/simcat/DATABASE_ERROR")
-    g.add((simcat_db, RDF.type, SAP.SimCatCategory))
-    g.add((simcat_db, SAP.categoryName, Literal("Database Connection and Execution Failure", datatype=XSD.string)))
+    simcat_db = CIFDATA["support/simcat/DATABASE_ERROR"]
+    g.add((simcat_db, RDF.type, CIFSUP.SimCatCategory))
+    g.add((simcat_db, CIFSUP.categoryName, Literal("Database Connection and Execution Failure", lang="en")))
 
-    simcat_config = URIRef("http://data.sap.com/support/simcat/CONFIGURATION")
-    g.add((simcat_config, RDF.type, SAP.SimCatCategory))
-    g.add((simcat_config, SAP.categoryName, Literal("Customizing and Configuration Inconsistency", datatype=XSD.string)))
+    simcat_config = CIFDATA["support/simcat/CONFIGURATION"]
+    g.add((simcat_config, RDF.type, CIFSUP.SimCatCategory))
+    g.add((simcat_config, CIFSUP.categoryName, Literal("Customizing and Configuration Inconsistency", lang="en")))
 
     # -------------------------------------------------------------
     # 6. System Alerts (Runtime ABAP Dumps and Telemetry)
     # -------------------------------------------------------------
-    alert_timeout = URIRef("http://data.sap.com/support/alert/ALERT_TIME_OUT")
-    g.add((alert_timeout, RDF.type, SAP.SystemAlert))
-    g.add((alert_timeout, SAP.alertCode, Literal("TIME_OUT", datatype=XSD.string)))
-    g.add((alert_timeout, SAP.severity, Literal("CRITICAL", datatype=XSD.string)))
-    g.add((alert_timeout, SAP.affectsComponent, comp_bc_cst))
-    g.add((alert_timeout, SAP.classifiedUnderSimCat, simcat_dump))
+    alert_timeout = CIFDATA["support/alert/ALERT_TIME_OUT"]
+    g.add((alert_timeout, RDF.type, CIFSUP.SystemAlert))
+    g.add((alert_timeout, CIFSUP.alertCode, Literal("TIME_OUT", datatype=XSD.string)))
+    g.add((alert_timeout, CIFSUP.severity, Literal("CRITICAL", datatype=XSD.string)))
+    g.add((alert_timeout, CIFSUP.affectsComponent, comp_bc_cst))
+    g.add((alert_timeout, CIFSUP.classifiedUnderSimCat, simcat_dump))
     g.add((alert_timeout, RDFS.label, Literal("ABAP Short Dump: Maximum runtime exceeded (TIME_OUT)", lang="en")))
 
-    alert_tsv = URIRef("http://data.sap.com/support/alert/ALERT_TSV_PAGE_FAILED")
-    g.add((alert_tsv, RDF.type, SAP.SystemAlert))
-    g.add((alert_tsv, SAP.alertCode, Literal("TSV_TNEW_PAGE_ALLOC_FAILED", datatype=XSD.string)))
-    g.add((alert_tsv, SAP.severity, Literal("CRITICAL", datatype=XSD.string)))
-    g.add((alert_tsv, SAP.affectsComponent, comp_bc_cst_mm))
-    g.add((alert_tsv, SAP.classifiedUnderSimCat, simcat_perf))
+    alert_tsv = CIFDATA["support/alert/ALERT_TSV_PAGE_FAILED"]
+    g.add((alert_tsv, RDF.type, CIFSUP.SystemAlert))
+    g.add((alert_tsv, CIFSUP.alertCode, Literal("TSV_TNEW_PAGE_ALLOC_FAILED", datatype=XSD.string)))
+    g.add((alert_tsv, CIFSUP.severity, Literal("CRITICAL", datatype=XSD.string)))
+    g.add((alert_tsv, CIFSUP.affectsComponent, comp_bc_cst_mm))
+    g.add((alert_tsv, CIFSUP.classifiedUnderSimCat, simcat_perf))
     g.add((alert_tsv, RDFS.label, Literal("Memory allocation failure: TSV_TNEW_PAGE_ALLOC_FAILED", lang="en")))
 
-    alert_dbsql = URIRef("http://data.sap.com/support/alert/ALERT_DBSQL_NO_CONN")
-    g.add((alert_dbsql, RDF.type, SAP.SystemAlert))
-    g.add((alert_dbsql, SAP.alertCode, Literal("DBSQL_NO_MORE_CONNECTION", datatype=XSD.string)))
-    g.add((alert_dbsql, SAP.severity, Literal("ERROR", datatype=XSD.string)))
-    g.add((alert_dbsql, SAP.affectsComponent, comp_bc_db_hdb))
-    g.add((alert_dbsql, SAP.classifiedUnderSimCat, simcat_db))
+    alert_dbsql = CIFDATA["support/alert/ALERT_DBSQL_NO_CONN"]
+    g.add((alert_dbsql, RDF.type, CIFSUP.SystemAlert))
+    g.add((alert_dbsql, CIFSUP.alertCode, Literal("DBSQL_NO_MORE_CONNECTION", datatype=XSD.string)))
+    g.add((alert_dbsql, CIFSUP.severity, Literal("ERROR", datatype=XSD.string)))
+    g.add((alert_dbsql, CIFSUP.affectsComponent, comp_bc_db_hdb))
+    g.add((alert_dbsql, CIFSUP.classifiedUnderSimCat, simcat_db))
     g.add((alert_dbsql, RDFS.label, Literal("Database connection pool exhausted (DBSQL_NO_MORE_CONNECTION)", lang="en")))
 
-    alert_opensql = URIRef("http://data.sap.com/support/alert/ALERT_CX_SY_OPEN_SQL")
-    g.add((alert_opensql, RDF.type, SAP.SystemAlert))
-    g.add((alert_opensql, SAP.alertCode, Literal("CX_SY_OPEN_SQL_ERROR", datatype=XSD.string)))
-    g.add((alert_opensql, SAP.severity, Literal("ERROR", datatype=XSD.string)))
-    g.add((alert_opensql, SAP.affectsComponent, comp_bc_db))
-    g.add((alert_opensql, SAP.classifiedUnderSimCat, simcat_db))
+    alert_opensql = CIFDATA["support/alert/ALERT_CX_SY_OPEN_SQL"]
+    g.add((alert_opensql, RDF.type, CIFSUP.SystemAlert))
+    g.add((alert_opensql, CIFSUP.alertCode, Literal("CX_SY_OPEN_SQL_ERROR", datatype=XSD.string)))
+    g.add((alert_opensql, CIFSUP.severity, Literal("ERROR", datatype=XSD.string)))
+    g.add((alert_opensql, CIFSUP.affectsComponent, comp_bc_db))
+    g.add((alert_opensql, CIFSUP.classifiedUnderSimCat, simcat_db))
 
-    alert_fn_not_found = URIRef("http://data.sap.com/support/alert/ALERT_CALL_FN_NOT_FOUND")
-    g.add((alert_fn_not_found, RDF.type, SAP.SystemAlert))
-    g.add((alert_fn_not_found, SAP.alertCode, Literal("CALL_FUNCTION_NOT_FOUND", datatype=XSD.string)))
-    g.add((alert_fn_not_found, SAP.severity, Literal("ERROR", datatype=XSD.string)))
-    g.add((alert_fn_not_found, SAP.affectsComponent, comp_bc))
-    g.add((alert_fn_not_found, SAP.classifiedUnderSimCat, simcat_dump))
+    alert_fn_not_found = CIFDATA["support/alert/ALERT_CALL_FN_NOT_FOUND"]
+    g.add((alert_fn_not_found, RDF.type, CIFSUP.SystemAlert))
+    g.add((alert_fn_not_found, CIFSUP.alertCode, Literal("CALL_FUNCTION_NOT_FOUND", datatype=XSD.string)))
+    g.add((alert_fn_not_found, CIFSUP.severity, Literal("ERROR", datatype=XSD.string)))
+    g.add((alert_fn_not_found, CIFSUP.affectsComponent, comp_bc))
+    g.add((alert_fn_not_found, CIFSUP.classifiedUnderSimCat, simcat_dump))
 
     # -------------------------------------------------------------
     # 7. Help Documentation
     # -------------------------------------------------------------
-    doc_mm_guide = URIRef("http://data.sap.com/support/doc/DOC_MEMORY_CONFIG")
-    g.add((doc_mm_guide, RDF.type, SAP.HelpDocumentation))
-    g.add((doc_mm_guide, RDFS.label, Literal("SAP S/4HANA Memory Management Configuration Guide", lang="en")))
-    g.add((doc_mm_guide, SAP.docUri, Literal("https://help.sap.com/docs/s4hana_memory_mgmt", datatype=XSD.anyURI)))
+    doc_mm_guide = CIFDATA["support/doc/DOC_MEMORY_CONFIG"]
+    g.add((doc_mm_guide, RDF.type, CIFSUP.HelpDocumentation))
+    g.add((doc_mm_guide, RDFS.label, Literal("Synthetic Help Documentation: memory management configuration", lang="en")))
+    g.add((doc_mm_guide, CIFSUP.docUri, Literal(CIFDATA["support/doc/s4hana_memory_mgmt"], datatype=XSD.anyURI)))
 
-    doc_acdoca = URIRef("http://data.sap.com/support/doc/DOC_ACDOCA_ARCH")
-    g.add((doc_acdoca, RDF.type, SAP.HelpDocumentation))
-    g.add((doc_acdoca, RDFS.label, Literal("Universal Journal ACDOCA Architecture & Partitioning", lang="en")))
-    g.add((doc_acdoca, SAP.docUri, Literal("https://help.sap.com/docs/s4hana_acdoca_perf", datatype=XSD.anyURI)))
+    doc_acdoca = CIFDATA["support/doc/DOC_ACDOCA_ARCH"]
+    g.add((doc_acdoca, RDF.type, CIFSUP.HelpDocumentation))
+    g.add((doc_acdoca, RDFS.label, Literal("Synthetic Help Documentation: journal architecture and partitioning", lang="en")))
+    g.add((doc_acdoca, CIFSUP.docUri, Literal(CIFDATA["support/doc/s4hana_acdoca_perf"], datatype=XSD.anyURI)))
 
     # -------------------------------------------------------------
     # 8. SAP Notes (Synthesizing Multi-Hop & Prerequisite Chains)
     # -------------------------------------------------------------
     # Chain 1: Note 3012445 (Root Prereq) -> Note 3098110 (Intermediate) -> Note 3109922 (Target Solution)
-    note_3012445 = URIRef("http://data.sap.com/support/note/3012445")
-    g.add((note_3012445, RDF.type, SAP.SAPNote))
-    g.add((note_3012445, SAP.noteNumber, Literal("3012445", datatype=XSD.string)))
-    g.add((note_3012445, SAP.title, Literal("Core memory parameter configuration for HANA 2.0 SPS07", lang="en")))
-    g.add((note_3012445, SAP.priority, Literal("High", datatype=XSD.string)))
-    g.add((note_3012445, SAP.affectsComponent, comp_bc_cst_mm))
-    g.add((note_3012445, SAP.validForComponentVersion, scv_basis_758))
-    g.add((note_3012445, SAP.validForProductVersion, pv_s4_2023))
-    g.add((note_3012445, SAP.minSupportPackage, Literal(0, datatype=XSD.integer)))
-    g.add((note_3012445, SAP.maxSupportPackage, Literal(3, datatype=XSD.integer)))
-    g.add((note_3012445, SAP.symptom, Literal("Suboptimal default heap limits causing early work process restarts.", lang="en")))
-    g.add((note_3012445, SAP.rootCause, Literal("Conservative legacy buffer allocation profile parameters.", lang="en")))
-    g.add((note_3012445, SAP.resolution, Literal("Apply updated profile parameters em/initial_size_MB and ztta/roll_extension.", lang="en")))
-    g.add((note_3012445, SAP.referencedDocumentation, doc_mm_guide))
+    note_3012445 = CIFDATA["support/note/3012445"]
+    g.add((note_3012445, RDF.type, CIFSUP.SAPNote))
+    g.add((note_3012445, CIFSUP.noteNumber, Literal("3012445", datatype=XSD.string)))
+    g.add((note_3012445, CIFSUP.title, Literal("Core memory parameter configuration for HANA 2.0 SPS07", lang="en")))
+    g.add((note_3012445, CIFSUP.priority, Literal("High", datatype=XSD.string)))
+    g.add((note_3012445, CIFSUP.affectsComponent, comp_bc_cst_mm))
+    g.add((note_3012445, CIFSUP.validForComponentVersion, scv_basis_758))
+    g.add((note_3012445, CIFSUP.validForProductVersion, pv_s4_2023))
+    g.add((note_3012445, CIFSUP.minSupportPackage, Literal(0, datatype=XSD.integer)))
+    g.add((note_3012445, CIFSUP.maxSupportPackage, Literal(3, datatype=XSD.integer)))
+    g.add((note_3012445, CIFSUP.symptom, Literal("Suboptimal default heap limits causing early work process restarts.", lang="en")))
+    g.add((note_3012445, CIFSUP.rootCause, Literal("Conservative legacy buffer allocation profile parameters.", lang="en")))
+    g.add((note_3012445, CIFSUP.resolution, Literal("Apply updated profile parameters em/initial_size_MB and ztta/roll_extension.", lang="en")))
+    g.add((note_3012445, CIFSUP.referencedDocumentation, doc_mm_guide))
 
-    note_3098110 = URIRef("http://data.sap.com/support/note/3098110")
-    g.add((note_3098110, RDF.type, SAP.SAPNote))
-    g.add((note_3098110, SAP.noteNumber, Literal("3098110", datatype=XSD.string)))
-    g.add((note_3098110, SAP.title, Literal("Memory paging buffer expansion in SAP_BASIS 758", lang="en")))
-    g.add((note_3098110, SAP.priority, Literal("Very High", datatype=XSD.string)))
-    g.add((note_3098110, SAP.affectsComponent, comp_bc_cst_mm))
-    g.add((note_3098110, SAP.validForComponentVersion, scv_basis_758))
-    g.add((note_3098110, SAP.validForProductVersion, pv_s4_2023))
-    g.add((note_3098110, SAP.minSupportPackage, Literal(0, datatype=XSD.integer)))
-    g.add((note_3098110, SAP.maxSupportPackage, Literal(2, datatype=XSD.integer)))
-    g.add((note_3098110, SAP.hasPrerequisiteNote, note_3012445))
-    g.add((note_3098110, SAP.symptom, Literal("Paging area exhaustion under concurrent analytics reporting.", lang="en")))
-    g.add((note_3098110, SAP.resolution, Literal("Implement kernel patch and adjust abap/heaplimit.", lang="en")))
+    note_3098110 = CIFDATA["support/note/3098110"]
+    g.add((note_3098110, RDF.type, CIFSUP.SAPNote))
+    g.add((note_3098110, CIFSUP.noteNumber, Literal("3098110", datatype=XSD.string)))
+    g.add((note_3098110, CIFSUP.title, Literal("Memory paging buffer expansion in SAP_BASIS 758", lang="en")))
+    g.add((note_3098110, CIFSUP.priority, Literal("Very High", datatype=XSD.string)))
+    g.add((note_3098110, CIFSUP.affectsComponent, comp_bc_cst_mm))
+    g.add((note_3098110, CIFSUP.validForComponentVersion, scv_basis_758))
+    g.add((note_3098110, CIFSUP.validForProductVersion, pv_s4_2023))
+    g.add((note_3098110, CIFSUP.minSupportPackage, Literal(0, datatype=XSD.integer)))
+    g.add((note_3098110, CIFSUP.maxSupportPackage, Literal(2, datatype=XSD.integer)))
+    g.add((note_3098110, CIFSUP.hasPrerequisiteNote, note_3012445))
+    g.add((note_3098110, CIFSUP.symptom, Literal("Paging area exhaustion under concurrent analytics reporting.", lang="en")))
+    g.add((note_3098110, CIFSUP.resolution, Literal("Implement kernel patch and adjust abap/heaplimit.", lang="en")))
 
-    note_3109922 = URIRef("http://data.sap.com/support/note/3109922")
-    g.add((note_3109922, RDF.type, SAP.SAPNote))
-    g.add((note_3109922, SAP.noteNumber, Literal("3109922", datatype=XSD.string)))
-    g.add((note_3109922, SAP.title, Literal("Memory allocation dump TSV_TNEW_PAGE_ALLOC_FAILED in ACDOCA reporting on S/4HANA 2023", lang="en")))
-    g.add((note_3109922, SAP.priority, Literal("Very High", datatype=XSD.string)))
-    g.add((note_3109922, SAP.affectsComponent, comp_fi_gl_gl))
-    g.add((note_3109922, SAP.affectsComponent, comp_bc_cst_mm))
-    g.add((note_3109922, SAP.resolvesAlert, alert_tsv))
-    g.add((note_3109922, SAP.validForComponentVersion, scv_basis_758))
-    g.add((note_3109922, SAP.validForProductVersion, pv_s4_2023))
-    g.add((note_3109922, SAP.minSupportPackage, Literal(0, datatype=XSD.integer)))
-    g.add((note_3109922, SAP.maxSupportPackage, Literal(2, datatype=XSD.integer)))
-    g.add((note_3109922, SAP.hasPrerequisiteNote, note_3098110))
-    g.add((note_3109922, SAP.classifiedUnderSimCat, simcat_perf))
-    g.add((note_3109922, SAP.symptom, Literal("Universal Journal ACDOCA financial extraction triggers dump TSV_TNEW_PAGE_ALLOC_FAILED during year-end closing.", lang="en")))
-    g.add((note_3109922, SAP.rootCause, Literal("Unbounded internal table accumulation in FAGL_ACCOUNT_ITEMS extractor.", lang="en")))
-    g.add((note_3109922, SAP.resolution, Literal("Implement cursor-based chunking logic and apply prerequisite Note 3098110.", lang="en")))
-    g.add((note_3109922, SAP.referencedDocumentation, doc_acdoca))
+    note_3109922 = CIFDATA["support/note/3109922"]
+    g.add((note_3109922, RDF.type, CIFSUP.SAPNote))
+    g.add((note_3109922, CIFSUP.noteNumber, Literal("3109922", datatype=XSD.string)))
+    g.add((note_3109922, CIFSUP.title, Literal("Memory allocation dump TSV_TNEW_PAGE_ALLOC_FAILED in ACDOCA reporting on S/4HANA 2023", lang="en")))
+    g.add((note_3109922, CIFSUP.priority, Literal("Very High", datatype=XSD.string)))
+    g.add((note_3109922, CIFSUP.affectsComponent, comp_fi_gl_gl))
+    g.add((note_3109922, CIFSUP.affectsComponent, comp_bc_cst_mm))
+    g.add((note_3109922, CIFSUP.resolvesAlert, alert_tsv))
+    g.add((note_3109922, CIFSUP.validForComponentVersion, scv_basis_758))
+    g.add((note_3109922, CIFSUP.validForProductVersion, pv_s4_2023))
+    g.add((note_3109922, CIFSUP.minSupportPackage, Literal(0, datatype=XSD.integer)))
+    g.add((note_3109922, CIFSUP.maxSupportPackage, Literal(2, datatype=XSD.integer)))
+    g.add((note_3109922, CIFSUP.hasPrerequisiteNote, note_3098110))
+    g.add((note_3109922, CIFSUP.classifiedUnderSimCat, simcat_perf))
+    g.add((note_3109922, CIFSUP.symptom, Literal("Universal Journal ACDOCA financial extraction triggers dump TSV_TNEW_PAGE_ALLOC_FAILED during year-end closing.", lang="en")))
+    g.add((note_3109922, CIFSUP.rootCause, Literal("Unbounded internal table accumulation in FAGL_ACCOUNT_ITEMS extractor.", lang="en")))
+    g.add((note_3109922, CIFSUP.resolution, Literal("Implement cursor-based chunking logic and apply prerequisite Note 3098110.", lang="en")))
+    g.add((note_3109922, CIFSUP.referencedDocumentation, doc_acdoca))
 
     # Chain 2: Note 3185002 -> Note 3201440 (Resolves TIME_OUT on Purchase Order processing)
-    note_3185002 = URIRef("http://data.sap.com/support/note/3185002")
-    g.add((note_3185002, RDF.type, SAP.SAPNote))
-    g.add((note_3185002, SAP.noteNumber, Literal("3185002", datatype=XSD.string)))
-    g.add((note_3185002, SAP.title, Literal("Dispatcher queue optimization for asynchronous update tasks", lang="en")))
-    g.add((note_3185002, SAP.priority, Literal("High", datatype=XSD.string)))
-    g.add((note_3185002, SAP.affectsComponent, comp_bc_cst))
-    g.add((note_3185002, SAP.validForComponentVersion, scv_basis_758))
-    g.add((note_3185002, SAP.validForProductVersion, pv_s4_2023))
-    g.add((note_3185002, SAP.minSupportPackage, Literal(0, datatype=XSD.integer)))
-    g.add((note_3185002, SAP.maxSupportPackage, Literal(3, datatype=XSD.integer)))
+    note_3185002 = CIFDATA["support/note/3185002"]
+    g.add((note_3185002, RDF.type, CIFSUP.SAPNote))
+    g.add((note_3185002, CIFSUP.noteNumber, Literal("3185002", datatype=XSD.string)))
+    g.add((note_3185002, CIFSUP.title, Literal("Dispatcher queue optimization for asynchronous update tasks", lang="en")))
+    g.add((note_3185002, CIFSUP.priority, Literal("High", datatype=XSD.string)))
+    g.add((note_3185002, CIFSUP.affectsComponent, comp_bc_cst))
+    g.add((note_3185002, CIFSUP.validForComponentVersion, scv_basis_758))
+    g.add((note_3185002, CIFSUP.validForProductVersion, pv_s4_2023))
+    g.add((note_3185002, CIFSUP.minSupportPackage, Literal(0, datatype=XSD.integer)))
+    g.add((note_3185002, CIFSUP.maxSupportPackage, Literal(3, datatype=XSD.integer)))
 
-    note_3201440 = URIRef("http://data.sap.com/support/note/3201440")
-    g.add((note_3201440, RDF.type, SAP.SAPNote))
-    g.add((note_3201440, SAP.noteNumber, Literal("3201440", datatype=XSD.string)))
-    g.add((note_3201440, SAP.title, Literal("DUMP_SYSTEM_TIME_OUT during high-volume Purchase Order processing", lang="en")))
-    g.add((note_3201440, SAP.priority, Literal("High", datatype=XSD.string)))
-    g.add((note_3201440, SAP.affectsComponent, comp_mm_pur_po))
-    g.add((note_3201440, SAP.resolvesAlert, alert_timeout))
-    g.add((note_3201440, SAP.validForComponentVersion, scv_s4core_108))
-    g.add((note_3201440, SAP.validForProductVersion, pv_s4_2023))
-    g.add((note_3201440, SAP.minSupportPackage, Literal(0, datatype=XSD.integer)))
-    g.add((note_3201440, SAP.maxSupportPackage, Literal(1, datatype=XSD.integer)))
-    g.add((note_3201440, SAP.hasPrerequisiteNote, note_3185002))
-    g.add((note_3201440, SAP.symptom, Literal("BAPI_PO_CREATE1 triggers TIME_OUT dump when processing POs with >500 line items.", lang="en")))
-    g.add((note_3201440, SAP.rootCause, Literal("Sequential lock checks on table EKPO leading to lock escalation and dialog timeout.", lang="en")))
-    g.add((note_3201440, SAP.resolution, Literal("Refactor lock enqueue to batch mode and apply prerequisite Note 3185002.", lang="en")))
+    note_3201440 = CIFDATA["support/note/3201440"]
+    g.add((note_3201440, RDF.type, CIFSUP.SAPNote))
+    g.add((note_3201440, CIFSUP.noteNumber, Literal("3201440", datatype=XSD.string)))
+    g.add((note_3201440, CIFSUP.title, Literal("DUMP_SYSTEM_TIME_OUT during high-volume Purchase Order processing", lang="en")))
+    g.add((note_3201440, CIFSUP.priority, Literal("High", datatype=XSD.string)))
+    g.add((note_3201440, CIFSUP.affectsComponent, comp_mm_pur_po))
+    g.add((note_3201440, CIFSUP.resolvesAlert, alert_timeout))
+    g.add((note_3201440, CIFSUP.validForComponentVersion, scv_s4core_108))
+    g.add((note_3201440, CIFSUP.validForProductVersion, pv_s4_2023))
+    g.add((note_3201440, CIFSUP.minSupportPackage, Literal(0, datatype=XSD.integer)))
+    g.add((note_3201440, CIFSUP.maxSupportPackage, Literal(1, datatype=XSD.integer)))
+    g.add((note_3201440, CIFSUP.hasPrerequisiteNote, note_3185002))
+    g.add((note_3201440, CIFSUP.symptom, Literal("BAPI_PO_CREATE1 triggers TIME_OUT dump when processing POs with >500 line items.", lang="en")))
+    g.add((note_3201440, CIFSUP.rootCause, Literal("Sequential lock checks on table EKPO leading to lock escalation and dialog timeout.", lang="en")))
+    g.add((note_3201440, CIFSUP.resolution, Literal("Refactor lock enqueue to batch mode and apply prerequisite Note 3185002.", lang="en")))
 
     # Note 3345100: Resolves DBSQL_NO_MORE_CONNECTION on HANA DB
-    note_3345100 = URIRef("http://data.sap.com/support/note/3345100")
-    g.add((note_3345100, RDF.type, SAP.SAPNote))
-    g.add((note_3345100, SAP.noteNumber, Literal("3345100", datatype=XSD.string)))
-    g.add((note_3345100, SAP.title, Literal("HANA connection leak DBSQL_NO_MORE_CONNECTION in multi-tenant environment", lang="en")))
-    g.add((note_3345100, SAP.priority, Literal("Very High", datatype=XSD.string)))
-    g.add((note_3345100, SAP.affectsComponent, comp_bc_db_hdb))
-    g.add((note_3345100, SAP.resolvesAlert, alert_dbsql))
-    g.add((note_3345100, SAP.validForComponentVersion, scv_basis_758))
-    g.add((note_3345100, SAP.validForProductVersion, pv_s4_2023))
-    g.add((note_3345100, SAP.minSupportPackage, Literal(0, datatype=XSD.integer)))
-    g.add((note_3345100, SAP.maxSupportPackage, Literal(2, datatype=XSD.integer)))
-    g.add((note_3345100, SAP.symptom, Literal("Intermittent DBSQL_NO_MORE_CONNECTION errors when secondary database connections fail to release.", lang="en")))
-    g.add((note_3345100, SAP.resolution, Literal("Enable strict connection reclamation pool in DBSL.", lang="en")))
+    note_3345100 = CIFDATA["support/note/3345100"]
+    g.add((note_3345100, RDF.type, CIFSUP.SAPNote))
+    g.add((note_3345100, CIFSUP.noteNumber, Literal("3345100", datatype=XSD.string)))
+    g.add((note_3345100, CIFSUP.title, Literal("HANA connection leak DBSQL_NO_MORE_CONNECTION in multi-tenant environment", lang="en")))
+    g.add((note_3345100, CIFSUP.priority, Literal("Very High", datatype=XSD.string)))
+    g.add((note_3345100, CIFSUP.affectsComponent, comp_bc_db_hdb))
+    g.add((note_3345100, CIFSUP.resolvesAlert, alert_dbsql))
+    g.add((note_3345100, CIFSUP.validForComponentVersion, scv_basis_758))
+    g.add((note_3345100, CIFSUP.validForProductVersion, pv_s4_2023))
+    g.add((note_3345100, CIFSUP.minSupportPackage, Literal(0, datatype=XSD.integer)))
+    g.add((note_3345100, CIFSUP.maxSupportPackage, Literal(2, datatype=XSD.integer)))
+    g.add((note_3345100, CIFSUP.symptom, Literal("Intermittent DBSQL_NO_MORE_CONNECTION errors when secondary database connections fail to release.", lang="en")))
+    g.add((note_3345100, CIFSUP.resolution, Literal("Enable strict connection reclamation pool in DBSL.", lang="en")))
 
     # Additional diverse notes for robust benchmarking
     additional_notes = [
@@ -386,18 +418,34 @@ def build_sap_support_graph(ontology_paths: list[str | Path] | None = None) -> G
     ]
 
     for note_num, title, priority, comp, scv, pv, alert, min_sp, max_sp in additional_notes:
-        n_uri = URIRef(f"http://data.sap.com/support/note/{note_num}")
-        g.add((n_uri, RDF.type, SAP.SAPNote))
-        g.add((n_uri, SAP.noteNumber, Literal(note_num, datatype=XSD.string)))
-        g.add((n_uri, SAP.title, Literal(title, lang="en")))
-        g.add((n_uri, SAP.priority, Literal(priority, datatype=XSD.string)))
-        g.add((n_uri, SAP.affectsComponent, comp))
-        g.add((n_uri, SAP.validForComponentVersion, scv))
-        g.add((n_uri, SAP.validForProductVersion, pv))
-        g.add((n_uri, SAP.minSupportPackage, Literal(min_sp, datatype=XSD.integer)))
-        g.add((n_uri, SAP.maxSupportPackage, Literal(max_sp, datatype=XSD.integer)))
+        n_uri = CIFDATA[f"support/note/{note_num}"]
+        g.add((n_uri, RDF.type, CIFSUP.SAPNote))
+        g.add((n_uri, CIFSUP.noteNumber, Literal(note_num, datatype=XSD.string)))
+        g.add((n_uri, CIFSUP.title, Literal(title, lang="en")))
+        g.add((n_uri, CIFSUP.priority, Literal(priority, datatype=XSD.string)))
+        g.add((n_uri, CIFSUP.affectsComponent, comp))
+        g.add((n_uri, CIFSUP.validForComponentVersion, scv))
+        g.add((n_uri, CIFSUP.validForProductVersion, pv))
+        g.add((n_uri, CIFSUP.minSupportPackage, Literal(min_sp, datatype=XSD.integer)))
+        g.add((n_uri, CIFSUP.maxSupportPackage, Literal(max_sp, datatype=XSD.integer)))
         if alert:
-            g.add((n_uri, SAP.resolvesAlert, alert))
+            g.add((n_uri, CIFSUP.resolvesAlert, alert))
+
+    # Keep the human-readable node contract explicit for every support target
+    # class.  These labels are derived from the corresponding English display
+    # field so the generator and checked-in graph share one deterministic path.
+    label_sources = {
+        CIFSUP.SAPNote: CIFSUP.title,
+        CIFSUP.SystemAlert: CIFSUP.alertCode,
+        CIFSUP.ApplicationComponent: CIFSUP.componentDescription,
+        CIFSUP.SimCatCategory: CIFSUP.categoryName,
+    }
+    for target_class, source_predicate in label_sources.items():
+        for resource in g.subjects(RDF.type, target_class):
+            if g.value(resource, RDFS.label) is None:
+                source_value = g.value(resource, source_predicate)
+                if source_value is not None:
+                    g.add((resource, RDFS.label, Literal(str(source_value), lang="en")))
 
     return g
 

@@ -34,12 +34,12 @@ def test_finance_analyst_cannot_request_customer_pii_but_can_request_aggregate_s
 
     registry = SemanticRegistry.from_repository(REPOSITORY_ROOT)
     pii_plan = SemanticQueryPlan(
-        root_entity="sap:BusinessPartner",
-        projected_dimensions=["sap:BusinessPartner"],
+        root_entity="ciferp:BusinessPartner",
+        projected_dimensions=["ciferp:BusinessPartner"],
         selected_products=["BillingAnalytics"],
         caller=CallerContext(role="FinanceAnalyst"),
     )
-    aggregate_plan = pii_plan.model_copy(update={"projected_dimensions": ["sap:CompanyCode"]})
+    aggregate_plan = pii_plan.model_copy(update={"projected_dimensions": ["ciferp:CompanyCode"]})
     finance = CallerContext(role="FinanceAnalyst")
 
     pii_denied = authorize(pii_plan, finance, registry)

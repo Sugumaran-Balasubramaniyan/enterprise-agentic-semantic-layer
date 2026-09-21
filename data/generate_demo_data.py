@@ -1,4 +1,4 @@
-"""Generate the checked-in local demo data set."""
+"""Generate the checked-in synthetic local demo data set."""
 
 from datetime import date
 from pathlib import Path

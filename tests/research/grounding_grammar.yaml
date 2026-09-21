@@ -1,0 +1,262 @@
+schema_version: "1.0"
+
+filler_tokens:
+  - addressing
+  - addresses
+  - alert
+  - any
+  - an
+  - a
+  - affect
+  - all
+  - applied
+  - and
+  - application
+  - are
+  - at
+  - be
+  - before
+  - component
+  - directly
+  - database
+  - dependencies
+  - dependency
+  - details
+  - distribution
+  - does
+  - dump
+  - errors
+  - error
+  - affecting
+  - for
+  - find
+  - fixes
+  - fixing
+  - has
+  - have
+  - in
+  - is
+  - identify
+  - information
+  - list
+  - logged
+  - management
+  - memory
+  - note
+  - notes
+  - must
+  - of
+  - or
+  - "on"
+  - package
+  - prerequisite
+  - prerequisites
+  - required
+  - resolve
+  - resolves
+  - resolving
+  - retrieve
+  - runtime
+  - sales
+  - sap
+  - support
+  - the
+  - title
+  - under
+  - valid
+  - what
+  - which
+
+templates:
+  - id: note_lookup
+    intent: NOTE_LOOKUP
+    sequence: [lookup_verb, "filler*", note_number]
+  - id: alert_resolution
+    intent: ALERT_RESOLUTION
+    sequences:
+      - [question_word, "filler*", alert_code, "filler*", "component_code?", "product_version?", "support_package?", "priority?"]
+      - [question_word, "filler*", component_code, "filler*", alert_code, "filler*", "product_version?", "support_package?", "priority?"]
+  - id: component_search
+    intent: COMPONENT_SEARCH
+    sequence: [question_word, "filler*", component_code, "filler*", "product_version?", "support_package?", "priority?"]
+  - id: version_filtered_search
+    intent: VERSION_FILTERED_SEARCH
+    sequences:
+      - [question_word, "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "product_version|support_package", "filler*", "priority?"]
+      - [question_word, "filler*", alert_code, "filler*", "product_version|support_package", "filler*", "component_code?", "filler*", "priority?"]
+      - [question_word, "filler*", "product_version|support_package", "filler*", "alert_code|component_code", "filler*", "component_code?", "filler*", "priority?"]
+      - [question_word, "filler*", component_code, "filler*", alert_code, "filler*", "product_version|support_package", "filler*", "priority?"]
+      - [question_word, "filler*", alert_code, "filler*", product_version, "filler*", support_package, "filler*", "priority?"]
+      - [question_word, "filler*", alert_code, "filler*", product_version, "filler*", component_code, "filler*", support_package, "filler*", "priority?"]
+  - id: prerequisite_closure
+    intent: PREREQUISITE_CLOSURE
+    sequence: [question_word, "filler*", prerequisite_marker, "filler*", note_number]
+  - id: general_note_lookup
+    intent: GENERAL_SEARCH
+    sequence: [note_number]
+
+lookup_verb: [find, get, identify, retrieve, what, which]
+question_word: [find, get, identify, what, which, list, does]
+alert_context_tokens: [alert, addressing, addresses, dump, error, errors, for, fixes, resolve, resolves, resolving]
+prerequisite_marker: [dependency, dependencies, prerequisite, prerequisites]
+unsupported_intent_marker: [explain, recommend, summarize]
+
+fixtures:
+  - id: note_lookup
+    query: "Retrieve the title and details for SAP Note 3012445."
+    intent: NOTE_LOOKUP
+    failure_class: NONE
+    expected_status: SUCCESS
+    note_numbers: ["3012445"]
+  - id: alert_resolution
+    query: "Which SAP note resolves alert TIME_OUT in component MM-PUR-PO?"
+    intent: ALERT_RESOLUTION
+    failure_class: NONE
+    expected_status: SUCCESS
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
+  - id: alert_resolution_component_first
+    query: "Find notes in component MM-PUR-PO for alert TIME_OUT."
+    intent: ALERT_RESOLUTION
+    failure_class: NONE
+    expected_status: SUCCESS
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
+  - id: version_filtered_search
+    query: "Find notes for alert TIME_OUT in component MM-PUR-PO on S/4HANA 2023."
+    intent: VERSION_FILTERED_SEARCH
+    failure_class: NONE
+    expected_status: SUCCESS
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
+    product_versions: [S4HANA_2023]
+  - id: version_filtered_search_empty
+    query: "Find notes in component SD-SLS for alert TIME_OUT on S/4HANA 2022."
+    intent: VERSION_FILTERED_SEARCH
+    failure_class: NONE
+    expected_status: EMPTY_RESULT
+    alert_codes: [TIME_OUT]
+    component_codes: [SD-SLS]
+    product_versions: [S4HANA_2022]
+  - id: version_filtered_search_reordered_empty
+    query: "Find notes resolving alert TIME_OUT on S/4HANA 2022 in component SD-SLS."
+    intent: VERSION_FILTERED_SEARCH
+    failure_class: NONE
+    expected_status: EMPTY_RESULT
+    alert_codes: [TIME_OUT]
+    component_codes: [SD-SLS]
+    product_versions: [S4HANA_2022]
+  - id: prerequisite_closure
+    query: "What are the prerequisite notes required for SAP Note 3109922?"
+    intent: PREREQUISITE_CLOSURE
+    failure_class: NONE
+    expected_status: SUCCESS
+    note_numbers: ["3109922"]
+  - id: alert_resolution_very_high_priority
+    query: "Find notes for alert TIME_OUT in component MM-PUR-PO priority very high."
+    intent: ALERT_RESOLUTION
+    failure_class: NONE
+    expected_status: SUCCESS
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
+    priorities: [Very High]
+  - id: invalid_very_low_priority
+    query: "Find notes for alert TIME_OUT in component MM-PUR-PO priority VERY LOW."
+    intent: UNSUPPORTED
+    failure_class: UNKNOWN_ENTITY
+    expected_status: UNSUPPORTED
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
+  - id: unsupported_unanchored_version
+    query: "Find notes valid for S/4HANA 2023."
+    intent: UNSUPPORTED
+    failure_class: UNKNOWN_TOKEN
+    expected_status: UNSUPPORTED
+  - id: unsupported_two_alerts
+    query: "Find notes for alert TIME_OUT and alert DBSQL_NO_MORE_CONNECTION."
+    intent: UNSUPPORTED
+    failure_class: AMBIGUOUS_INPUT
+    expected_status: UNSUPPORTED
+  - id: unsupported_unknown_alert
+    query: "Find notes for alert UNKNOWN_ALERT."
+    intent: UNSUPPORTED
+    failure_class: UNKNOWN_ENTITY
+    expected_status: UNSUPPORTED
+  - id: unsupported_unknown_tokens
+    query: "Find notes for alert TIME_OUT in component BC-DB-HDB for an Oracle system."
+    intent: UNSUPPORTED
+    failure_class: UNKNOWN_TOKEN
+    expected_status: UNSUPPORTED
+
+v2_fixtures:
+  - id: Q41
+    category: negative_unknown_token
+    query: "Find notes for an unlicensed oracle system."
+    expected_status: UNSUPPORTED
+    failure_class: UNKNOWN_TOKEN
+  - id: Q42
+    category: negative_unknown_token
+    query: "Which notes resolve an unexplained outage?"
+    expected_status: UNSUPPORTED
+    failure_class: UNKNOWN_TOKEN
+  - id: Q43
+    category: negative_unknown_entity
+    query: "Find notes for alert UNKNOWN_ALERT."
+    expected_status: UNSUPPORTED
+    failure_class: UNKNOWN_ENTITY
+  - id: Q44
+    category: negative_unknown_entity
+    query: "Find notes for component ZZ-UNKNOWN."
+    expected_status: UNSUPPORTED
+    failure_class: UNKNOWN_ENTITY
+  - id: Q45
+    category: negative_ambiguity
+    query: "Find notes for alert TIME_OUT and alert DBSQL_NO_MORE_CONNECTION."
+    expected_status: UNSUPPORTED
+    failure_class: AMBIGUOUS_INPUT
+  - id: Q46
+    category: negative_ambiguity
+    query: "Find notes for component FI and component MM."
+    expected_status: UNSUPPORTED
+    failure_class: AMBIGUOUS_INPUT
+  - id: Q47
+    category: negative_unsupported_intent
+    query: "Summarize the support landscape in a paragraph."
+    expected_status: UNSUPPORTED
+    failure_class: UNSUPPORTED_INTENT
+  - id: Q48
+    category: negative_unsupported_intent
+    query: "Recommend a patch for this system."
+    expected_status: UNSUPPORTED
+    failure_class: UNSUPPORTED_INTENT
+  - id: Q49
+    category: negative_strict_empty
+    query: "Find notes for alert TIME_OUT in component MM-PUR-PO at SP99."
+    expected_status: EMPTY_RESULT
+    failure_class: NONE
+    alert_codes: [TIME_OUT]
+    component_codes: [MM-PUR-PO]
+    support_packages: [99]
+  - id: Q50
+    category: negative_strict_empty
+    query: "Find notes for alert DBSQL_NO_MORE_CONNECTION in component BC-DB-HDB at SP99."
+    expected_status: EMPTY_RESULT
+    failure_class: NONE
+    alert_codes: [DBSQL_NO_MORE_CONNECTION]
+    component_codes: [BC-DB-HDB]
+    support_packages: [99]
+  - id: Q51
+    category: negative_strict_empty
+    query: "Find notes resolving alert TIME_OUT on S/4HANA 2022 in component SD-SLS."
+    expected_status: EMPTY_RESULT
+    failure_class: NONE
+    alert_codes: [TIME_OUT]
+    component_codes: [SD-SLS]
+    product_versions: [S4HANA_2022]
+  - id: Q52
+    category: negative_strict_empty
+    query: "Find notes for alert CALL_FUNCTION_NOT_FOUND in component SD-SLS."
+    expected_status: EMPTY_RESULT
+    failure_class: NONE
+    alert_codes: [CALL_FUNCTION_NOT_FOUND]
+    component_codes: [SD-SLS]

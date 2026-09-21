@@ -1,4 +1,4 @@
-"""Deterministic, governed SAP semantic investigation and financial audit agents."""
+"""Deterministic, governed investigation and financial-audit agents for synthetic SAP-inspired data."""
 
 from semantic_layer.agents.workflow import (
     AgentAnswer,

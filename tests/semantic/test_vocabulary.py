@@ -11,7 +11,7 @@ VOCABULARY = ROOT / "semantic" / "vocabulary" / "sap_erp.yaml"
 
 
 def test_claim_vocabulary_has_required_governance_metadata() -> None:
-    posting = next(c for c in load_vocabulary(VOCABULARY) if c.id == "sap:FinancialPosting")
+    posting = next(c for c in load_vocabulary(VOCABULARY) if c.id == "ciferp:FinancialPosting")
     assert posting.version == "1.0.0"
     assert "Journal Entry" in posting.synonyms
     assert posting.sensitivity.classification == "Confidential"
@@ -20,28 +20,28 @@ def test_claim_vocabulary_has_required_governance_metadata() -> None:
 def test_vocabulary_contains_all_canonical_concepts() -> None:
     concepts = load_vocabulary(VOCABULARY)
     assert {concept.id for concept in concepts} == {
-        "sap:BusinessPartner",
-        "sap:SalesOrder",
-        "sap:FinancialPosting",
-        "sap:Product",
-        "sap:ProductAutomotive",
-        "sap:ProductCommercial",
-        "sap:Risk",
-        "sap:Coverage",
-        "sap:BillingDocument",
-        "sap:PostingStatus",
-        "sap:CompanyCode",
-        "sap:ActiveSalesOrder",
-        "sap:QualifyingPosting",
-        "sap:FinancialLoss",
+        "ciferp:BusinessPartner",
+        "ciferp:SalesOrder",
+        "ciferp:FinancialPosting",
+        "ciferp:Product",
+        "ciferp:ProductAutomotive",
+        "ciferp:ProductCommercial",
+        "ciferp:Risk",
+        "ciferp:Coverage",
+        "ciferp:BillingDocument",
+        "ciferp:PostingStatus",
+        "ciferp:CompanyCode",
+        "ciferp:ActiveSalesOrder",
+        "ciferp:QualifyingPosting",
+        "ciferp:FinancialLoss",
     }
 
 
 def test_vocabulary_retains_document_governance_metadata() -> None:
     vocabulary = load_vocabulary(VOCABULARY)
     assert vocabulary.version == "1.0.0"
-    assert vocabulary.namespace == "sap"
-    assert vocabulary.owner == "SAP SE"
+    assert vocabulary.namespace == "ciferp"
+    assert vocabulary.owner == "repository-maintained synthetic contract"
     assert vocabulary.metadata.version == "1.0.0"
 
 
@@ -71,15 +71,15 @@ def test_vocabulary_accepts_valid_semver_prerelease(tmp_path: Path) -> None:
     prerelease_path = tmp_path / "prerelease-vocabulary.yaml"
     prerelease_path.write_text(yaml.safe_dump(document), encoding="utf-8")
 
-    bp = next(c for c in load_vocabulary(prerelease_path) if c.id == "sap:BusinessPartner")
+    bp = next(c for c in load_vocabulary(prerelease_path) if c.id == "ciferp:BusinessPartner")
     assert bp.version == "1.0.0-rc.1"
 
 
 def test_claim_relationships_use_canonical_object_targets() -> None:
-    posting = next(c for c in load_vocabulary(VOCABULARY) if c.id == "sap:FinancialPosting")
+    posting = next(c for c in load_vocabulary(VOCABULARY) if c.id == "ciferp:FinancialPosting")
     relationships = {relationship.predicate: relationship.target for relationship in posting.relationships}
-    assert relationships["sap:hasPostingStatus"] == "sap:PostingStatus"
-    assert relationships["sap:hasFinancialLoss"] == "sap:FinancialLoss"
+    assert relationships["ciferp:hasPostingStatus"] == "ciferp:PostingStatus"
+    assert relationships["ciferp:hasFinancialLoss"] == "ciferp:FinancialLoss"
 
 
 def test_vocabulary_declares_canonical_customer_claim_and_policy_coverage_edges() -> None:
@@ -88,15 +88,15 @@ def test_vocabulary_declares_canonical_customer_claim_and_policy_coverage_edges(
     concepts = {concept.id: concept for concept in load_vocabulary(VOCABULARY)}
     bp_edges = {
         relationship.predicate: relationship.target
-        for relationship in concepts["sap:BusinessPartner"].relationships
+        for relationship in concepts["ciferp:BusinessPartner"].relationships
     }
     order_edges = {
         relationship.predicate: relationship.target
-        for relationship in concepts["sap:SalesOrder"].relationships
+        for relationship in concepts["ciferp:SalesOrder"].relationships
     }
 
-    assert bp_edges["sap:hasSalesOrder"] == "sap:SalesOrder"
-    assert bp_edges["sap:hasFinancialPosting"] == "sap:FinancialPosting"
-    assert order_edges["sap:hasProduct"] == "sap:Product"
-    assert order_edges["sap:coversRisk"] == "sap:Risk"
-    assert order_edges["sap:hasCoverage"] == "sap:Coverage"
+    assert bp_edges["ciferp:hasSalesOrder"] == "ciferp:SalesOrder"
+    assert bp_edges["ciferp:hasFinancialPosting"] == "ciferp:FinancialPosting"
+    assert order_edges["ciferp:hasProduct"] == "ciferp:Product"
+    assert order_edges["ciferp:coversRisk"] == "ciferp:Risk"
+    assert order_edges["ciferp:hasCoverage"] == "ciferp:Coverage"

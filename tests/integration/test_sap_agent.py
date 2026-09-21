@@ -6,6 +6,7 @@ import pytest
 
 from semantic_layer.kg.loader import SAPKnowledgeGraph
 from semantic_layer.reasoning.reflective_agent import AQRReflectiveAgent
+from semantic_layer.research.contracts import ReasonCode, Status
 
 
 @pytest.fixture
@@ -20,13 +21,18 @@ def agent() -> AQRReflectiveAgent:
 
 
 def test_agent_multihop_resolution(agent: AQRReflectiveAgent) -> None:
-    query = "Which SAP Note resolves dump TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2023 in component FI-GL?"
+    # The closed grammar requires the alert cue; retain the same scenario while
+    # migrating the legacy integration surface to the typed result contract.
+    query = "Which SAP Note resolves alert TSV_TNEW_PAGE_ALLOC_FAILED on S/4HANA 2023 in component FI-GL?"
     result = agent.run(query)
 
-    assert len(result.results) >= 1
-    found_nums = [r.get("noteNumber") for r in result.results]
+    assert result.status is Status.SUCCESS
+    assert result.reason_code is ReasonCode.NONE
+    assert len(result.bindings) >= 1
+    found_nums = [r.get("noteNumber") for r in result.bindings]
     assert "3109922" in found_nums
-    assert "SAP Note 3109922" in result.provenance_citations
+    assert result.provenance["official"] is False
+    assert result.provenance["dataset_id"] == "cifre-synthetic-support-ppms-v1"
     assert "ACDOCA" in result.answer
 
 
@@ -34,17 +40,22 @@ def test_agent_prerequisite_chain_traversal(agent: AQRReflectiveAgent) -> None:
     query = "What are the prerequisite notes required for SAP Note 3109922?"
     result = agent.run(query)
 
-    assert len(result.results) == 1
-    assert result.results[0].get("noteNumber") == "3098110"
-    assert "Memory paging buffer expansion" in result.results[0].get("title", "")
+    assert result.status is Status.SUCCESS
+    assert result.reason_code is ReasonCode.NONE
+    found_nums = {row.get("noteNumber") for row in result.bindings}
+    assert {"3012445", "3098110"}.issubset(found_nums)
+    assert any("Memory paging buffer expansion" in row.get("title", "") for row in result.bindings)
 
 
 def test_agent_reflective_self_correction_recovery(agent: AQRReflectiveAgent) -> None:
     query = "Find notes for alert TIME_OUT in component MM-PUR-PO at SP05"
     result = agent.run(query)
 
-    assert result.recovery_succeeded is True
-    assert len(result.reflection_history) >= 1
-    assert result.reflection_history[0].failure_type == "EMPTY_RESULT"
-    found_nums = [r.get("noteNumber") for r in result.results]
+    assert result.status is Status.EMPTY_RESULT
+    assert result.reason_code is ReasonCode.RELAX_SUPPORT_PACKAGE
+    assert result.answer_scope == "relaxed_candidates"
+    assert result.repair.recovery_success is False
+    found_nums = [r.get("noteNumber") for r in result.relaxed_candidates]
     assert "3201440" in found_nums
+    assert result.bindings == []
+    assert result.predicted_note_numbers == []

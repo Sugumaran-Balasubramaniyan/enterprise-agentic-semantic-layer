@@ -1,0 +1,21 @@
+@prefix cifsup: <https://example.org/cifre-kg/support#> .
+@prefix cifdata: <https://example.org/cifre-kg/data/> .
+
+<https://example.org/cifre-kg/data/support/note/N0> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N1> .
+<https://example.org/cifre-kg/data/support/note/N1> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N2> .
+<https://example.org/cifre-kg/data/support/note/N2> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N3> .
+<https://example.org/cifre-kg/data/support/note/N3> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N4> .
+<https://example.org/cifre-kg/data/support/note/N4> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N5> .
+<https://example.org/cifre-kg/data/support/note/N5> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N6> .
+<https://example.org/cifre-kg/data/support/note/N6> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N7> .
+<https://example.org/cifre-kg/data/support/note/N7> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N8> .
+<https://example.org/cifre-kg/data/support/note/N8> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N9> .
+<https://example.org/cifre-kg/data/support/note/N9> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N10> .
+<https://example.org/cifre-kg/data/support/note/N10> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N11> .
+<https://example.org/cifre-kg/data/support/note/N11> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N12> .
+<https://example.org/cifre-kg/data/support/note/N12> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N13> .
+<https://example.org/cifre-kg/data/support/note/N13> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N14> .
+<https://example.org/cifre-kg/data/support/note/N14> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N15> .
+<https://example.org/cifre-kg/data/support/note/N15> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N16> .
+<https://example.org/cifre-kg/data/support/note/N16> a cifsup:SAPNote ; cifsup:hasPrerequisiteNote <https://example.org/cifre-kg/data/support/note/N17> .
+<https://example.org/cifre-kg/data/support/note/N17> a cifsup:SAPNote .

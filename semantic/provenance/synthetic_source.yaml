@@ -1,0 +1,20 @@
+schema_version: "1.0"
+dataset_id: cifre-synthetic-support-ppms-v1
+source_kind: synthetic_fixture
+authority: independent_repository
+official: false
+source_license: repository-authored synthetic data
+generator: src/semantic_layer/kg/sap_dataset_generator.py:build_sap_support_graph
+graph_path: semantic/data/sap_support_graph.ttl
+namespace_registry:
+  cifsup: https://example.org/cifre-kg/support#
+  cifppms: https://example.org/cifre-kg/ppms#
+  cifdata: https://example.org/cifre-kg/data/
+  ciferp: https://example.org/cifre-kg/erp#
+  cifskos: https://example.org/cifre-kg/vocabulary#
+  cifmeta: https://example.org/cifre-kg/meta#
+  cifmetaid: https://example.org/cifre-kg/id/meta/
+synthetic_label_policy:
+  official_help_documentation: forbidden
+  official_note: forbidden
+  official_product: forbidden

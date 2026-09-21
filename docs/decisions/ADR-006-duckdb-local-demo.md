@@ -2,14 +2,14 @@
 
 ## Context
 
-A locally runnable reference must run without paid accounts, network access,
-or production data while exercising real compilation and execution.
+A local reference should run without a paid account, network access, or
+proprietary data while exercising real compilation and execution.
 
 ## Decision
 
 Use DuckDB over deterministic local CSV views as the only fully implemented
-execution adapter. Keep Databricks, Snowflake, and Fabric mappings and SQL
-examples as clearly labeled extension seams.
+execution adapter. Keep platform mappings and dialect snippets as clearly
+labeled illustrative extension seams.
 
 ## Alternatives
 
@@ -18,5 +18,9 @@ database server.
 
 ## Consequences
 
-The end-to-end path is reproducible and inexpensive. It is not evidence of
-cloud latency, cloud security, or production scale.
+The end-to-end path is reproducible and inexpensive for synthetic fixtures. It
+is not evidence of cloud latency, cloud security, production scale, or a live
+platform connection.
+
+Cloud execution is **Not implemented**; broader platform evaluation is
+**Proposed future work**.

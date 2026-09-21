@@ -1,67 +1,180 @@
-@prefix sap: <https://sap.example/erp/> .
+@prefix ciferp: <https://example.org/cifre-kg/erp#> .
+@prefix cifmeta: <https://example.org/cifre-kg/meta#> .
+@prefix cifmetaid: <https://example.org/cifre-kg/id/meta/> .
+@prefix cifskos: <https://example.org/cifre-kg/vocabulary#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-sap: a owl:Ontology ;
-    rdfs:label "SAP S/4HANA Enterprise Semantic Layer Ontology"@en ;
+ciferp: a owl:Ontology ;
+    rdfs:label "Synthetic ERP semantic layer ontology"@en ;
+    rdfs:comment "Repository-authored synthetic ERP classes and governed relationship fixtures."@en ;
     owl:versionInfo "1.0.0" ;
-    owl:versionIRI <https://sap.example/erp/1.0.0> .
+    owl:versionIRI <https://example.org/cifre-kg/erp#1.0.0> .
 
-sap:BusinessPartner a owl:Class .
-sap:SalesOrder a owl:Class .
-sap:FinancialPosting a owl:Class .
-sap:Product a owl:Class .
-sap:ProductAutomotive a owl:Class ; rdfs:subClassOf sap:Product .
-sap:ProductCommercial a owl:Class ; rdfs:subClassOf sap:Product .
-sap:Risk a owl:Class .
-sap:Coverage a owl:Class .
-sap:BillingDocument a owl:Class .
-sap:PostingStatus a owl:Class .
-sap:CompanyCode a owl:Class .
-sap:CountryCodedEntity a owl:Class .
-sap:BusinessPartner rdfs:subClassOf sap:CountryCodedEntity .
-sap:SalesOrder rdfs:subClassOf sap:CountryCodedEntity .
-sap:ActiveSalesOrder a owl:Class ; rdfs:subClassOf sap:SalesOrder .
-sap:QualifyingPosting a owl:Class ; rdfs:subClassOf sap:FinancialPosting .
-sap:FinancialLoss a owl:Class .
+ciferp:BusinessPartner a owl:Class ;
+    rdfs:label "Business Partner"@en ;
+    rdfs:comment "A synthetic party associated with orders and financial postings."@en .
+ciferp:SalesOrder a owl:Class ;
+    rdfs:label "Sales Order"@en ;
+    rdfs:comment "A synthetic commercial order used by the local ERP fixtures."@en .
+ciferp:FinancialPosting a owl:Class ;
+    rdfs:label "Financial Posting"@en ;
+    rdfs:comment "A synthetic journal posting associated with an order."@en .
+ciferp:Product a owl:Class ;
+    rdfs:label "Product"@en ;
+    rdfs:comment "A synthetic ERP product resource."@en .
+ciferp:ProductAutomotive a owl:Class ;
+    rdfs:label "Automotive Product"@en ;
+    rdfs:comment "A synthetic automotive product subclass."@en ;
+    rdfs:subClassOf ciferp:Product .
+ciferp:ProductCommercial a owl:Class ;
+    rdfs:label "Commercial Product"@en ;
+    rdfs:comment "A synthetic commercial product subclass."@en ;
+    rdfs:subClassOf ciferp:Product .
+ciferp:Risk a owl:Class ;
+    rdfs:label "Risk"@en ;
+    rdfs:comment "A synthetic risk resource associated with an order."@en .
+ciferp:Coverage a owl:Class ;
+    rdfs:label "Coverage"@en ;
+    rdfs:comment "A synthetic coverage resource associated with an order."@en .
+ciferp:BillingDocument a owl:Class ;
+    rdfs:label "Billing Document"@en ;
+    rdfs:comment "A synthetic billing document resource."@en .
+ciferp:PostingStatus a owl:Class ;
+    rdfs:label "Posting Status"@en ;
+    rdfs:comment "A synthetic posting-status resource."@en .
+ciferp:CompanyCode a owl:Class ;
+    rdfs:label "Company Code"@en ;
+    rdfs:comment "A synthetic jurisdiction or company-code resource."@en .
+ciferp:CountryCodedEntity a owl:Class ;
+    rdfs:label "Country-Coded Entity"@en ;
+    rdfs:comment "A synthetic ERP entity carrying a governed country code."@en .
+ciferp:BusinessPartner rdfs:subClassOf ciferp:CountryCodedEntity .
+ciferp:SalesOrder rdfs:subClassOf ciferp:CountryCodedEntity .
+ciferp:ActiveSalesOrder a owl:Class ;
+    rdfs:label "Active Sales Order"@en ;
+    rdfs:comment "A synthetic sales-order subset with a released lifecycle status."@en ;
+    rdfs:subClassOf ciferp:SalesOrder .
+ciferp:QualifyingPosting a owl:Class ;
+    rdfs:label "Qualifying Posting"@en ;
+    rdfs:comment "A synthetic posting subset retained by the governed status rule."@en ;
+    rdfs:subClassOf ciferp:FinancialPosting .
+ciferp:FinancialLoss a owl:Class ;
+    rdfs:label "Financial Loss"@en ;
+    rdfs:comment "A synthetic loss amount resource."@en .
 
-sap:hasSalesOrder a owl:ObjectProperty ;
-    rdfs:domain sap:BusinessPartner ; rdfs:range sap:SalesOrder .
-sap:hasFinancialPosting a owl:ObjectProperty ;
-    rdfs:domain sap:BusinessPartner ; rdfs:range sap:FinancialPosting .
-sap:referencesSalesOrder a owl:ObjectProperty ;
-    rdfs:domain sap:FinancialPosting ; rdfs:range sap:SalesOrder .
-sap:hasProduct a owl:ObjectProperty ;
-    rdfs:domain sap:SalesOrder ; rdfs:range sap:Product .
-sap:coversRisk a owl:ObjectProperty ;
-    rdfs:domain sap:SalesOrder ; rdfs:range sap:Risk .
-sap:hasCoverage a owl:ObjectProperty ;
-    rdfs:domain sap:SalesOrder ; rdfs:range sap:Coverage .
-sap:generatesBilling a owl:ObjectProperty ;
-    rdfs:domain sap:SalesOrder ; rdfs:range sap:BillingDocument .
-sap:postingOrder a owl:ObjectProperty ;
-    rdfs:subPropertyOf sap:referencesSalesOrder ;
-    rdfs:domain sap:FinancialPosting ; rdfs:range sap:SalesOrder .
-sap:orderProduct a owl:ObjectProperty ;
-    rdfs:subPropertyOf sap:hasProduct ;
-    rdfs:domain sap:SalesOrder ; rdfs:range sap:Product .
+ciferp:hasSalesOrder a owl:ObjectProperty ;
+    rdfs:label "has sales order"@en ;
+    rdfs:comment "Associates a business partner with a synthetic sales order."@en ;
+    rdfs:domain ciferp:BusinessPartner ; rdfs:range ciferp:SalesOrder .
+ciferp:hasFinancialPosting a owl:ObjectProperty ;
+    rdfs:label "has financial posting"@en ;
+    rdfs:comment "Associates a business partner with a synthetic financial posting."@en ;
+    rdfs:domain ciferp:BusinessPartner ; rdfs:range ciferp:FinancialPosting .
+ciferp:referencesSalesOrder a owl:ObjectProperty ;
+    rdfs:label "references sales order"@en ;
+    rdfs:comment "Associates a financial posting with its synthetic sales order."@en ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range ciferp:SalesOrder .
+ciferp:postingOrder a owl:ObjectProperty ;
+    rdfs:label "posting order"@en ;
+    rdfs:comment "A governed subproperty linking a posting to its order."@en ;
+    rdfs:subPropertyOf ciferp:referencesSalesOrder ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range ciferp:SalesOrder .
+ciferp:hasProduct a owl:ObjectProperty ;
+    rdfs:label "has product"@en ;
+    rdfs:comment "Associates a sales order with a synthetic product."@en ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range ciferp:Product .
+ciferp:orderProduct a owl:ObjectProperty ;
+    rdfs:label "order product"@en ;
+    rdfs:comment "A governed subproperty linking an order to its product."@en ;
+    rdfs:subPropertyOf ciferp:hasProduct ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range ciferp:Product .
+ciferp:coversRisk a owl:ObjectProperty ;
+    rdfs:label "covers risk"@en ;
+    rdfs:comment "Associates a sales order with a synthetic risk."@en ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range ciferp:Risk .
+ciferp:hasCoverage a owl:ObjectProperty ;
+    rdfs:label "has coverage"@en ;
+    rdfs:comment "Associates a sales order with a synthetic coverage resource."@en ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range ciferp:Coverage .
+ciferp:referencesBusinessPartner a owl:ObjectProperty ;
+    rdfs:label "references business partner"@en ;
+    rdfs:comment "Associates a sales order with its synthetic business partner."@en ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range ciferp:BusinessPartner .
+ciferp:generatesBilling a owl:ObjectProperty ;
+    rdfs:label "generates billing document"@en ;
+    rdfs:comment "Associates a sales order with a synthetic billing document."@en ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range ciferp:BillingDocument .
+ciferp:hasPostingStatus a owl:ObjectProperty ;
+    rdfs:label "has posting status"@en ;
+    rdfs:comment "Associates a financial posting with a synthetic status resource."@en ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range ciferp:PostingStatus .
+ciferp:hasFinancialLoss a owl:ObjectProperty ;
+    rdfs:label "has financial loss"@en ;
+    rdfs:comment "Associates a financial posting with a synthetic loss resource."@en ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range ciferp:FinancialLoss .
 
-sap:countryCode a owl:DatatypeProperty ;
-    rdfs:domain sap:CountryCodedEntity ; rdfs:range xsd:string .
+ciferp:partnerId a owl:DatatypeProperty ;
+    rdfs:label "partner identifier"@en ;
+    rdfs:comment "Synthetic business-partner identifier."@en ;
+    rdfs:domain ciferp:BusinessPartner ; rdfs:range xsd:string .
+ciferp:salesOrderId a owl:DatatypeProperty ;
+    rdfs:label "sales-order identifier"@en ;
+    rdfs:comment "Synthetic sales-order identifier."@en ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range xsd:string .
+ciferp:journalEntryId a owl:DatatypeProperty ;
+    rdfs:label "journal-entry identifier"@en ;
+    rdfs:comment "Synthetic journal-entry identifier."@en ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range xsd:string .
+ciferp:countryCode a owl:DatatypeProperty ;
+    rdfs:label "country code"@en ;
+    rdfs:comment "Governed country code for a synthetic ERP entity."@en ;
+    rdfs:domain ciferp:CountryCodedEntity ; rdfs:range xsd:string .
+ciferp:orderStatus a owl:DatatypeProperty ;
+    rdfs:label "order status"@en ;
+    rdfs:comment "Governed lifecycle status for a synthetic sales order."@en ;
+    rdfs:domain ciferp:SalesOrder ; rdfs:range xsd:string .
+ciferp:postingDate a owl:DatatypeProperty ;
+    rdfs:label "posting date"@en ;
+    rdfs:comment "Date of a synthetic financial posting."@en ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range xsd:date .
+ciferp:postingStatus a owl:DatatypeProperty ;
+    rdfs:label "posting status"@en ;
+    rdfs:comment "Governed lifecycle status for a synthetic financial posting."@en ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range xsd:string .
+ciferp:amountInCompanyCurrency a owl:DatatypeProperty ;
+    rdfs:label "amount in company currency"@en ;
+    rdfs:comment "Non-negative synthetic posting amount in company currency."@en ;
+    rdfs:domain ciferp:FinancialPosting ; rdfs:range xsd:decimal .
+ciferp:statusValue a owl:DatatypeProperty ;
+    rdfs:label "status value"@en ;
+    rdfs:comment "Literal code for a synthetic posting status."@en ;
+    rdfs:domain ciferp:PostingStatus ; rdfs:range xsd:string .
+ciferp:amountValue a owl:DatatypeProperty ;
+    rdfs:label "amount value"@en ;
+    rdfs:comment "Synthetic financial-loss amount."@en ;
+    rdfs:domain ciferp:FinancialLoss ; rdfs:range xsd:decimal .
 
-sap:partnerId a owl:DatatypeProperty ; rdfs:domain sap:BusinessPartner ; rdfs:range xsd:string .
-sap:salesOrderId a owl:DatatypeProperty ; rdfs:domain sap:SalesOrder ; rdfs:range xsd:string .
-sap:journalEntryId a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:string .
-sap:postingDate a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:date .
-sap:postingStatus a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:string .
-sap:orderStatus a owl:DatatypeProperty ; rdfs:domain sap:SalesOrder ; rdfs:range xsd:string .
-sap:amountInCompanyCurrency a owl:DatatypeProperty ; rdfs:domain sap:FinancialPosting ; rdfs:range xsd:decimal .
-sap:hasPostingStatus a owl:ObjectProperty ;
-    rdfs:domain sap:FinancialPosting ; rdfs:range sap:PostingStatus .
-sap:hasFinancialLoss a owl:ObjectProperty ;
-    rdfs:domain sap:FinancialPosting ; rdfs:range sap:FinancialLoss .
-sap:statusValue a owl:DatatypeProperty ;
-    rdfs:domain sap:PostingStatus ; rdfs:range xsd:string .
-sap:amountValue a owl:DatatypeProperty ;
-    rdfs:domain sap:FinancialLoss ; rdfs:range xsd:decimal .
+cifmeta:CrosswalkEntry a owl:Class ;
+    rdfs:label "Synthetic Crosswalk Entry"@en ;
+    rdfs:comment "A reviewed mapping between synthetic ERP resources and SKOS concepts."@en .
+cifmeta:sourceResource a owl:ObjectProperty ;
+    rdfs:label "source resource"@en ;
+    rdfs:comment "ERP resource participating in a synthetic crosswalk."@en ;
+    rdfs:domain cifmeta:CrosswalkEntry ; rdfs:range ciferp:Product .
+cifmeta:targetConcept a owl:ObjectProperty ;
+    rdfs:label "target concept"@en ;
+    rdfs:comment "SKOS concept participating in a synthetic crosswalk."@en ;
+    rdfs:domain cifmeta:CrosswalkEntry ; rdfs:range skos:Concept .
+cifmeta:crosswalkVersion a owl:DatatypeProperty ;
+    rdfs:label "crosswalk version"@en ;
+    rdfs:comment "Version marker for the reviewed synthetic mapping."@en ;
+    rdfs:domain cifmeta:CrosswalkEntry ; rdfs:range xsd:string .
+
+cifmetaid:crosswalk-entry-product-automotive a cifmeta:CrosswalkEntry ;
+    cifmeta:sourceResource ciferp:ProductAutomotive ;
+    cifmeta:targetConcept cifskos:ProductAutomotive ;
+    cifmeta:crosswalkVersion "1.0"^^xsd:string .

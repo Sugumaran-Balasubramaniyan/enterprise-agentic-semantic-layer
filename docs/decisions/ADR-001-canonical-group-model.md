@@ -1,21 +1,28 @@
-# ADR-001: Canonical Group model
+# ADR-001: Canonical semantic model
 
 ## Context
 
-Enterprise reporting needs one meaning for Business Partner, Sales Order, Financial Posting, and products.
+Questions over the synthetic support and relational fixtures need one stable
+meaning for business partners, orders, postings, products, and graph terms.
+Independent labels would make local mappings and tests incomparable.
 
 ## Decision
 
-Group owns canonical concepts, relationships, allowed values, and semantic
-versioning. Local mappings normalize into those concepts before planning or
-metric evaluation.
+Maintain one repository-reviewed canonical vocabulary, relationship model,
+allowed-value set, and semantic version. Local mappings normalize into those
+terms before planning or metric evaluation. This is a repository design
+decision, not a claim that an external group owns or publishes the model.
 
 ## Alternatives
 
-Allow each country to publish independent semantics, or maintain a central
-warehouse schema without explicit semantic assets.
+Allow every local fixture to publish independent semantics, or maintain only a
+central table schema without explicit semantic assets.
 
 ## Consequences
 
-Cross-country questions become comparable and reviewable. Local teams retain
-schema autonomy, but must maintain mappings and coordinate breaking changes.
+Cross-fixture questions remain comparable and reviewable. Local schemas retain
+their own shape, while mappings and breaking changes are visible in Git and
+covered by tests. Future external stewardship would require a separately
+reviewed governance process.
+
+External stewardship is **Proposed future work** and is **Not implemented**.

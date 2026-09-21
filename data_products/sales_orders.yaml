@@ -1,11 +1,11 @@
 id: SalesOrders
 name: Sales Orders (VBAK/VBAP)
 version: "1.0.0"
-owner: SAP SE Sales and Distribution
-platform: Federated
-location: Group
+owner: repository-maintained synthetic contract
+platform: Local synthetic reference
+location: Repository
 grain: one row per sales order
-sla: daily by 06:00 UTC
+sla: not applicable to synthetic repository data
 classification: Confidential
 pii:
   - partner_id
@@ -15,7 +15,7 @@ quality:
     - sales_order_id is non-null and unique
     - partner_id references BusinessPartners
     - order_status is RELEASED, CLOSED, or CANCELLED
-    - product resolves through a certified local mapping
+    - product resolves through an approved local mapping
 lineage:
   upstream:
     - local S/4HANA Sales systems in France, United Kingdom, and Germany
@@ -23,45 +23,45 @@ lineage:
     - local material codes are normalized to SAP product taxonomy
     - local order lifecycle values are normalized to the Group status vocabulary
 concepts:
-  - sap:SalesOrder
-  - sap:ActiveSalesOrder
-  - sap:Product
-  - sap:ProductAutomotive
+  - ciferp:SalesOrder
+  - ciferp:ActiveSalesOrder
+  - ciferp:Product
+  - ciferp:ProductAutomotive
 schema:
   - name: sales_order_id
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: partner_id
     type: string
-    concept: sap:BusinessPartner
+    concept: ciferp:BusinessPartner
     nullable: false
     pii: true
   - name: country
     type: string
-    concept: sap:CompanyCode
+    concept: ciferp:CompanyCode
     nullable: false
   - name: product
     type: string
-    concept: sap:Product
+    concept: ciferp:Product
     nullable: false
   - name: order_status
     type: string
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: effective_date
     type: date
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: expiry_date
     type: date
-    concept: sap:SalesOrder
+    concept: ciferp:SalesOrder
     nullable: false
   - name: net_value_eur
     type: decimal
-    concept: sap:BillingDocument
+    concept: ciferp:BillingDocument
     nullable: false
 certification:
   status: CERTIFIED
-  certified_by: SAP Enterprise Data Governance Board
+  certified_by: repository-maintained synthetic contract
   certified_at: "2026-08-28"

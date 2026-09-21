@@ -27,7 +27,7 @@ def test_execute_endpoint_returns_traceable_agent_answer(client: TestClient) -> 
     assert response.status_code == 200
     body = response.json()
     assert body["provenance"]["quality_status"] == "PASS"
-    assert body["plan"]["root_entity"] == "sap:BusinessPartner"
+    assert body["plan"]["root_entity"] == "ciferp:BusinessPartner"
     assert "SELECT" in body["compiled_query"]["sql"]
 
     provenance = client.get(f"/provenance/{body['provenance']['query_id']}")

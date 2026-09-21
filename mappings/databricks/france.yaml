@@ -1,6 +1,7 @@
+# Illustrative mapping only; this repository does not connect to Databricks.
 id: DatabricksFranceMapping
 version: "1.0.0"
-owner: SAP France Data Office
+owner: repository-maintained synthetic contract
 platform: Databricks
 location: FR
 data_products:
@@ -16,29 +17,29 @@ source:
     acdoca_financials: erp_acdoca_financials
     billing_documents: erp_billing_document
 fields:
-  partner_id: {physical_name: partner_id, concept: sap:BusinessPartner, pii: true}
-  partner_name: {physical_name: partner_name, concept: sap:BusinessPartner, pii: true}
-  email: {physical_name: email, concept: sap:BusinessPartner, pii: true}
-  sales_order_id: {physical_name: sales_order_id, concept: sap:SalesOrder, pii: false}
-  order_status: {physical_name: order_status_local, concept: sap:SalesOrder, canonical_subset: sap:ActiveSalesOrder, pii: false}
-  effective_date: {physical_name: effective_date, concept: sap:SalesOrder, pii: false}
-  expiry_date: {physical_name: expiry_date, concept: sap:SalesOrder, pii: false}
-  net_value_eur: {physical_name: net_value, concept: sap:BillingDocument, pii: false}
-  journal_entry_id: {physical_name: journal_entry_id, concept: sap:FinancialPosting, pii: false}
-  country: {physical_name: market_code, concept: sap:CompanyCode, pii: false}
-  product: {physical_name: product_code, concept: sap:Product, pii: false}
-  posting_status: {physical_name: doc_state, concept: sap:PostingStatus, pii: false}
-  posting_date: {physical_name: doc_date, concept: sap:FinancialPosting, pii: false}
-  amount_in_company_currency_eur: {physical_name: debit_amount, concept: sap:FinancialLoss, pii: false}
-  billing_doc_id: {physical_name: billing_doc_id, concept: sap:BillingDocument, pii: false}
-  billing_date: {physical_name: billing_date, concept: sap:BillingDocument, pii: false}
-  billed_amount_eur: {physical_name: billed_amount, concept: sap:BillingDocument, pii: false}
+  partner_id: {physical_name: partner_id, concept: ciferp:BusinessPartner, pii: true}
+  partner_name: {physical_name: partner_name, concept: ciferp:BusinessPartner, pii: true}
+  email: {physical_name: email, concept: ciferp:BusinessPartner, pii: true}
+  sales_order_id: {physical_name: sales_order_id, concept: ciferp:SalesOrder, pii: false}
+  order_status: {physical_name: order_status_local, concept: ciferp:SalesOrder, canonical_subset: ciferp:ActiveSalesOrder, pii: false}
+  effective_date: {physical_name: effective_date, concept: ciferp:SalesOrder, pii: false}
+  expiry_date: {physical_name: expiry_date, concept: ciferp:SalesOrder, pii: false}
+  net_value_eur: {physical_name: net_value, concept: ciferp:BillingDocument, pii: false}
+  journal_entry_id: {physical_name: journal_entry_id, concept: ciferp:FinancialPosting, pii: false}
+  country: {physical_name: market_code, concept: ciferp:CompanyCode, pii: false}
+  product: {physical_name: product_code, concept: ciferp:Product, pii: false}
+  posting_status: {physical_name: doc_state, concept: ciferp:PostingStatus, pii: false}
+  posting_date: {physical_name: doc_date, concept: ciferp:FinancialPosting, pii: false}
+  amount_in_company_currency_eur: {physical_name: debit_amount, concept: ciferp:FinancialLoss, pii: false}
+  billing_doc_id: {physical_name: billing_doc_id, concept: ciferp:BillingDocument, pii: false}
+  billing_date: {physical_name: billing_date, concept: ciferp:BillingDocument, pii: false}
+  billed_amount_eur: {physical_name: billed_amount, concept: ciferp:BillingDocument, pii: false}
 normalization:
   products:
-    MOTOR: sap:ProductAutomotive
-    MTR: sap:ProductAutomotive
-    sap:ProductAutomotive: sap:ProductAutomotive
-    HOME: sap:ProductCommercial
+    MOTOR: ciferp:ProductAutomotive
+    MTR: ciferp:ProductAutomotive
+    ciferp:ProductAutomotive: ciferp:ProductAutomotive
+    HOME: ciferp:ProductCommercial
   statuses:
     COMPTABILISE: POSTED
     RAPPROCHE: CLEARED

@@ -1,46 +1,43 @@
-# Federated semantics
+# Secondary federated semantic-layer reference
 
-The enterprise architecture model owns the canonical vocabulary and semantic version. Regional
-entities own their physical schemas and mappings. The three mapping assets
-describe the field-level contract and normalize local values before a metric
-or query plan can use them.
+This page documents the repository's secondary relational reference path. The
+mapping files are **Synthetic/simulated** and are illustrative mappings, not
+live connections, external ownership statements, or platform certifications.
 
-| Local entity | Platform | Location | Local automotive values |
+| Local fixture context | Illustrative platform | Region code | Local automotive values |
 | --- | --- | --- | --- |
-| France | Databricks | FR | `MOTOR`, `MTR` |
-| United Kingdom | Snowflake | GB | `AUTO`, `CAR` |
-| Germany | Microsoft Fabric | DE | `Automotive` |
+| France | Databricks example | FR | `MOTOR`, `MTR` |
+| United Kingdom | Snowflake example | GB | `AUTO`, `CAR` |
+| Germany | Microsoft Fabric example | DE | `Automotive` |
 
-All three values resolve to `sap:ProductAutomotive` through
-`canonical_product(platform, value)`. Unknown platforms and values fail closed
-with a `ValueError`; an unmapped product cannot silently enter a governed
-metric. Status mappings work the same way and preserve the canonical
-`POSTED`, `CLEARED`, `REVERSED`, and `DUPLICATE` vocabulary.
+The values map to the neutral `cifskos:ProductAutomotive` concept through the
+repository's mapping service. Unknown platforms and values fail closed with a
+`ValueError`; an unmapped value cannot silently enter a local metric. Status
+mappings preserve the controlled `POSTED`, `CLEARED`, `REVERSED`, and
+`DUPLICATE` vocabulary.
 
-Order lifecycle mappings are explicit on every platform as well. Local
-`EN_COURS` (FR), `OPEN` / `RELEASED` (GB), and `FREIGEGEBEN` (DE) all normalize to canonical
-`RELEASED`, the value admitted by `sap:ActiveSalesOrder`; local closed
-and cancelled values normalize to `CLOSED` and `CANCELLED` respectively.
+Order lifecycle mappings are explicit as well. Local `EN_COURS` (FR),
+`OPEN`/`RELEASED` (GB), and `FREIGEGEBEN` (DE) normalize to `RELEASED`; closed
+and cancelled values normalize to `CLOSED` and `CANCELLED`.
 
 ```mermaid
 flowchart LR
-    FR[France / Databricks] -->|certified mapping| C[sap:ProductAutomotive]
-    UK[UK / Snowflake] -->|certified mapping| C
-    DE[Germany / Fabric] -->|certified mapping| C
-    C --> M[Governed metrics and query plans]
+    FR[France example] -->|illustrative mapping| C[cifskos:ProductAutomotive]
+    UK[United Kingdom example] -->|illustrative mapping| C
+    DE[Germany example] -->|illustrative mapping| C
+    C --> M[Local metrics and typed plans]
 ```
 
-The mapping files intentionally document cloud source identifiers without
-claiming a live cloud connection. The local execution boundary is the
-DuckDB/CSV adapter in later tasks; platform SQL examples can be compiled from
-the same semantic fields but are not executed without credentials.
+The mapping files retain platform-shaped source identifiers so the contract is
+reviewable, but no network request or cloud query is made. Local execution ends
+at the DuckDB/CSV adapter. A future platform adapter would need its own
+credentials, native identity and security controls, performance evidence, and
+privacy review.
 
-Enterprise governance owns the canonical vocabulary, ontology, interoperability rules, and
-semantic CI. France, the UK, and Germany own their local schemas, products,
-mappings, and regulatory policies. This ownership split means local autonomy
-does not become semantic divergence: every mapping is reviewed and tested
-against the enterprise contract before a metric can consume it.
+The repository maintains these illustrative mappings and the neutral semantic
+contract. The mapping boundary is intentionally separate from any external
+organization's ownership model. See [architecture](architecture.md) and
+[ADR-001](decisions/ADR-001-canonical-group-model.md).
 
-See [architecture](architecture.md) for the mapping boundary and
-[ADR-001](decisions/ADR-001-canonical-group-model.md) for the canonical Group
-model decision.
+Live platform execution is **Not implemented**; adapter verification is
+**Proposed future work**.

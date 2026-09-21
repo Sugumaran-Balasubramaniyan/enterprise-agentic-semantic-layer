@@ -73,14 +73,14 @@ def test_primary_provenance_contains_semantic_closure_and_separates_source_evide
     )
 
     assert {
-        "sap:BusinessPartner",
-        "sap:CompanyCode",
-        "sap:Product",
-        "sap:SalesOrder",
-        "sap:ProductAutomotive",
-        "sap:FinancialPosting",
-        "sap:QualifyingPosting",
-        "sap:FinancialLoss",
+        "ciferp:BusinessPartner",
+        "ciferp:CompanyCode",
+        "ciferp:Product",
+        "ciferp:SalesOrder",
+        "ciferp:ProductAutomotive",
+        "ciferp:FinancialPosting",
+        "ciferp:QualifyingPosting",
+        "ciferp:FinancialLoss",
     } <= set(provenance.concepts)
     assert set(provenance.queried_sources) == {"business_partners.csv", "sales_orders.csv", "acdoca_financials.csv"}
     assert set(provenance.quality_validated_sources) == {

@@ -1,62 +1,62 @@
 version: "1.0.0"
-owner: SAP SE
+owner: repository-maintained synthetic contract
 metrics:
-  - id: sap:PostingCount
+  - id: ciferp:PostingCount
     name: PostingCount
     version: "1.0.0"
     definition: Number of distinct qualifying financial journal postings in the selected time context.
-    concept: sap:QualifyingPosting
+    concept: ciferp:QualifyingPosting
     expression: COUNT(DISTINCT journal_entry_id)
     aggregation: count_distinct
     unit: postings
-    filter_rule: sap:QualifyingPosting
+    filter_rule: ciferp:QualifyingPosting
     source_products: [ACDOCAFinancials]
-  - id: sap:TotalDebitLossEur
+  - id: ciferp:TotalDebitLossEur
     name: TotalDebitLossEur
     version: "1.0.0"
     definition: Sum of financial write-off / debit loss for distinct qualifying postings in the selected time context.
-    concept: sap:FinancialLoss
+    concept: ciferp:FinancialLoss
     expression: SUM(amount_in_company_currency_eur)
     aggregation: sum
     unit: EUR
-    filter_rule: sap:QualifyingPosting
+    filter_rule: ciferp:QualifyingPosting
     source_products: [ACDOCAFinancials]
-  - id: sap:AveragePostingAmountEur
+  - id: ciferp:AveragePostingAmountEur
     name: AveragePostingAmountEur
     version: "1.0.0"
     definition: Average financial loss per distinct qualifying journal posting.
-    concept: sap:FinancialLoss
+    concept: ciferp:FinancialLoss
     expression: SUM(amount_in_company_currency_eur) / NULLIF(COUNT(DISTINCT journal_entry_id), 0)
     aggregation: average
     unit: EUR per posting
-    filter_rule: sap:QualifyingPosting
+    filter_rule: ciferp:QualifyingPosting
     source_products: [ACDOCAFinancials]
-  - id: sap:ActiveSalesOrderCount
+  - id: ciferp:ActiveSalesOrderCount
     name: ActiveSalesOrderCount
     version: "1.0.0"
     definition: Number of sales orders whose governed lifecycle status is RELEASED.
-    concept: sap:ActiveSalesOrder
+    concept: ciferp:ActiveSalesOrder
     expression: COUNT(DISTINCT sales_order_id) WHERE order_status = 'RELEASED'
     aggregation: count_distinct
     unit: orders
-    filter_rule: sap:ActiveSalesOrder
+    filter_rule: ciferp:ActiveSalesOrder
     source_products: [SalesOrders]
-  - id: sap:CostRevenueRatio
+  - id: ciferp:CostRevenueRatio
     name: CostRevenueRatio
     version: "1.0.0"
     definition: Separately aggregated qualifying financial loss divided by separately aggregated billed revenue for the same aligned scope.
-    concept: sap:FinancialLoss
+    concept: ciferp:FinancialLoss
     expression: loss_aggregate.total_debit_loss_eur / NULLIF(revenue_aggregate.total_billed_amount_eur, 0)
     aggregation: ratio_of_aggregates
     unit: ratio
-    filter_rule: sap:QualifyingPosting
+    filter_rule: ciferp:QualifyingPosting
     source_products: [ACDOCAFinancials, BillingAnalytics]
-    dependencies: [sap:TotalDebitLossEur]
+    dependencies: [ciferp:TotalDebitLossEur]
     numerator:
       product: ACDOCAFinancials
       measure: amount_in_company_currency_eur
       aggregation: SUM
-      filter_rule: sap:QualifyingPosting
+      filter_rule: ciferp:QualifyingPosting
       aggregate_name: total_debit_loss_eur
     denominator:
       product: BillingAnalytics

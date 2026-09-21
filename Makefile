@@ -4,36 +4,46 @@ VENV_PYTHON := $(VENV)/bin/python
 # for a fresh checkout.  A caller may still override PYTHON explicitly.
 PYTHON ?= $(if $(wildcard $(VENV_PYTHON)),$(VENV_PYTHON),python3)
 
-.PHONY: setup test lint validate-semantic check-yaml check-mappings-quality check-golden check-compiler demo evaluate run-api kg-build kg-validate research-benchmark research-demo
+.PHONY: setup test lint validate-semantic check-yaml check-publication-formats check-mappings-quality check-golden check-compiler demo evaluate run-api kg-build kg-validate research-benchmark research-demo research-verify
 setup:
-	$(PYTHON) -m venv $(VENV)
-	$(VENV_PYTHON) -m pip install -e '.[dev]'
+	python3.12 -m venv $(VENV)
+	$(VENV_PYTHON) -m pip install --upgrade pip==25.2
+	$(VENV_PYTHON) -m pip install --require-hashes -r constraints/py312.txt
 test:
-	$(PYTHON) -m pytest
+	PYTHONPATH=src $(PYTHON) -m pytest
 lint:
-	$(PYTHON) -m ruff check .
+	PYTHONPATH=src $(PYTHON) -m ruff check .
 validate-semantic:
-	$(PYTHON) -m semantic_layer.validation
+	PYTHONPATH=src $(PYTHON) -m semantic_layer.validation
 check-yaml:
-	$(PYTHON) -c "from pathlib import Path; import yaml; files=[path for path in Path('.').rglob('*.yaml') if '.venv' not in path.parts and '.git' not in path.parts]; [yaml.safe_load(path.read_text(encoding='utf-8')) for path in files]; print(f'YAML: {len(files)} files parsed')"
+	PYTHONPATH=src $(PYTHON) -c "from pathlib import Path; import yaml; files=[path for path in Path('.').rglob('*.yaml') if '.venv' not in path.parts and '.git' not in path.parts]; [yaml.safe_load(path.read_text(encoding='utf-8')) for path in files]; print(f'YAML: {len(files)} files parsed')"
+check-publication-formats:
+	PYTHONPATH=src $(PYTHON) scripts/check_publication_formats.py
 check-mappings-quality:
-	$(PYTHON) -m pytest tests/semantic/test_mappings.py tests/unit/test_quality.py -q
+	PYTHONPATH=src $(PYTHON) -m pytest tests/semantic/test_mappings.py tests/unit/test_quality.py -q
 check-golden:
-	$(PYTHON) -m pytest tests/golden -q
+	PYTHONPATH=src $(PYTHON) -m pytest tests/golden -q
 check-compiler:
-	$(PYTHON) -m pytest tests/unit/test_compiler.py -q
+	PYTHONPATH=src $(PYTHON) -m pytest tests/unit/test_compiler.py -q
 demo:
-	$(PYTHON) -m semantic_layer.demo
+	PYTHONPATH=src $(PYTHON) -m semantic_layer.demo
 evaluate:
-	$(PYTHON) -m semantic_layer.evaluation
+	PYTHONPATH=src $(PYTHON) -m semantic_layer.evaluation
 run-api:
-	$(PYTHON) -m uvicorn semantic_layer.api:app --reload
+	PYTHONPATH=src $(PYTHON) -m uvicorn semantic_layer.api:app --reload
 kg-build:
-	$(PYTHON) -m semantic_layer.kg.sap_dataset_generator
+	PYTHONPATH=src $(PYTHON) -m semantic_layer.kg.sap_dataset_generator
 kg-validate:
-	$(PYTHON) -m pytest tests/semantic/test_sap_kg.py -v
+	PYTHONPATH=src $(PYTHON) -m pytest tests/semantic/test_sap_kg.py -v
 research-benchmark:
-	$(PYTHON) -m semantic_layer.research
+	@benchmark_output=$$(mktemp); trap 'rm -f -- "$$benchmark_output"' EXIT; \
+	PYTHONPATH=src $(PYTHON) -m semantic_layer.research --output "$$benchmark_output"
 research-demo:
-	$(PYTHON) -m semantic_layer.demo_sap
-
+	PYTHONPATH=src $(PYTHON) -m semantic_layer.demo_sap
+research-verify:
+	PYTHONPATH=src $(PYTHON) scripts/research_verify.py
+	$(MAKE) PYTHON=$(PYTHON) check-yaml
+	$(MAKE) PYTHON=$(PYTHON) check-publication-formats
+	PYTHONPATH=src $(PYTHON) -m pytest tests/unit/test_claim_scan.py tests/unit/test_final_readiness.py tests/unit/test_documentation_contract.py tests/research/test_contracts.py tests/research/test_result_artifact.py -q
+	PYTHONPATH=src $(PYTHON) -m pytest -q
+	PYTHONPATH=src $(PYTHON) -m ruff check .
