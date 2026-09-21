@@ -17,6 +17,7 @@ from semantic_layer.research.contracts import (
     Status,
     canonical_json,
     load_and_validate_result,
+    validate_environment_contract,
 )
 from semantic_layer.validation import scan_repository_legacy_uris
 
@@ -187,6 +188,30 @@ def test_result_schema_rejects_unsupported_environment_without_loader(
 @pytest.mark.parametrize(
     ("field", "value"),
     [
+        ("python_version", "3.12.0\n"),
+        ("python_version", "3.12.0\r\n"),
+        ("lock_sha256", "0" * 64 + "\n"),
+        ("lock_sha256", "0" * 64 + "\r\n"),
+        ("packages", {"pip\n": "25.2"}),
+        ("packages", {"pip\r\n": "25.2"}),
+        ("packages", {"pip": "25.2\n"}),
+        ("packages", {"pip": "25.2\r\n"}),
+    ],
+)
+def test_result_schema_rejects_environment_line_ending_suffixes_without_loader(
+    field: str, value: object
+) -> None:
+    schema = json.loads((ROOT / "tests/research/result_schema.json").read_bytes())
+    result = _schema_valid_result()
+    result["environment"][field] = value  # type: ignore[index]
+
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.Draft202012Validator(schema).validate(result)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
         ("pip_version", "24.0"),
         ("pip_version", "unavailable"),
         ("platform_system", "Darwin"),
@@ -206,6 +231,54 @@ def test_result_loader_rejects_unsupported_publication_environment(
 
     with pytest.raises(jsonschema.ValidationError):
         load_and_validate_result(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("python_version", "3.12.0\n"),
+        ("python_version", "3.12.0\r\n"),
+        ("lock_sha256", "0" * 64 + "\n"),
+        ("lock_sha256", "0" * 64 + "\r\n"),
+        ("packages", {"pip\n": "25.2"}),
+        ("packages", {"pip\r\n": "25.2"}),
+        ("packages", {"pip": "25.2\n"}),
+        ("packages", {"pip": "25.2\r\n"}),
+    ],
+)
+def test_result_loader_rejects_environment_line_ending_suffixes(
+    tmp_path: Path, field: str, value: object
+) -> None:
+    result = _schema_valid_result()
+    result["environment"][field] = value  # type: ignore[index]
+    path = tmp_path / "line-ending-environment.json"
+    path.write_bytes(canonical_json(result))
+
+    with pytest.raises((jsonschema.ValidationError, ValueError)):
+        load_and_validate_result(path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("python_version", "3.12.0\n"),
+        ("python_version", "3.12.0\r\n"),
+        ("lock_sha256", "0" * 64 + "\n"),
+        ("lock_sha256", "0" * 64 + "\r\n"),
+        ("packages", {"pip\n": "25.2"}),
+        ("packages", {"pip\r\n": "25.2"}),
+        ("packages", {"pip": "25.2\n"}),
+        ("packages", {"pip": "25.2\r\n"}),
+    ],
+)
+def test_environment_contract_rejects_environment_line_ending_suffixes(
+    field: str, value: object
+) -> None:
+    environment = _schema_valid_result()["environment"]
+    environment[field] = value  # type: ignore[index]
+
+    with pytest.raises(ValueError):
+        validate_environment_contract(environment)
 
 
 def test_committed_result_loader_rejects_noncanonical_bytes(tmp_path: Path) -> None:
