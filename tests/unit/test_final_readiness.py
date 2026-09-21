@@ -260,7 +260,29 @@ def test_reproducibility_comparison_rejects_deterministic_drift() -> None:
     fresh["per_query"][0]["observed_status"] = "EXECUTION_ERROR"
 
     with pytest.raises(ValueError, match="deterministic"):
-        compare_result_artifacts(artifact, fresh, ROOT)
+        compare_result_artifacts(
+            artifact,
+            fresh,
+            ROOT,
+            runtime_environment=artifact["environment"],
+        )
+
+
+def test_reproducibility_comparison_rejects_runtime_environment_mismatch() -> None:
+    artifact = json.loads((ROOT / "results/latest_benchmark.json").read_bytes())
+    fresh = deepcopy(artifact)
+    current_version = artifact["environment"]["python_version"]
+    fresh["environment"]["python_version"] = (
+        "3.12.99" if current_version != "3.12.99" else "3.12.98"
+    )
+
+    with pytest.raises(ValueError, match="current artifact environment"):
+        compare_result_artifacts(
+            artifact,
+            fresh,
+            ROOT,
+            runtime_environment=artifact["environment"],
+        )
 
 
 def test_explicit_answer_evaluation_uses_evidence_checked_executor(monkeypatch: pytest.MonkeyPatch) -> None:
