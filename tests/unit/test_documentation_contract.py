@@ -99,7 +99,7 @@ FUTURE_ONLY_METRIC_FIELDS = (
     "human_unsupported_answer_rate",
 )
 PUBLIC_FRAMING_FORBIDDEN = (
-    re.compile(r"\bcifre(?:[-_]|(?=\b))", re.IGNORECASE),
+    re.compile(r"cifre", re.IGNORECASE),
     re.compile(r"\bsap labs france\b", re.IGNORECASE),
     re.compile(r"\brequisition(?:\s+\d+)?\b", re.IGNORECASE),
     re.compile(r"candidate-authored", re.IGNORECASE),
@@ -115,17 +115,12 @@ def _normalize_public_framing_text(text: str) -> str:
 
     corpus_ids = PUBLIC_FRAMING_ALLOWED_INTERNAL[:2]
     filenames = PUBLIC_FRAMING_ALLOWED_INTERNAL[2:]
-    token_boundary = r"[A-Za-z0-9_./-]"
-    for allowed in corpus_ids + filenames:
-        text = re.sub(
-            rf"(?<!{token_boundary}){re.escape(allowed)}(?!{token_boundary})",
-            " ",
-            text,
-        )
 
     def replace_allowed_link_destination(match: re.Match[str]) -> str:
         target = match.group(1)
         target_path, _, _ = target.partition("#")
+        if "?" in target_path:
+            return match.group(0)
         if any(
             target_path == filename or target_path.endswith(f"/{filename}")
             for filename in filenames
@@ -134,6 +129,13 @@ def _normalize_public_framing_text(text: str) -> str:
         return match.group(0)
 
     text = MARKDOWN_LINK_RE.sub(replace_allowed_link_destination, text)
+    token_boundary = r"[A-Za-z0-9_./%?&=+#-]"
+    for allowed in corpus_ids + filenames:
+        text = re.sub(
+            rf"(?<!{token_boundary}){re.escape(allowed)}(?!{token_boundary})",
+            " ",
+            text,
+        )
     return text.casefold()
 PUBLIC_FRAMING_REQUIRED = (
     "research prototype",
@@ -741,9 +743,18 @@ def test_public_framing_allowlist_boundaries_are_exact() -> None:
     near_misses = (
         "`cifre-synthetic-aqr-v1x`",
         "`cifre-synthetic-aqr-v1/extra`",
+        "`cifre-synthetic-aqr-v1?x=1`",
+        "`cifre-synthetic-aqr-v1%3Fx=1`",
+        "`cifre-synthetic-aqr-v1=x&y=2`",
         "`cifre_phd_proposal.md.bak`",
+        "`cifre_phd_proposal.md?x=1`",
+        "[label](cifre_phd_proposal.md?x=1)",
+        "[label](cifre_phd_proposal.md?x=1#scope)",
         "`cifre-interview-brief.md2`",
         "`cifre-hardening-baseline.md.old`",
+        "`x_cifre-synthetic-aqr-v1`",
+        "`x_cifre_phd_proposal.md`",
+        "`cifre-interview-brief.md_x`",
     )
     for probe in near_misses:
         normalized = _normalize_public_framing_text(probe)
