@@ -1,16 +1,13 @@
-# CIFRE research interview brief
+# Research interview brief
 
 ## One-minute scope
 
-This is an independent, unaffiliated candidate prototype using synthetic
-support and product-lifecycle fixtures. There is no employment, sponsorship,
-host, collaboration, or affiliation implied by the repository; there is no
-affiliation with any external organization. It is not an
-official product, benchmark, or report of proprietary-data access. The current
-research instrument is a deterministic RDF/SHACL/SPARQL baseline; learned,
-vector, and agentic model conditions are proposed future work.
-
-No affiliation with an external organization is implied.
+This research prototype investigates knowledge-grounded Agentic AI with RDF,
+OWL, SHACL, SPARQL, deterministic query planning and repair, provenance, and
+controlled evaluation. The current research instrument is a deterministic symbolic baseline
+over synthetic data; proposed future LLM, vector, and
+agentic-model conditions are future work. The preliminary controlled benchmark
+is small, with no proprietary data and no production-scale validation.
 
 The primary corpus is `cifre-synthetic-aqr-v1` (40 controlled synthetic
 questions). The checked-in v2 corpus adds explicit negative and strict-empty

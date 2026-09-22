@@ -1,11 +1,17 @@
 # Enterprise semantic layer and synthetic knowledge-graph prototype
 
-This repository is an executable, local research prototype for semantic
-contracts, a synthetic RDF knowledge graph, and deterministic query planning.
-It is written for inspection and extension; it is not a product description or
-an evaluation of an external system.
+This repository is an executable research prototype for knowledge-grounded
+Agentic AI over RDF/OWL enterprise knowledge graphs. It combines SHACL,
+SPARQL, deterministic autonomous query planning and bounded repair, provenance,
+and controlled evaluation over synthetic support and product-lifecycle data.
+The current implementation is a deterministic symbolic baseline; proposed
+future work will study LLM-assisted grounding, query synthesis, retrieval, and
+repair under the same typed and evidence-preserving contracts.
 
-> This is an independent, unaffiliated candidate prototype using synthetic support and product-lifecycle fixtures. It is not an SAP product, SAP publication, SAP-endorsed benchmark, or report of access to SAP internal data. The repository demonstrates a deterministic symbolic baseline and proposes future LLM/retrieval experiments; it does not claim completed PhD research or production readiness.
+The research question is how autonomous query reasoning can broaden language
+coverage while preserving semantic validity, fail-closed abstention, and
+auditable provenance. The current evidence is preliminary and controlled: no
+proprietary data or production-scale validation is included.
 
 ## Status at a glance
 
@@ -99,13 +105,13 @@ The v1/v2 protocol is a controlled, preliminary synthetic methodology over a
 checked-in graph. It compares the deterministic no-reflection condition with
 the deterministic bounded-repair condition, records per-query status and
 provenance, and keeps unsupported or strict-empty cases explicit. The corpus
-is not proprietary data, an SAP benchmark, a production-support evaluation, or
-evidence that the method generalizes to real data.
+is synthetic and controlled; broader generalization to real data and production
+support remains future work.
 
 The measured preliminary result is committed as the
 [preliminary benchmark artifact](results/latest_benchmark.json). It is a
-repository-authored synthetic result, not an external benchmark or production
-evaluation; its exact environment, input hashes, and metric values are recorded
+repository-authored preliminary result, not a production evaluation; its exact
+environment, input hashes, and metric values are recorded
 in the [interview brief](docs/research/cifre-interview-brief.md) and
 [verification report](docs/verification-report.md).
 
@@ -120,8 +126,6 @@ The following limitations are mandatory reading:
 - There is no production-scale graph or performance validation.
 - Security, privacy, authentication, and governance controls are incomplete in this prototype.
 - Findings are preliminary controlled synthetic evidence and should be reproduced from the source and the committed canonical benchmark artifact; they do not establish generalization or production readiness, and the artifact must be regenerated after covered-byte changes.
-- No affiliation is claimed; this is an independent candidate prototype.
-- Nothing here establishes an affiliation, employment, endorsement, or access to an external organization's systems.
 
 The proposed research programme is deliberately separate from the local
 baseline. Future work may test learned schema linking, constrained
@@ -372,8 +376,9 @@ verification evidence:
 Changes to a vocabulary, namespace, graph shape, query pattern, product
 contract, mapping, metric, or rule should include a focused test and a clear
 status label. Reviewers should distinguish a local deterministic result from a
-proposal or an illustrative platform artifact. The repository does not assign
-external ownership, certification authority, or affiliation.
+proposal or an illustrative platform artifact. The repository records local
+ownership of its source, fixtures, and evidence; external certification and
+deployment governance are outside this prototype.
 
 The local security boundary is deliberately limited. Synthetic fixtures contain
 no proprietary data or credentials; request-body caller fields are spoofable
@@ -405,13 +410,12 @@ The ADRs preserve the technical decisions behind the local design:
 7. [Deterministic core](docs/decisions/ADR-007-deterministic-core.md)
 8. [Synthetic contract status](docs/decisions/ADR-008-certified-data-products.md)
 
-## What is not a claim
+## Research boundaries
 
-This checkout does not claim an external affiliation, access to proprietary
-data, cloud execution, external certification, production-scale validation,
-or claims beyond the controlled synthetic corpus. It does not contain an LLM or
-vector system. Those
-questions belong to future controlled research with new evidence.
+The current implementation contains no LLM or vector system, uses only
+synthetic data, and has no production-scale validation. Cloud execution,
+external certification, and broader generalization are proposed future study
+conditions that require their own data, controls, and evidence.
 
 MCP transport is not implemented, and LLM integration is not implemented.
 

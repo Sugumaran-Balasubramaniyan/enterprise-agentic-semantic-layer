@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 
+import pytest
+
 from semantic_layer.api.app import create_app
 from semantic_layer.kg.loader import SAPKnowledgeGraph
 from semantic_layer.reasoning.query_planner import QueryPlanner
@@ -41,6 +43,99 @@ RESEARCH_HANDOFF_DOCS = (
     ROOT / "docs" / "verification-report.md",
 )
 RESEARCH_METRIC_DOCS = RESEARCH_HANDOFF_DOCS
+PUBLIC_FRAMING_DOCS = (
+    ROOT / "README.md",
+    *RESEARCH_HANDOFF_DOCS,
+)
+PUBLIC_FRAMING_HISTORICAL_DOCS = (
+    ROOT / "docs" / "research" / "cifre-hardening-baseline.md",
+    ROOT / "docs" / "superpowers" / "plans" / "2026-09-19-cifre-research-prototype-hardening.md",
+    ROOT / "docs" / "superpowers" / "specs" / "2026-09-19-cifre-research-prototype-hardening-design.md",
+)
+PUBLIC_FRAMING_ALLOWED_LINES = (
+    (
+        ROOT / "README.md",
+        (
+            ("in the [interview brief](docs/research/cifre-interview-brief.md) and", 1),
+        ),
+    ),
+    (
+        ROOT / "docs" / "research" / "cifre_phd_proposal.md",
+        (
+            (
+                (
+                    "| Synthetic/simulated | `cifre-synthetic-aqr-v1` and its v2 extension; "
+                    "SAP-shaped names used as fictional identifiers; future retrieval and model "
+                    "comparisons described in this proposal. |"
+                ),
+                1,
+            ),
+            ("The corpus is named `cifre-synthetic-aqr-v1`, with stable query IDs and 40", 1),
+            ("`cifre-synthetic-aqr-v2` corpus contains the v1 records plus explicit negative", 1),
+        ),
+    ),
+    (
+        ROOT / "docs" / "research" / "technical_design_and_research_questions.md",
+        (
+            ("`cifre-synthetic-aqr-v1` contains 40 controlled synthetic records. The v2", 1),
+        ),
+    ),
+    (
+        ROOT / "docs" / "research" / "cifre-interview-brief.md",
+        (
+            ("The primary corpus is `cifre-synthetic-aqr-v1` (40 controlled synthetic", 1),
+            (
+                (
+                    "| v1 `cifre-synthetic-aqr-v1` | `6fe8532232c66b04c7cbe92f8479e809dd57c38890d59db4672d0c20a9c04f67` "
+                    "| 40 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / "
+                    "1.000000 / 1.000000` | `1.000000` | `1.000000` | `0.200000` | `null` |"
+                ),
+                1,
+            ),
+            (
+                (
+                    "| v2 `cifre-synthetic-aqr-v2` | `40c3cf58b29de5d99a34f5640b982e79c42a217d8e6f73d8b7534a3eddd60168` "
+                    "| 52 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / "
+                    "1.000000 / 1.000000` | `1.000000` | `0.846154` | `0.230769` | `1.000000` |"
+                ),
+                1,
+            ),
+        ),
+    ),
+    (
+        ROOT / "docs" / "verification-report.md",
+        (
+            ("[`cifre-hardening-baseline.md`](research/cifre-hardening-baseline.md); they are", 1),
+            (
+                (
+                    "| `cifre-synthetic-aqr-v1` | `6fe8532232c66b04c7cbe92f8479e809dd57c38890d59db4672d0c20a9c04f67` "
+                    "| 40 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / "
+                    "1.000000 / 1.000000` | `1.000000` | `1.000000` | `0.200000` | `null` |"
+                ),
+                1,
+            ),
+            (
+                (
+                    "| `cifre-synthetic-aqr-v2` | `40c3cf58b29de5d99a34f5640b982e79c42a217d8e6f73d8b7534a3eddd60168` "
+                    "| 52 | no-reflection; bounded-repair | `1.000000` | `1.000000 / 1.000000 / "
+                    "1.000000 / 1.000000` | `1.000000` | `0.846154` | `0.230769` | `1.000000` |"
+                ),
+                1,
+            ),
+        ),
+    ),
+)
+PUBLIC_FRAMING_FORBIDDEN_PHRASES = (
+    "sap labs france",
+    "requisition",
+    "candidate-authored",
+    "candidate prototype",
+    "unaffiliated",
+    "not an sap product",
+    "no affiliation",
+    "job application",
+    "job-application",
+)
 RESEARCH_SOURCE_LINKS = (
     "../../src/semantic_layer/reasoning/schema_linker.py",
     "../../src/semantic_layer/reasoning/query_planner.py",
@@ -82,13 +177,40 @@ FUTURE_ONLY_METRIC_FIELDS = (
     "robustness",
     "human_unsupported_answer_rate",
 )
-DISCLAIMER = (
-    "This is an independent, unaffiliated candidate prototype using synthetic "
-    "support and product-lifecycle fixtures. It is not an SAP product, SAP "
-    "publication, SAP-endorsed benchmark, or report of access to SAP internal "
-    "data. The repository demonstrates a deterministic symbolic baseline and "
-    "proposes future LLM/retrieval experiments; it does not claim completed PhD "
-    "research or production readiness."
+def _allowlisted_framing_lines(path: Path) -> tuple[tuple[str, int], ...]:
+    for allowlisted_path, lines in PUBLIC_FRAMING_ALLOWED_LINES:
+        if path == allowlisted_path:
+            return lines
+    raise AssertionError(f"No public-framing allowlist exists for {path}")
+
+
+def _validate_public_framing_document(path: Path, text: str | None = None) -> None:
+    """Validate exact reviewed lines and unconditionally forbidden prose."""
+
+    document = path.read_text(encoding="utf-8") if text is None else text
+    lines = document.splitlines()
+    allowlisted_lines = _allowlisted_framing_lines(path)
+    expected_counts = dict(allowlisted_lines)
+    assert len(expected_counts) == len(allowlisted_lines), path
+
+    for line_number, line in enumerate(lines, start=1):
+        if "cifre" in line.casefold():
+            assert line in expected_counts, (path, line_number, line)
+
+    for line, expected_count in allowlisted_lines:
+        assert lines.count(line) == expected_count, (path, line, expected_count)
+
+    lowered = document.casefold()
+    for phrase in PUBLIC_FRAMING_FORBIDDEN_PHRASES:
+        assert phrase.casefold() not in lowered, (path, phrase)
+PUBLIC_FRAMING_REQUIRED = (
+    "research prototype",
+    "deterministic symbolic baseline",
+    "proposed future LLM",
+    "synthetic",
+    "preliminary",
+    "controlled benchmark",
+    "no production-scale",
 )
 # Anchor the append-only baseline without consulting repository history.
 BASELINE_HANDOFF_SEPARATOR = b"\n## Final handoff pointer (appended by Task 12)\n"
@@ -219,15 +341,14 @@ def test_publication_claim_contract_and_links() -> None:
     """Pin public wording while allowing the final artifact to be absent."""
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    compact_readme = _compact_markdown(readme)
-    assert DISCLAIMER in compact_readme
-
     first_research_heading = readme.index("## Synthetic KG and AQR research prototype")
     first_reproducibility_command = readme.index(
         "make PYTHON=.venv/bin/python research-verify"
     )
-    assert DISCLAIMER in _compact_markdown(readme[:first_research_heading])
-    assert DISCLAIMER in _compact_markdown(readme[:first_reproducibility_command])
+    assert "research prototype" in _compact_markdown(readme[:first_research_heading]).lower()
+    assert "deterministic symbolic baseline" in _compact_markdown(
+        readme[:first_reproducibility_command]
+    ).lower()
 
     first_screen = readme[:readme.index("## Local setup")]
     for label in (
@@ -304,7 +425,6 @@ def test_research_handoff_contract_and_links() -> None:
         assert section in proposal, section
     for research_id in ("RQ1", "RQ2", "RQ3", "RQ4", "RQ5", "RQ6", "H1", "H2", "H3", "H4"):
         assert research_id in proposal, research_id
-    assert DISCLAIMER in _compact_markdown(proposal)
     assert "SAP Labs France" not in proposal
     assert "100.0%" not in proposal
     assert "0% hallucination" not in proposal.lower()
@@ -343,8 +463,13 @@ def test_research_handoff_contract_and_links() -> None:
         "cifre-synthetic-aqr-v1",
         "results/latest_benchmark.json",
         "make PYTHON=.venv/bin/python research-verify",
-        "independent",
-        "no affiliation",
+        "research prototype",
+        "deterministic symbolic baseline",
+        "proposed future LLM",
+        "synthetic",
+        "preliminary",
+        "controlled benchmark",
+        "no production-scale",
         "Task 13",
     ):
         assert required.lower() in brief.lower(), required
@@ -614,10 +739,144 @@ def test_readme_states_mandatory_limitations_and_future_boundaries() -> None:
         "no production-scale graph or performance validation",
         "security, privacy, authentication, and governance controls are incomplete",
         "findings are preliminary",
-        "no affiliation",
         "learned schema linking",
         "text-to-sparql",
         "learned repair",
         "hybrid graph/vector retrieval",
     ]:
         assert fragment in readme, fragment
+
+
+def test_current_public_docs_use_neutral_research_framing() -> None:
+    """Current public prose leads with research scope, not affiliation disclaimers."""
+
+    assert tuple(path for path, _ in PUBLIC_FRAMING_ALLOWED_LINES) == PUBLIC_FRAMING_DOCS
+    for path in PUBLIC_FRAMING_DOCS:
+        _validate_public_framing_document(path)
+
+    raw_combined = "\n".join(path.read_text(encoding="utf-8") for path in PUBLIC_FRAMING_DOCS)
+    lowered = raw_combined.casefold()
+    for phrase in PUBLIC_FRAMING_REQUIRED:
+        assert phrase.lower() in lowered, phrase
+
+def test_public_framing_cases_and_historical_documents_are_explicit() -> None:
+    """Forbidden prose is case-insensitive; historical controls stay excluded."""
+
+    readme = ROOT / "README.md"
+    readme_text = readme.read_text(encoding="utf-8")
+    for phrase in PUBLIC_FRAMING_FORBIDDEN_PHRASES:
+        with pytest.raises(AssertionError):
+            _validate_public_framing_document(readme, readme_text + "\n" + phrase.swapcase())
+
+    assert set(PUBLIC_FRAMING_DOCS).isdisjoint(PUBLIC_FRAMING_HISTORICAL_DOCS)
+    assert all(
+        path not in PUBLIC_FRAMING_DOCS
+        for path in PUBLIC_FRAMING_HISTORICAL_DOCS
+    )
+    historical = "\n".join(
+        path.read_text(encoding="utf-8") for path in PUBLIC_FRAMING_HISTORICAL_DOCS
+    ).casefold()
+    assert "sap labs france" in historical
+    assert "requisition" in historical
+
+
+def test_public_framing_allowlist_boundaries_are_exact() -> None:
+    """Every reviewer near-miss remains a rejected complete line."""
+
+    near_misses = (
+        "cifre-synthetic-aqr-v1x",
+        "cifre-synthetic-aqr-v1_x",
+        "`cifre-synthetic-aqr-v1x`",
+        "cifre-synthetic-aqr-v1/extra",
+        "`cifre-synthetic-aqr-v1/extra`",
+        "cifre_phd_proposal.md.bak",
+        "`cifre-synthetic-aqr-v1?x=1`",
+        "`cifre-synthetic-aqr-v1#scope?x=1`",
+        "`cifre-synthetic-aqr-v1%3Fx=1`",
+        "`cifre-synthetic-aqr-v1=x&y=2`",
+        "`cifre_phd_proposal.md.bak`",
+        "`cifre_phd_proposal.md?x=1`",
+        "`cifre_phd_proposal.md#scope?x=1`",
+        "[label](cifre_phd_proposal.md?x=1)",
+        "[label](cifre_phd_proposal.md?x=1#scope)",
+        "[label](cifre_phd_proposal.md#scope?x=1)",
+        "[label](cifre_phd_proposal.md%3Fx=1)",
+        "[label](docs/research/cifre_phd_proposal.md)",
+        "[label](docs/research/../research/cifre_phd_proposal.md)",
+        "[label](../../../../outside/cifre_phd_proposal.md)",
+        "[label](https://example.test/cifre_phd_proposal.md)",
+        "[label](//example.test/cifre_phd_proposal.md)",
+        "[label](<cifre_phd_proposal.md>)",
+        "[label](<docs/research/cifre_phd_proposal.md>)",
+        "[cifre_phd_proposal.md](docs/research/other.md)",
+        "`cifre-interview-brief.md2`",
+        "`cifre-hardening-baseline.md.old`",
+        "`x_cifre-synthetic-aqr-v1`",
+        "`x_cifre_phd_proposal.md`",
+        "`cifre-interview-brief.md_x`",
+        "CIFRE RESEARCH PROGRAMME",
+        "sAp LaBs FrAnCe",
+        "ReQuIsItIoN 452538",
+    )
+    for probe in near_misses:
+        with pytest.raises(AssertionError):
+            _validate_public_framing_document(
+                ROOT / "README.md",
+                (ROOT / "README.md").read_text(encoding="utf-8") + "\n" + probe,
+            )
+
+
+def test_public_framing_allowlisted_lines_require_exact_occurrences() -> None:
+    """Exact reviewed lines pass, while payload mutations, removal, and duplication fail."""
+
+    reviewer_payloads = (
+        "cifre-synthetic-aqr-v1x",
+        "cifre-synthetic-aqr-v1_x",
+        "cifre-synthetic-aqr-v1/extra",
+        "cifre_phd_proposal.md.bak",
+        "cifre-synthetic-aqr-v1?x=1#scope",
+        "cifre_phd_proposal.md?x=1",
+        "cifre_phd_proposal.md#scope?x=1",
+        "cifre-synthetic-aqr-v1%3Fx=1",
+        "%63ifre-synthetic-aqr-v1",
+        "ci%66re_phd_proposal.md",
+        "cifr%65_phd_proposal.md",
+        "cifre-synthetic-aqr-v1=x&y=2",
+        "../../../../outside/cifre_phd_proposal.md",
+        "https://example.test/cifre_phd_proposal.md",
+        "<cifre_phd_proposal.md>",
+        "<docs/research/cifre_phd_proposal.md>",
+        "[cifre_phd_proposal.md](docs/research/other.md)",
+        "CIFRE RESEARCH PROGRAMME",
+        "sAp LaBs FrAnCe",
+        "ReQuIsItIoN 452538",
+    )
+
+    for path, allowlisted_lines in PUBLIC_FRAMING_ALLOWED_LINES:
+        current_lines = path.read_text(encoding="utf-8").splitlines()
+        _validate_public_framing_document(path, "\n".join(current_lines))
+        for line, _ in allowlisted_lines:
+            line_index = current_lines.index(line)
+            for payload in reviewer_payloads:
+                for mutated_line in (line + payload, payload + line):
+                    mutated_lines = current_lines.copy()
+                    mutated_lines[line_index] = mutated_line
+                    with pytest.raises(AssertionError):
+                        _validate_public_framing_document(path, "\n".join(mutated_lines))
+
+            removed_lines = current_lines.copy()
+            removed_lines.pop(line_index)
+            with pytest.raises(AssertionError):
+                _validate_public_framing_document(path, "\n".join(removed_lines))
+
+            duplicated_lines = current_lines.copy()
+            duplicated_lines.insert(line_index, line)
+            with pytest.raises(AssertionError):
+                _validate_public_framing_document(path, "\n".join(duplicated_lines))
+
+    readme = ROOT / "README.md"
+    with pytest.raises(AssertionError):
+        _validate_public_framing_document(
+            readme,
+            readme.read_text(encoding="utf-8") + "\nNew unreviewed cifre line.",
+        )
