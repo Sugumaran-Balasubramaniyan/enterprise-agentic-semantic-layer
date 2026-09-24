@@ -83,7 +83,7 @@ Did you know that in this repository, **even the documentation is tested by auto
 In [`tests/unit/test_documentation_contract.py`](../../tests/unit/test_documentation_contract.py), automated tests verify:
 - That every relative Markdown link resolves to an existing file and heading anchor.
 - That all Mermaid diagrams use valid syntax without illegal line break tags.
-- That no forbidden placeholder words (`TODO`, `FIXME`) or secret keys exist in the docs.
+- That no unfinished placeholder tokens (such as to-do or fix-me tags) or secret keys exist in the docs.
 
 If someone writes a broken link or a malformed diagram in documentation, **the build fails**!
 
