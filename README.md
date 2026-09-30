@@ -212,6 +212,77 @@ The supported Make targets are `setup`, `test`, `lint`, `validate-semantic`,
 `.venv` interpreter explicitly so Ubuntu's externally managed system Python is
 not modified.
 
+### EASL Unified CLI & Quickstart
+
+The repository provides a unified command-line tool `easl` (Enterprise Agentic Semantic Layer) for interacting with the semantic layer, querying knowledge graphs, and running verification:
+
+```bash
+# Query enterprise data products with zero SQL injection
+PYTHONPATH=src .venv/bin/python -m semantic_layer.cli query "Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000."
+
+# Ask knowledge graph questions via Autonomous Query Reasoning (AQR)
+PYTHONPATH=src .venv/bin/python -m semantic_layer.cli ask "What are the prerequisite notes required for SAP Note 3109922?"
+
+# Inspect registered data products, metrics, and canonical concepts
+PYTHONPATH=src .venv/bin/python -m semantic_layer.cli info
+
+# Launch the FastAPI REST service with OpenAPI documentation
+PYTHONPATH=src .venv/bin/python -m semantic_layer.cli serve --port 8000
+
+# Run complete interactive demonstration workflows
+PYTHONPATH=src .venv/bin/python -m semantic_layer.cli demo
+```
+
+When installed via pip (`pip install .` or `pip install -e '.[dev]'`), the `easl` command is directly available on your PATH:
+
+```bash
+easl info
+easl query "Find French automotive business partners..."
+easl ask "What are the prerequisite notes required for SAP Note 3109922?"
+easl serve --port 8000
+```
+
+### Python SDK Quickstart
+
+You can integrate EASL into any Python application or AI agent pipeline in under 20 lines of code:
+
+```python
+from semantic_layer.agents import AgentWorkflow
+from semantic_layer.models import CallerContext
+
+# Initialize workflow and caller role context
+workflow = AgentWorkflow()
+context = CallerContext(role="FinancialControllerFR", country="FR")
+
+# Query governed enterprise semantics
+answer = workflow.answer(
+    "Find French automotive business partners with at least three qualifying financial postings in the last 12 months and total debit loss above EUR 20,000.",
+    context,
+)
+data = answer.to_dict()
+
+print("Status:", data["quality"]["status"])
+print("Compiled SQL:\n", data["compiled_query"]["sql"])
+print("Results:", data["result"])
+print("Provenance:", data["provenance"]["result_digest"])
+```
+
+### Docker Containerization
+
+Run the EASL service in Docker with a single command:
+
+```bash
+docker compose up --build
+```
+
+The REST API will be available at `http://localhost:8000`, with interactive OpenAPI Swagger docs at `http://localhost:8000/docs`.
+
+### Community and Contributing
+
+We welcome community contributions! Please review:
+- [CONTRIBUTING.md](CONTRIBUTING.md) for development workflows, adding data products, and verification gates.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community guidelines.
+
 ### Local data and semantic assets
 
 The graph and relational fixtures are generated or loaded from versioned
