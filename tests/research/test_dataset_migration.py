@@ -335,36 +335,54 @@ def test_migration_rejects_hardlinked_canonical_outputs_before_any_write(
     output_name: str,
     canonical_path: Path,
 ) -> None:
-    hardlink = tmp_path / f"{output_name}-hardlink.yaml"
-    os.link(canonical_path, hardlink)
-    outputs = {
-        "v1": tmp_path / "v1.yaml",
-        "v2": tmp_path / "v2.yaml",
-        "manifest": tmp_path / "manifest.yaml",
-    }
-    outputs[output_name] = hardlink
-    sentinel_paths = {
-        path: f"sentinel:{name}".encode()
-        for name, path in outputs.items()
-        if path != hardlink
-    }
-    for path, contents in sentinel_paths.items():
-        path.write_bytes(contents)
-    canonical_before = {path: path.read_bytes() for path in (HISTORICAL, LEGACY)}
-    writes: list[Path] = []
-    monkeypatch.setattr(
-        _MODULE,
-        "_write_yaml",
-        lambda path, _value: writes.append(Path(path)),
-    )
+    work_dir = tmp_path
+    cleanup_dir: Path | None = None
+    try:
+        try:
+            hardlink = work_dir / f"{output_name}-hardlink.yaml"
+            os.link(canonical_path, hardlink)
+        except OSError as err:
+            import errno
+            import tempfile
+            if err.errno == errno.EXDEV:
+                cleanup_dir = Path(tempfile.mkdtemp(dir=canonical_path.parent))
+                work_dir = cleanup_dir
+                hardlink = work_dir / f"{output_name}-hardlink.yaml"
+                os.link(canonical_path, hardlink)
+            else:
+                raise
 
-    with pytest.raises(ValueError, match="cannot overwrite canonical historical/archive"):
-        migrate_benchmark(LEGACY, outputs["v1"], outputs["v2"], outputs["manifest"])
+        outputs = {
+            "v1": work_dir / "v1.yaml",
+            "v2": work_dir / "v2.yaml",
+            "manifest": work_dir / "manifest.yaml",
+        }
+        outputs[output_name] = hardlink
+        sentinel_paths = {
+            path: f"sentinel:{name}".encode()
+            for name, path in outputs.items()
+            if path != hardlink
+        }
+        for path, contents in sentinel_paths.items():
+            path.write_bytes(contents)
+        canonical_before = {path: path.read_bytes() for path in (HISTORICAL, LEGACY)}
+        writes: list[Path] = []
+        monkeypatch.setattr(
+            _MODULE,
+            "_write_yaml",
+            lambda path, _value: writes.append(Path(path)),
+        )
 
-    assert writes == []
-    assert {path: path.read_bytes() for path in (HISTORICAL, LEGACY)} == canonical_before
-    assert {path: path.read_bytes() for path in sentinel_paths} == sentinel_paths
-    assert hardlink.read_bytes() == canonical_before[canonical_path]
+        with pytest.raises(ValueError, match="cannot overwrite canonical historical/archive"):
+            migrate_benchmark(LEGACY, outputs["v1"], outputs["v2"], outputs["manifest"])
+
+        assert writes == []
+        assert {path: path.read_bytes() for path in (HISTORICAL, LEGACY)} == canonical_before
+        assert {path: path.read_bytes() for path in sentinel_paths} == sentinel_paths
+        assert hardlink.read_bytes() == canonical_before[canonical_path]
+    finally:
+        if cleanup_dir and cleanup_dir.exists():
+            shutil.rmtree(cleanup_dir, ignore_errors=True)
 
 
 def test_migration_rejects_existing_symlink_destination_before_any_write(
